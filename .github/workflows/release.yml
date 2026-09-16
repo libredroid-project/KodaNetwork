@@ -1,0 +1,96 @@
+name: Release Build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # secrets duerfen nicht direkt in step-if stehen, deshalb als Env-Flag
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      HAS_OR_KEY: ${{ secrets.OPENROUTER_KEY != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: JDK 21 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      # Die native Schicht braucht die (gitignored) secrets_local.h.
+      # Platzhalter reichen zum Kompilieren; der Tunnel-Token kommt zur
+      # Laufzeit vom Server. Wer den AI-Assistenten im CI-Build will,
+      # setzt das Repo-Secret OPENROUTER_KEY.
+      - name: secrets_local.h vorbereiten
+        run: cp app/src/main/cpp/secrets_local.h.example app/src/main/cpp/secrets_local.h
+
+      - name: "Optional: echten OpenRouter-Key einbauen"
+        if: env.HAS_OR_KEY == 'true'
+        run: |
+          python3 - << 'EOF'
+          import os
+          key = os.environ['OPENROUTER_KEY']
+          obf = ', '.join(f'0x{ord(c) ^ 0x4B:02x}' for c in key)
+          p = 'app/src/main/cpp/secrets_local.h'
+          s = open(p).read().replace(
+              'static const unsigned char OPENROUTER_KEY_OBF[] = { 0x00 /* openrouter key: xor-obf array siehe README */};',
+              f'static const unsigned char OPENROUTER_KEY_OBF[] = {{ {obf} }};')
+          open(p, 'w').write(s)
+          EOF
+        env:
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+
+      # Ohne Keystore-Secrets baut der Release-Signing-Schritt nicht;
+      # dann liefern wir die installierbare Debug-APK als Artefakt.
+      - name: "Optional: Release-Keystore aus Secrets laden"
+        if: env.HAS_KEYSTORE == 'true'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
+          ls -la app/release.keystore
+
+      - name: Debug-APK bauen (immer installierbar)
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug -x lint --console=plain
+
+      - name: "Signierte Release-Artefakte bauen (nur mit Keystore-Secrets)"
+        if: env.HAS_KEYSTORE == 'true'
+        run: |
+          ./gradlew :app:assembleRelease :app:bundleRelease \
+            -PKEYSTORE_PW='${{ secrets.KEYSTORE_PW }}' \
+            -PKEY_PW='${{ secrets.KEY_PW }}' \
+            -x lint -x lintVitalRelease --console=plain
+
+      - name: Artefakte sammeln
+        run: |
+          mkdir -p out
+          VERSION="${GITHUB_REF_NAME:-manual}"
+          cp app/build/outputs/apk/debug/app-debug.apk "out/KodaHosting-${VERSION}-debug.apk"
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            cp app/build/outputs/apk/release/app-release.apk "out/KodaHosting-${VERSION}-release.apk"
+          fi
+          if [ -f app/build/outputs/bundle/release/app-release.aab ]; then
+            cp app/build/outputs/bundle/release/app-release.aab "out/KodaHosting-${VERSION}-release.aab"
+          fi
+          ls -la out/
+
+      - name: Artefakte hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: KodaHosting-build
+          path: out/*
+
+      - name: GitHub-Release erstellen (bei Tag-Push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: out/*
