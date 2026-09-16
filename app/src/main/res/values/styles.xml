@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.KodaNetwork" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">#FF6B00</item>
+        <item name="colorPrimaryVariant">#CC5500</item>
+        <item name="colorSecondary">#FF8C38</item>
+        <item name="android:colorBackground">#0A0A0F</item>
+        <item name="android:windowBackground">#0A0A0F</item>
+        <item name="colorSurface">#12121A</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorOnBackground">#F0F0F0</item>
+        <item name="colorOnSurface">#F0F0F0</item>
+        <item name="android:statusBarColor">#0A0A0F</item>
+        <item name="android:navigationBarColor">#0A0A0F</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:textColor">#F0F0F0</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="fontFamily">@font/font_koda</item>
+    </style>
+
+    <style name="Theme.KodaNetwork.Translucent" parent="Theme.KodaNetwork">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <!-- Primary orange filled button, rounded corners -->
+    <style name="KodaButton" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">#FF6B00</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textSize">13sp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="rippleColor">#CC5500</item>
+    </style>
+
+    <!-- Outlined orange button, rounded corners -->
+    <style name="KodaButton.Outline" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">#FF6B0088</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">#FF8C38</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textSize">13sp</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+
+    <!-- Danger red button, rounded corners -->
+    <style name="KodaButton.Danger" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">#1A0000</item>
+        <item name="android:textColor">#FF3344</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textSize">13sp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="strokeColor">#FF334488</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <!-- Tab text style -->
+    <style name="MonoTabText" parent="@android:style/TextAppearance">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="PopupAnimation">
+        <item name="android:windowEnterAnimation">@anim/popup_enter</item>
+        <item name="android:windowExitAnimation">@anim/popup_exit</item>
+    </style>
+
+    <style name="KodaBottomSheetDialog" parent="Theme.MaterialComponents.BottomSheetDialog">
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="bottomSheetStyle">@style/KodaBottomSheet</item>
+        <item name="enableEdgeToEdge">true</item>
+        <item name="paddingBottomSystemWindowInsets">false</item>
+    </style>
+
+    <style name="KodaBottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="backgroundTint">#0A0807</item>
+    </style>
+
+</resources>

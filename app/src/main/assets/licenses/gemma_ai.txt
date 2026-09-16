@@ -1,0 +1,27 @@
+AI Crash Analysis via OpenRouter
+================================
+
+Feature: "Ask AI" crash analysis (user-initiated, opt-in consent,
+max 10 requests/day).
+
+Model chain: requests are routed by OpenRouter (https://openrouter.ai),
+a U.S.-based AI gateway, through varying third-party models, which may
+include:
+- NVIDIA Nemotron (build.nvidia.com)
+- MiniMax (minimax.io)
+- Dots Studio / inclusionAI (Ling models)
+- Google Gemma (https://ai.google.dev/gemma/terms)
+
+Each model is provided by its respective vendor under its own terms of
+use. See OpenRouter's Terms of Service and Privacy Policy on their
+website for details on routing and retention.
+
+Data notice: when the user taps "Ask AI", the last app log lines (up to
+~1,000 lines), basic device information (model, RAM, Android version)
+and the affected server's configuration are sent to OpenRouter for
+analysis. Nothing is sent automatically; the feature requires explicit
+consent before first use and can be revoked in the app settings.
+See the app's Privacy Policy for details.
+
+The AI response is an automated suggestion, NOT guaranteed-correct
+support. The user is responsible for reviewing and applying any change.
