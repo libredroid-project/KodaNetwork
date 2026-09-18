@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#080808">
+
+    <!-- Top Bar -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="50dp"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:background="#0C0C0C" android:paddingStart="16dp" android:paddingEnd="16dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_back_editor" style="@style/KodaButton.Outline"
+            android:layout_width="wrap_content" android:layout_height="32dp"
+            android:text="CANCEL" android:textSize="10sp"/>
+        <TextView android:id="@+id/tv_filename"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="file.txt"
+            android:textColor="#FF6B00" android:textSize="12sp"
+            android:fontFamily="@font/font_koda_mono" android:gravity="center"
+            android:ellipsize="middle" android:singleLine="true"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_save_editor" style="@style/KodaButton"
+            android:layout_width="wrap_content" android:layout_height="32dp"
+            android:text="SAVE" android:textSize="10sp"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A1A1A"/>
+
+    <!-- Search Bar -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="40dp"
+        android:orientation="horizontal" android:background="#0A0A0A" android:paddingStart="10dp" android:paddingEnd="10dp" android:gravity="center_vertical">
+        <EditText android:id="@+id/et_search"
+            android:layout_width="0dp" android:layout_height="30dp"
+            android:layout_weight="1" android:background="#151515"
+            android:hint="Search..." android:textColor="#888888" android:textSize="10sp"
+            android:paddingStart="10dp" android:fontFamily="@font/font_koda_mono"
+            android:singleLine="true"/>
+        <ImageButton android:id="@+id/btn_search_prev"
+            android:layout_width="30dp" android:layout_height="30dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_chevron_up" android:tint="#FF6B00"/>/>
+        <TextView android:id="@+id/tv_match_count"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="" android:textColor="#8A8A9A" android:textSize="10sp"
+            android:fontFamily="@font/font_koda" android:minWidth="36dp"
+            android:gravity="center"/>
+        <ImageButton android:id="@+id/btn_search_next"
+            android:layout_width="30dp" android:layout_height="30dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_chevron_down" android:tint="#FF6B00"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A1A1A"/>
+
+    <!-- Editor Container -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        
+        <TextView android:id="@+id/tv_line_numbers"
+            android:layout_width="0dp" android:layout_height="match_parent"
+            android:visibility="gone"/>
+
+        <androidx.core.widget.NestedScrollView android:id="@+id/scroll_editor"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="vertical"
+        android:overScrollMode="always">
+        <EditText android:id="@+id/et_editor"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:background="@null" android:gravity="top"
+            android:padding="12dp" android:textColor="#D4D4D4"
+            android:textSize="12sp" android:fontFamily="@font/font_koda_mono"
+            android:scrollbars="none"
+            android:overScrollMode="always"
+            android:nestedScrollingEnabled="false"
+            android:inputType="textMultiLine|textNoSuggestions"
+            android:lineSpacingMultiplier="1.2"
+            android:imeOptions="flagNoExtractUi"/>
+        </androidx.core.widget.NestedScrollView>
+    </LinearLayout>
+
+</LinearLayout>
+

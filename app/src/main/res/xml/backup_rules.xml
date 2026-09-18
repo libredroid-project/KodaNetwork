@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nur die Identitaetsdatei (HWID + device_token, ~100 Bytes) sichern.
+     Alles andere (Welten, encrypted Prefs) bleibt bewusst ausserhalb. -->
+<full-backup-content>
+    <include domain="sharedpref" path="koda_identity.xml" />
+</full-backup-content>
