@@ -1,0 +1,126 @@
+Datenschutzerklärung
+
+Letzte Aktualisierung: September 2026
+
+1. Einleitung und Verantwortlicher
+
+Willkommen bei KodaHosting. Wir respektieren deine Privatsphäre und verpflichten uns, alle Informationen zu schützen, die bei der Nutzung unserer mobilen App und des zugehörigen Web-Dashboards verarbeitet werden. Diese Datenschutzerklärung erklärt, welche Informationen wir erheben, wie wir sie verwenden und welche Rechte du bezüglich deiner Daten hast.
+
+Der für deine personenbezogenen Daten verantwortliche Anbieter ist:
+Karol Brzostowski
+Deutschland, Fixberg 17, 33106 Paderborn-Wewer
+E-Mail: support@host.kodanetwork.eu
+
+Hinweis zur Rechtsfähigkeit: Der Entwickler von KodaHosting ist nach deutschem Recht minderjährig (§ 106 BGB, beschränkte Geschäftsfähigkeit). Die rechtliche Verantwortung für den Betrieb dieses Dienstes, einschließlich datenschutzrechtlicher Angelegenheiten, tragen mit die gesetzlichen Vertreter. Anliegen zum Datenschutz, einschließlich Anfragen nach der DSGVO, können an die oben genannte E-Mail-Adresse gerichtet werden. Die gesetzlichen Vertreter sind über dieselbe Adresse erreichbar.
+
+2. Erhobene und verarbeitete Informationen
+
+KodaHosting verarbeitet bestimmte Daten, um korrekt zu funktionieren:
+
+- Kontoinformationen: Wenn du dich registrierst oder anmeldest, verarbeiten wir sicher deine E-Mail-Adresse und Authentifizierungsdaten, um dein persönliches KodaHosting-Konto zu verwalten. Die Authentifizierung erfolgt sicher über unseren Partner Supabase. Wir verarbeiten dein Passwort nicht direkt. Supabase speichert Passwörter und prüft sie mit branchenüblichen Hash-Verfahren.
+
+- Web-Dashboard und Fernsteuerung: Bei Nutzung des Web-Dashboards verarbeiten wir deine Authentifizierungs-Tokens und Proxy-Server-Befehle sicher über unsere API, um die Fernverwaltung deiner auf Android gehosteten Server zu ermöglichen. Dies umfasst Start, Stopp, Neustart, Hibernate, Wipe und Löschung von Servern sowie Eigenschaftsänderungen (RAM, MOTD, Spielmodus, Schwierigkeit, maximale Spieler, PvP, Whitelist) und Konsolenbefehle.
+
+- Lokale Daten: Deine Minecraft-Serverdateien, Welten, Plugins und Konfigurationen werden ausschließlich lokal auf deinem Gerät gespeichert. Wir greifen niemals auf diese Daten zu, übertragen sie nicht auf unsere Server und speichern sie dort nicht. Der Entwickler kann unter keinen Umständen auf deine Serverdateien zugreifen, sie einsehen oder wiederherstellen.
+
+- Biometrische Daten: Wenn du die biometrische Sicherheit in den App-Einstellungen aktivierst, wird der Fingerabdruck- oder Gesichtsscan deines Geräts verwendet. Diese Daten verlassen dein Gerät niemals und werden sicher vom lokalen Biometrie-System von Android verarbeitet. Wir haben keinen Zugriff auf biometrische Daten und können sie weder speichern noch übertragen.
+
+- Geräteinformationen: Wir prüfen deine Gerätearchitektur (z.B. ARM64) und Android-Version lokal, um die richtigen Java-Laufzeitumgebungen und Binärdateien herunterzuladen. Diese Informationen werden nicht an uns übertragen.
+
+- IP-Privatsphäre: Deine private IP-Adresse zu Hause wird niemals offengelegt. Der gesamte Multiplayer-Verkehr läuft über unsere zentrale VPS-Infrastruktur. Spieler, die sich mit deinem Server verbinden, sehen ausschließlich die IP-Adresse unseres sicheren Proxys. Wir protokollieren Spieler-IP-Adressen nicht über das technisch Notwendige für den Betrieb des Proxy-Tunnels hinaus.
+
+- KI-Server-Builder: Wenn du den KI-Server-Builder verwendest, werden deine Text-Eingaben zur Erzeugung von Serverkonfigurationen an die Google-Gemini-API gesendet. Übermittele in diesen Eingaben keine sensiblen personenbezogenen Daten. Übermittlungen außerhalb des Europäischen Wirtschaftsraums (EWR) an Google LLC sind über das EU-U.S. Data Privacy Framework (DPF) und Standardvertragsklauseln abgesichert. Wir speichern deine Eingaben oder die erzeugten Konfigurationen nicht auf unseren Servern.
+
+- KI-Crash-Analyse („KI fragen", Opt-in): Wenn du ausdrücklich zustimmst und nach einem Absturz auf „KI fragen" tippst, werden der letzte Teil deiner App-Logdatei (bis zu etwa 1.000 Zeilen), grundlegende Geräteinformationen (Modell, RAM, Android-Version) sowie die Konfiguration des betroffenen Servers zur Analyse an OpenRouter übermittelt, ein in den USA ansässiger KI-Gateway. OpenRouter leitet die Anfrage über Drittanbieter-KI-Modelle weiter, wozu Modelle von NVIDIA (Nemotron), MiniMax, Dots Studio, inclusionAI (Ling) und Google (Gemma) gehören können. Die Funktion ist auf 10 Anfragen pro Tag begrenzt, setzt vor der ersten Nutzung eine ausdrückliche Einwilligung voraus und kann jederzeit in den App-Einstellungen widerrufen werden. Nutze diese Funktion nicht, wenn deine Logs sensible personenbezogene Daten enthalten können. Übermittlungen in die USA sind über das EU-U.S. Data Privacy Framework (DPF) und Standardvertragsklauseln abgesichert, soweit diese für den jeweiligen Modellanbieter gelten.
+
+- Support-Tickets: Wenn du uns über das In-App-Support-Ticket-System kontaktierst oder einen Passwort-Reset bzw. einen Verifizierungscode anforderst, verarbeiten wir deine E-Mail-Adresse und deine Nachricht einschließlich der dem Ticket beigefügten Diagnoseinformationen (Gerätemodell, App-Version, Arbeitsspeicher, Netzwerktyp sowie Namen und Status deiner gehosteten Server). E-Mails werden über Resend, einen E-Mail-Zustelldienst von Drittanbietern, zugestellt.
+
+- Freiwillige Spenden: Wenn du die Entwicklung über Ko-fi unterstützen möchtest, wirst du zu ko-fi.com weitergeleitet, das die Spende unabhängig verarbeitet. Ko-fi erfasst möglicherweise deinen Namen, deine E-Mail-Adresse und Zahlungsinformationen. Wir verarbeiten oder speichern deine Zahlungsdaten nicht. Für Spenden gilt die Datenschutzerklärung von Ko-fi. Spenden sind freiwillige Geschenke und begründen kein Kundenverhältnis mit uns.
+
+3. Rechtsgrundlagen der Verarbeitung (Art. 6 DSGVO)
+
+Wir verarbeiten deine personenbezogenen Daten auf folgenden Rechtsgrundlagen:
+
+- Art. 6 Abs. 1 lit. b DSGVO: Für die Vertragserfüllung (Kontoerstellung, Server-Hosting).
+- Art. 6 Abs. 1 lit. f DSGVO: Berechtigte Interessen am Betrieb und der Sicherung des Dienstes, der Missbrauchsverhinderung und der Aufrechterhaltung der Infrastruktur.
+- Art. 6 Abs. 1 lit. a DSGVO: Deine Einwilligung, soweit einschlägig (z.B. biometrische Authentifizierung, Eingaben im KI-Server-Builder, KI-Crash-Analyse).
+
+Du kannst eine Einwilligung jederzeit widerrufen, ohne dass die Rechtmäßigkeit der bis zum Widerruf erfolgten Verarbeitung berührt wird.
+
+4. Drittanbieter-Dienste
+
+Die App nutzt bestimmte Drittanbieter-Dienste, die Informationen erfassen können, die zur Identifizierung genutzt werden oder Kernfunktionen bereitstellen:
+
+- Google Play Services: Für App-Vertrieb und In-App-Updates. Absturz- und Diagnosedaten können von Google über die Standard-Entwicklerdiagnose von Google Play (Android Vitals) verarbeitet werden. Wir binden keine zusätzlichen Analyse-, Werbe- oder Tracking-SDKs ein.
+- Supabase: Für Authentifizierung und Echtzeit-Datenbankfunktionalität (Serververwaltungsstatus). Supabase speichert deine E-Mail-Adresse und dein Authentifizierungs-Token in verschlüsselter Form.
+- OpenRouter: Für die optionale, einwilligungsbasierte KI-Crash-Analyse aus Abschnitt 2. OpenRouter ist der Auftragsverarbeiter, der Anfragen an Drittanbieter-KI-Modelle weiterleitet (siehe Abschnitt 2 für die Liste möglicher Anbieter).
+- Resend: Für die Zustellung transaktionaler E-Mails (Verifizierungscodes, Passwort-Resets, Support-Korrespondenz) an deine E-Mail-Adresse.
+- Modrinth API / Spigot: Zum Suchen und Herunterladen von Server-Plugins direkt in der App.
+- GitHub Releases: Zum Herunterladen essentieller Server-Binärdateien wie Java und sicheren Tunnel-Clients.
+- Bore / FRP (Fast Reverse Proxy): Ausschließlich zum Aufbau der sicheren Netzwerktunnel zwischen deinem Gerät und unserer VPS-Infrastruktur.
+- Ko-fi: Für freiwillige finanzielle Unterstützung des Entwicklers. Ko-fi ist ein externer Dienst; der Besuch ihrer Website oder eine Spende unterliegt deren Bedingungen und Datenschutzerklärung. Spenden sind freiwillige Geschenke und schalten keine Funktionen frei.
+
+Jeder Drittanbieter-Dienst ist eigener Verantwortlicher für die von ihm verarbeiteten Daten. Wir empfehlen, die jeweiligen Datenschutzerklärungen zu lesen.
+
+5. Datensicherheit
+
+Wir wissen dein Vertrauen bei der Nutzung unserer App zu schätzen. Da die Kernfunktion lokale Server-Hosts sind, bleiben deine persönlichen Serverdaten vollständig auf deinem Gerät. An APIs übertragene Daten (z.B. Plugin-Suchanfragen) werden über sichere, verschlüsselte Verbindungen (HTTPS) gesendet.
+
+Keine Übertragung über das Internet und keine elektronische Speicherung ist jedoch zu 100 % sicher. Obwohl wir uns um kommerziell übliche Schutzmaßnahmen bemühen, können wir absolute Sicherheit nicht garantieren. Der Dienst ist ein Hobbyprojekt eines einzelnen Entwicklers und bietet nicht die Sicherheitsgarantien eines kommerziellen Unternehmensdienstes.
+
+6. Speicherdauer
+
+Wir speichern deine Kontoinformationen (E-Mail-Adresse und Authentifizierungsdaten), solange dein Konto aktiv ist. Serververwaltungs-Metadaten (Servernamen, Konfigurationen, Status) werden in der Supabase-Datenbank gespeichert und gelöscht, wenn du den entsprechenden Server oder dein Konto löschst.
+
+Nach der Kontolöschung werden alle zugehörigen Daten innerhalb von 30 Tagen dauerhaft aus unseren Systemen entfernt, mit Ausnahme von Daten, die wir gesetzlich aufbewahren müssen oder die in Backup-Systemen gespeichert sind (die gemäß dem Backup-Zyklus gelöscht werden).
+
+7. Deine DSGVO-Rechte (Betroffenenrechte)
+
+Nach der Datenschutz-Grundverordnung (DSGVO) und anwendbaren Datenschutzgesetzen hast du folgende Rechte:
+
+- Auskunftsrecht (Art. 15 DSGVO): Du kannst eine Kopie der über dich gespeicherten personenbezogenen Daten anfordern.
+- Recht auf Berichtigung (Art. 16 DSGVO): Du kannst deine Kontoinformationen aktualisieren oder korrigieren.
+- Recht auf Löschung (Art. 17 DSGVO): Du kannst jederzeit die dauerhafte Löschung deines Kontos und deiner E-Mail-Adresse anfordern.
+- Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO): Du kannst unter bestimmten Voraussetzungen die Einschränkung der Verarbeitung verlangen.
+- Recht auf Datenübertragbarkeit (Art. 20 DSGVO): Du kannst eine maschinenlesbare Kopie deiner personenbezogenen Daten anfordern.
+- Widerspruchsrecht (Art. 21 DSGVO): Du kannst der Verarbeitung deiner Daten auf Grundlage berechtigter Interessen widersprechen.
+- Recht auf Widerruf der Einwilligung (Art. 7 Abs. 3 DSGVO): Du kannst jederzeit eine erteilte Einwilligung widerrufen.
+
+Zur Ausübung dieser Rechte kontaktiere uns bitte unter support@host.kodanetwork.eu. Wenn du unter 16 Jahre alt bist, muss deine Anfrage von deinem gesetzlichen Vertreter gestellt oder von ihm gebilligt werden.
+
+8. Datenschutz von Kindern
+
+Die App ist für die allgemeine Nutzung bestimmt. Nach Art. 8 DSGVO in der deutschen Umsetzung benötigen Nutzer unter 16 Jahren die Einwilligung ihres gesetzlichen Vertreters, um ein Konto zu erstellen und Dienste zu nutzen, die personenbezogene Daten verarbeiten.
+
+Wenn du unter 16 bist, bitte deinen gesetzlichen Vertreter, diese Datenschutzerklärung zu prüfen und deiner Nutzung von KodaHosting zuzustimmen, bevor du ein Konto erstellst.
+
+Sollten wir Kenntnis davon erlangen, dass wir personenbezogene Daten eines Kindes unter 16 ohne überprüfbare elterliche Zustimmung erhoben haben, werden wir Schritte unternehmen, diese Informationen so schnell wie möglich zu löschen.
+
+9. Internationale Datenübermittlungen
+
+Deine personenbezogenen Daten können in Länder außerhalb des Europäischen Wirtschaftsraums (EWR) übermittelt und dort verarbeitet werden, insbesondere:
+
+- USA: Für Dienste wie Supabase, OpenRouter (KI-Crash-Analyse), Google, GitHub und Ko-fi.
+- Andere Länder: Wie für die in Abschnitt 4 genannten Drittanbieter erforderlich.
+
+Solche Übermittlungen erfolgen nur an Empfänger, die ein angemessenes Schutzniveau gemäß DSGVO bieten, und zwar über Standardvertragsklauseln (SCCs), das EU-U.S. Data Privacy Framework (DPF) oder andere rechtmäßige Übermittlungsmechanismen.
+
+10. Änderungen dieser Datenschutzerklärung
+
+Wir können diese Datenschutzerklärung von Zeit zu Zeit aktualisieren. Über wesentliche Änderungen informieren wir, indem wir die neue Datenschutzerklärung auf dieser Seite veröffentlichen und, wo angemessen, über die App. Es wird empfohlen, diese Erklärung regelmäßig auf Änderungen zu prüfen. Die fortgesetzte Nutzung des Dienstes nach Änderungen gilt als Annahme der aktualisierten Erklärung.
+
+11. Beschwerderecht
+
+Du hast das Recht, dich bei einer Aufsichtsbehörde zu beschweren, insbesondere in dem EU-Mitgliedstaat deines gewöhnlichen Aufenthalts, deiner Arbeitsstelle oder des Ortes des mutmaßlichen Verstoßes, wenn du der Ansicht bist, dass die Verarbeitung deiner personenbezogenen Daten gegen die DSGVO verstößt.
+
+Die zuständige Aufsichtsbehörde für Deutschland ist:
+Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen
+Kavalleriestraße 2-4, 40213 Düsseldorf
+https://www.ldi.nrw.de
+
+12. Kontakt
+
+Wenn du Fragen oder Anregungen zu unserer Datenschutzerklärung hast oder deine Datenschutzrechte ausüben möchtest, kontaktiere uns unter:
+E-Mail: support@host.kodanetwork.eu
+
+In Angelegenheiten, die den Status des Entwicklers als Minderjährigen betreffen, sind die gesetzlichen Vertreter über dieselbe E-Mail-Adresse erreichbar.

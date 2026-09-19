@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tag used to track if a view has already been styled by ThemeHelper -->
+    <item name="tag_themed" type="id" />
+    <!-- Stash for the typewriter text on tutorial cards -->
+    <item name="tw_text" type="id" />
+    <!-- Marker: view's OnTouchListener is owned by SleekTouch (click + visuals + haptic).
+         HapticUtil.applyHapticsToView must not overwrite it. -->
+    <item name="sleek_touch_tag" type="id" />
+</resources>

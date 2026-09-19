@@ -1,0 +1,108 @@
+Nutzungsbedingungen
+Letzte Aktualisierung: September 2026
+
+Mit dem Herunterladen, Installieren oder Nutzen der KodaHosting-App, des Web-Dashboards und der zugehörigen Dienste stimmst du zu, diese Nutzungsbedingungen einzuhalten und dich daran gebunden zu halten. Wenn du diesen Bedingungen nicht zustimmst, musst du die App deinstallieren und unsere Dienste sofort nicht mehr nutzen.
+
+Zulässigkeit und Altersanforderung
+
+Du musst mindestens 16 Jahre alt sein, um diesen Dienst zu nutzen (das Digitale-Einwilligungsalter nach Art. 8 DSGVO in der deutschen Umsetzung). Nutzer unter 16 Jahren benötigen die Einwilligung ihres gesetzlichen Vertreters. Mit der Zustimmung zu diesen Bedingungen versicherst du, dass du die Altersanforderung erfüllst oder die notwendige Einwilligung deines gesetzlichen Vertreters eingeholt hast.
+
+1. Leistungsbeschreibung
+
+KodaHosting stellt eine mobile Umgebung und Netzwerkinfrastruktur bereit, mit der du Minecraft-Server direkt auf deinem Android-Gerät hosten kannst. Wir stellen die Netzwerktunnel bereit, um eingehende Spielerverbindungen sicher an dein Gerät weiterzuleiten. Kein offizielles Minecraft-Produkt. Nicht von Mojang oder Microsoft genehmigt oder mit ihnen verbunden. Nutzer müssen beim Betrieb von Servern die offizielle Minecraft-EULA einhalten.
+
+KodaHosting ist vollständig kostenlos. Es gibt keine Käufe, keine Abonnements und keine Premium-Funktionen. Der volle Funktionsumfang der App steht allen Nutzern kostenlos zur Verfügung.
+
+Server-Limit: Jedes Konto darf maximal sechs (6) Server gleichzeitig betreiben. Dieses Limit gilt übergreifend für alle Servertypen (Minecraft und Datenbanken zusammen) und wird durchgesetzt, um die faire Nutzung der gemeinsamen VPS-Proxy-Infrastruktur zu gewährleisten.
+
+Freiwillige Unterstützung über Ko-fi: Die App enthält einen optionalen Link zu Ko-fi, einer Drittanbieter-Plattform, auf der Nutzer optional eine freiwillige finanzielle Unterstützung zur Förderung der Entwicklung leisten können. Spenden sind vollständig optional und schalten keine Funktionen, Inhalte oder Sonderbehandlungen in der App frei. Ko-fi ist ein eigenständiger Dienst mit eigenen Bedingungen; jede Spende über Ko-fi unterliegt den Bedingungen von Ko-fi und ist, abgesehen von den eigenen Richtlinien von Ko-fi, nicht erstattungsfähig. Spenden begründen keine vertraglichen Verpflichtungen des Entwicklers.
+
+2. Zulässige Nutzung
+
+Du erklärst dich einverstanden, KodaHosting ausschließlich für den vorgesehenen Zweck zu nutzen: das Hosting persönlicher Spiele-Server. Du bist vollständig verantwortlich für die Inhalte, Welten und Plugins, die auf deine Server geladen werden.
+
+Strenge Verbote
+
+Die folgenden Handlungen sind streng verboten und führen ohne Vorwarnung zu einem sofortigen, dauerhaften Ausschluss von den KodaHosting-Diensten:
+
+- Reverse Engineering: Du darfst proprietäre Komponenten der KodaHosting-App, unsere offiziellen Plugins oder unsere Netzwerk-Binärdateien nicht dekompilieren, zurückentwickeln, entschlüsseln oder auf andere Weise versuchen, deren Quellcode zu extrahieren. Dieses Verbot beschränkt nicht die Rechte, die dir durch die freien Open-Source-Lizenzen eingeräumt werden, die für mit der App vertriebene oder von ihr genutzte Open-Source-Komponenten gelten (einschließlich der GNU General Public License); für diese Komponenten gelten die Bedingungen der jeweiligen Lizenzen.
+
+- Unautorisierte Tunnel: Du darfst die KodaHosting-Netzwerkinfrastruktur nicht für unautorisierte Tunnel, VPNs, Proxies oder anderen Datenverkehr nutzen, der keine standardmäßigen Minecraft-Spieldaten ist.
+
+- Bösartige Aktivitäten und Passwortdiebstahl: Du darfst unsere Dienste nicht nutzen, um Schadsoftware zu hosten, Phishing-Kampagnen durchzuführen oder zu versuchen, Passwörter, Session-Tokens oder personenbezogene Daten von beigetretenen Spielern oder anderen Nutzern zu stehlen.
+
+- Umgehung des Server-Limits: Du darfst keine mehreren Konten erstellen, Konten teilen oder andere Methoden verwenden, um das Maximum von sechs Servern pro Nutzer zu umgehen.
+
+3. Nutzerpflichten und Freistellung
+
+Du allein bist verantwortlich für alle Aktivitäten, die unter deinem Konto stattfinden, und für alle Inhalte, die auf deinen Servern gehostet werden. Du verpflichtest dich, den Entwickler, dessen gesetzliche Vertreter und verbundene Parteien von allen Ansprüchen, Schäden, Verlusten, Haftung, Kosten oder Aufwendungen (einschließlich angemessener Anwaltskosten) freizustellen, zu verteidigen und schadlos zu halten, die sich ergeben aus oder im Zusammenhang stehen mit:
+
+- Deiner Nutzung oder Nichtnutzbarkeit des Dienstes;
+- Deinem Verstoß gegen diese Bedingungen oder die Richtlinie zur zulässigen Nutzung;
+- Deiner Verletzung von Rechten Dritter, einschließlich der Minecraft-EULA, Urheberrechten oder Privatsphärerechten;
+- Inhalten, Welten, Plugins oder Konfigurationen, die du auf deine Server hochlädst oder dort hostest;
+- Schäden an deinem eigenen Gerät, den Geräten anderer Nutzer oder Systemen Dritter durch deine Nutzung des Dienstes.
+
+Diese Freistellungspflicht besteht über die Beendigung deines Kontos oder dieser Bedingungen hinaus fort.
+
+4. Dienstzuverlässigkeit und Verfügbarkeit
+
+Da die Server auf deiner eigenen Hardware laufen, hängt die Verfügbarkeit direkt vom Energiezustand und der Netzwerkverbindung deines Geräts ab. KodaHosting garantiert keine 100%-ige Verfügbarkeit der zentralen Proxy-Routing-Infrastruktur, strebt aber maximale Zuverlässigkeit an. Der Dienst wird auf Best-Effort-Basis ohne Verfügbarkeitszusage bereitgestellt. Wir behalten uns vor, den Zugriff während Wartungsarbeiten, Infrastrukturänderungen oder bei Verdacht auf Missbrauch vorübergehend einzuschränken oder auszusetzen.
+
+5. Kontobeendigung
+
+Wir behalten uns vor, dein Konto und den Zugriff auf die KodaHosting-Proxy-Infrastruktur jederzeit aus beliebigem Grund zu sperren oder zu beenden, insbesondere bei Verstoß gegen die Richtlinie zur zulässigen Nutzung. Nach der Beendigung bleiben alle auf deinem Gerät gespeicherten Daten dein Eigentum; Serverdaten werden nach der Kontolöschung nicht von uns gespeichert. Wir können auch Konten löschen, die über einen längeren Zeitraum inaktiv waren.
+
+6. Gewährleistungsausschluss
+
+DER DIENST WIRD AUF „WIE BESEHEN"- UND „WIE VERFÜGBAR"-BASIS BEREITGESTELLT. WIR SCHLIESSEN AUSDRÜCKLICH JEDE GEWÄHRLEISTUNG JEGLICHER ART AUS, OB AUSDRÜCKLICH ODER STILLSCHWEIGEND, EINSCHLIESSLICH, ABER NICHT BESCHRÄNKT AUF DIE STILLSCHWEIGENDE GEWÄHRLEISTUNG DER MARKTGÄNGIGKEIT, DER EIGNUNG FÜR EINEN BESTIMMTEN ZWECK UND DER NICHTVERLETZUNG VON RECHTEN DRITTER. Wir garantieren nicht, dass der Dienst unterbrechungsfrei, sicher oder fehlerfrei sein wird, noch die Sicherheit deiner Gerätedaten.
+
+Der Dienst ist ein Hobbyprojekt eines einzelnen Entwicklers. Er ist kein kommerzielles Produkt und erfüllt nicht die Standards professioneller, unternehmensfähiger Hosting-Dienste. Die Nutzung erfolgt auf eigenes Risiko.
+
+7. Haftungsbeschränkung
+
+Soweit gesetzlich zulässig, haften der Entwickler, dessen gesetzliche Vertreter oder verbundene Parteien in keinem Fall für indirekte, zufällige, besondere, Folge- oder Strafschäden oder für Gewinn- oder Umsatzverluste, ob direkt oder indirekt entstanden, oder für Datenverluste (einschließlich Server-Welten oder -Konfigurationen), Nutzungsverluste, Goodwill oder andere immaterielle Verluste, resultierend aus:
+
+- Deiner Nutzung oder Nichtnutzbarkeit des Dienstes;
+- Jedem unbefugten Zugriff auf oder unbefugter Veränderung deiner Daten;
+- Schäden an deinem Gerät, einschließlich Überhitzung, Akkuverschleiß oder Hardwareausfall durch intensive Nutzung;
+- Handlungen oder Inhalten Dritter, einschließlich Plugins, Mods oder Software, die über den Dienst oder für dessen Nutzung heruntergeladen wurden;
+- Jeder Unterbrechung oder Einstellung von Übertragungen zum oder vom Dienst.
+
+Diese Haftungsbeschränkung gilt unabhängig von dem geltend gemachten Rechtsgrund und unabhängig davon, ob der Entwickler auf die Möglichkeit solcher Schäden hingewiesen wurde. Sie gilt im weitestgehend zulässigen Umfang, einschließlich der Grenzen der §§ 7 BDSG und des deutschen Digitale-Dienste-Gesetzes (DDG).
+
+Nichts in diesen Bedingungen schließt die Haftung für Tod oder Personenschäden durch Fahrlässigkeit, Betrug, arglistige Täuschung oder jede andere Haftung aus, die nach anwendbarem Recht nicht ausgeschlossen oder beschränkt werden kann.
+
+8. Keine Vertretung, Partnerschaft oder Anstellung
+
+Nichts in diesen Bedingungen ist als Begründung einer Vertretung, Partnerschaft, eines Joint Ventures oder einer anderen Form gemeinsamen Unternehmens, eines Beschäftigungs- oder Treuhandverhältnisses zwischen dir und dem Entwickler auszulegen. Du bestätigst, dass der Dienst von einer Einzelperson und nicht von einem Unternehmen oder einer Organisation bereitgestellt wird.
+
+9. Status des Entwicklers
+
+Der Entwickler von KodaHosting ist nach deutschem Recht minderjährig. Die Rechtsgeschäfte im Zusammenhang mit dem Betrieb dieses Dienstes, einschließlich dieser Nutzungsbedingungen, werden mit der Zustimmung der gesetzlichen Vertreter des Entwicklers gemäß §§ 107, 108 BGB getätigt. Die gesetzlichen Vertreter tragen die rechtliche Verantwortung für den Dienst mit. Rechtliche Hinweise und Ansprüche sind an die Kontaktdaten im unten stehenden Impressum zu richten.
+
+10. Salvatorische Klausel
+
+Sollte eine Bestimmung dieser Bedingungen von einem zuständigen Gericht für ungültig, rechtswidrig oder nicht durchsetzbar erklärt werden, ist diese Bestimmung in dem minimal erforderlichen Umfang zu ändern, um sie durchsetzbar zu machen, oder, falls eine Änderung nicht möglich ist, von diesen Bedingungen zu trennen. Die übrigen Bestimmungen bleiben in vollem Umfang in Kraft. Die Ungültigkeit einer Bestimmung berührt die Gültigkeit der anderen nicht.
+
+11. Kein Verzicht
+
+Die Nichtdurchsetzung eines Rechts oder einer Bestimmung aus diesen Bedingungen durch den Entwickler stellt keinen Verzicht auf dieses Recht oder diese Bestimmung dar, sofern dies nicht schriftlich anerkannt und vereinbart wurde. Der Verzicht auf ein solches Recht gilt nur für den konkreten Fall und verzichtet nicht auf zukünftige Rechte oder Bestimmungen.
+
+12. Anwendbares Recht und Gerichtsstand
+
+Diese Bedingungen unterliegen dem Recht der Bundesrepublik Deutschland unter Ausschluss der Kollisionsnormen. Gerichtsstand für alle Streitigkeiten aus oder im Zusammenhang mit diesen Bedingungen ist, soweit gesetzlich zulässig, Paderborn, Deutschland. Unbeschadet dessen kannst du Ansprüche in deinem lokalen Gerichtsstand geltend machen, wenn dies nach zwingendem Verbraucherschutzrecht erforderlich ist.
+
+13. Änderungen der Bedingungen
+
+Wir behalten uns vor, diese Nutzungsbedingungen jederzeit zu ändern. Die fortgesetzte Nutzung der App nach solchen Änderungen gilt als Zustimmung zu diesen. Wesentliche Änderungen werden über die App oder auf dieser Website mitgeteilt. Wir empfehlen, diese Bedingungen regelmäßig zu prüfen.
+
+14. Impressum
+
+Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz):
+Verantwortlich für den Inhalt dieser App und Website:
+Karol Brzostowski
+Deutschland, Fixberg 17, 33106 Paderborn-Wewer
+E-Mail: support@host.kodanetwork.eu
+
+In rechtlichen Angelegenheiten, die den Status des Entwicklers als Minderjährigen betreffen, sind die gesetzlichen Vertreter über dieselbe E-Mail-Adresse erreichbar.
