@@ -3,8 +3,8 @@ version: ${project.version}
 main: de.kodahosting.kodadash.KodaDash
 api-version: 1.13
 description: Secure remote server control panel for KodaHosting
-author: KodaHosting
-website: https://kodahosting.com
+author: libredroid
+website: https://host.kodanetwork.eu
 
 commands:
   kodadash:

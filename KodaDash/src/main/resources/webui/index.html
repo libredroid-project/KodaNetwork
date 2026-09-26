@@ -84,6 +84,16 @@
             <span>Settings</span>
         </div>
 
+        <div class="nav-section">Info</div>
+        <a class="nav-item" href="https://host.kodanetwork.eu/licenses.html" target="_blank" rel="noopener">
+            <svg class="icon"><use href="icons.svg#i-label"></use></svg>
+            <span>Licenses</span>
+        </a>
+        <a class="nav-item" href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">
+            <svg class="icon"><use href="icons.svg#i-content_copy"></use></svg>
+            <span>Legal</span>
+        </a>
+
         <div class="sidebar-footer">
             <div class="nav-item danger" id="logout-btn">
                 <svg class="icon"><use href="icons.svg#i-logout"></use></svg>
@@ -106,22 +116,52 @@
 
         <!-- ===== Overview ===== -->
         <section class="tab-content active" id="tab-overview">
-            <h1 class="page-title">Overview</h1>
-            <p class="page-sub">Live status of your server</p>
+            <!-- Hero: the one thing you want to know first -->
+            <div class="hero-card">
+                <div class="hero-main">
+                    <div class="hero-top">
+                        <span class="status-pill" id="hero-status"><span class="dot"></span><span id="hero-status-text">Connecting</span></span>
+                        <span class="hero-version" id="hero-version">--</span>
+                    </div>
+                    <h1 class="hero-title" id="hero-motd">Loading server...</h1>
+                    <div class="hero-meta">
+                        <span class="hero-chip" id="hero-address" title="Copy address">
+                            <svg class="icon icon-sm"><use href="icons.svg#i-dns"></use></svg>
+                            <span id="hero-address-text">--</span>
+                        </span>
+                        <span class="hero-chip">
+                            <svg class="icon icon-sm"><use href="icons.svg#i-group"></use></svg>
+                            <span id="hero-players">0 / 0</span>
+                        </span>
+                        <span class="hero-chip">
+                            <svg class="icon icon-sm"><use href="icons.svg#i-schedule"></use></svg>
+                            <span id="hero-uptime">--</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="hero-actions">
+                    <button class="btn btn-tonal btn-sm" id="hero-restart">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-restart_alt"></use></svg> Restart
+                    </button>
+                    <button class="btn btn-outlined btn-sm" id="hero-stop">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-stop_circle"></use></svg> Stop
+                    </button>
+                </div>
+            </div>
 
             <div class="stat-grid">
-                <div class="stat-card">
+                <div class="stat-card tone-brand">
                     <div class="stat-head">
-                        <svg class="icon icon-sm"><use href="icons.svg#i-bolt"></use></svg>
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-bolt"></use></svg></span>
                         <span>TPS</span>
                     </div>
                     <div class="stat-value" id="stat-tps">--</div>
                     <div class="stat-foot" id="stat-tps-foot">ticks per second</div>
                     <canvas class="sparkline" id="spark-tps" width="300" height="48"></canvas>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card tone-tertiary">
                     <div class="stat-head">
-                        <svg class="icon icon-sm"><use href="icons.svg#i-memory"></use></svg>
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-memory"></use></svg></span>
                         <span>Memory</span>
                     </div>
                     <div class="stat-value" id="stat-ram">--</div>
@@ -129,21 +169,40 @@
                     <div class="progress"><span id="stat-ram-bar" style="width:0%"></span></div>
                     <canvas class="sparkline" id="spark-ram" width="300" height="48"></canvas>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card tone-success">
                     <div class="stat-head">
-                        <svg class="icon icon-sm"><use href="icons.svg#i-group"></use></svg>
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-group"></use></svg></span>
                         <span>Players</span>
+                        <span class="stat-badge hidden" id="stat-players-badge">0</span>
                     </div>
                     <div class="stat-value" id="stat-players">--</div>
                     <div class="stat-foot" id="stat-players-foot">online now</div>
+                    <div class="player-peek" id="player-peek"></div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card tone-secondary">
                     <div class="stat-head">
-                        <svg class="icon icon-sm"><use href="icons.svg#i-schedule"></use></svg>
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-schedule"></use></svg></span>
                         <span>Uptime</span>
                     </div>
                     <div class="stat-value" id="stat-uptime">--</div>
                     <div class="stat-foot">since last start</div>
+                </div>
+            </div>
+
+            <div class="overview-columns">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2 class="card-title">Online players</h2>
+                        <button class="btn btn-text btn-sm" id="peek-all-players">View all</button>
+                    </div>
+                    <div class="player-list" id="overview-players"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2 class="card-title">Latest output</h2>
+                        <button class="btn btn-text btn-sm" id="peek-console">Open console</button>
+                    </div>
+                    <div class="console-peek" id="overview-console"></div>
                 </div>
             </div>
 
@@ -364,6 +423,7 @@
                     <h4>KodaHosting</h4>
                     <a href="https://host.kodanetwork.eu/index.html" target="_blank" rel="noopener">Main page</a>
                     <a href="https://host.kodanetwork.eu/dashboard" target="_blank" rel="noopener">Account dashboard</a>
+                    <a href="https://host.kodanetwork.eu/licenses.html" target="_blank" rel="noopener">Licenses</a>
                     <a href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">Terms of Service</a>
                     <a href="https://host.kodanetwork.eu/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
                     <a href="https://host.kodanetwork.eu/impressum.txt" target="_blank" rel="noopener">Impressum</a>

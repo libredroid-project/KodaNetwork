@@ -35,6 +35,7 @@ var state = {
     completion: { base: '', list: [], index: -1 },
     editor: { instance: null, ready: false, loading: false, pending: null, file: null },
     stats: { tps: [], ram: [] },
+    serverAction: { pending: false },
     needsPassword: false
 };
 
@@ -301,6 +302,17 @@ function loadOverview() {
         var badge = $('player-count-badge');
         badge.textContent = online;
         badge.classList.toggle('hidden', online === 0);
+        var statBadge = $('stat-players-badge');
+        statBadge.textContent = online;
+        statBadge.classList.toggle('hidden', online === 0);
+
+        // Overview also shows who is online - names + heads, not just a number
+        var peek = $('player-peek');
+        peek.innerHTML = (state.players || []).slice(0, 8).map(function (p) {
+            return '<img class="peek-avatar" src="https://mc-heads.net/avatar/'
+                + encodeURIComponent(p.name) + '/32" alt="' + escapeHtml(p.name) + '" title="' + escapeHtml(p.name) + '">';
+        }).join('');
+        renderOverviewPlayers();
 
         $('stat-uptime').textContent = formatUptime(d.uptime);
 
@@ -314,12 +326,27 @@ function loadOverview() {
         var footerVersion = $('footer-version');
         if (footerVersion) footerVersion.textContent = 'KodaDash on ' + (d.name || 'server') + ' ' + (d.version || '');
 
+        // Hero: the quick answer to "is everything fine?"
+        var pill = $('hero-status');
+        var pending = state.serverAction && state.serverAction.pending;
+        var heroState = pending ? 'pending' : (state.connected ? 'online' : 'offline');
+        pill.className = 'status-pill ' + heroState;
+        $('hero-status-text').textContent = pending ? 'Action pending'
+            : (state.connected ? 'Server online' : 'Not connected');
+        $('hero-motd').innerHTML = parseConsoleText(d.motd || d.name || 'Server');
+        $('hero-version').textContent = d.version || '';
+        $('hero-players').textContent = online + (maxPlayers ? ' / ' + maxPlayers : ' players');
+        $('hero-uptime').textContent = 'up ' + formatUptime(d.uptime);
+        var address = state.baseUrl ? state.baseUrl.replace(/^https?:\/\//, '') : (window.location.host || '');
+        $('hero-address-text').textContent = address || 'local';
+
         pushHistory('tps', tpsNow);
         pushHistory('ram', maxRam > 0 ? pct : null);
         if (!state.deviceLoaded || Date.now() - state.deviceLoaded > 30000) {
             state.deviceLoaded = Date.now();
             loadDeviceInfo();
         }
+        refreshPlayersIfStale(6000);
         drawSparkline('spark-tps', state.stats.tps, 20, 'var(--brand)');
         drawSparkline('spark-ram', state.stats.ram, 100, 'var(--md-primary)');
     }).catch(function (e) {
@@ -388,6 +415,63 @@ function loadDeviceInfo() {
     }).catch(function () { /* the panel simply stays empty on older builds */ });
 }
 
+/** Online player list on the overview (name, world, gamemode, health). */
+function renderOverviewPlayers() {
+    var container = $('overview-players');
+    if (!container) return;
+    var players = state.players || [];
+    if (!players.length) {
+        container.innerHTML = '<div class="empty-state">'
+            + '<div class="empty-icon"><svg class="icon"><use href="icons.svg#i-group"></use></svg></div>'
+            + '<div>Nobody is playing right now</div>'
+            + '<div class="empty-hint">Players show up here as soon as they join</div></div>';
+        return;
+    }
+    container.innerHTML = players.slice(0, 8).map(function (p, index) {
+        var health = Math.max(0, Math.min(20, Number(p.health != null ? p.health : 20)));
+        var pct = Math.round(health / 20 * 100);
+        return '<div class="player-row" data-overview-player="' + index + '" style="cursor:pointer">'
+            + '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(p.name) + '/32" alt="">'
+            + '<div><div class="name">' + escapeHtml(p.name) + (p.isOp ? ' <span class="badge badge-warn">OP</span>' : '') + '</div>'
+            + '<div class="meta">' + escapeHtml(p.gamemode || '') + ' - ' + escapeHtml(p.world || '') + '</div></div>'
+            + '<span class="spacer"></span>'
+            + '<span class="badge ' + (pct > 50 ? 'badge-ok' : pct > 25 ? 'badge-warn' : 'badge-error') + '">'
+            + (p.health != null ? Math.round(health) + ' HP' : '') + '</span>'
+            + '</div>';
+    }).join('');
+    var rows = container.querySelectorAll('[data-overview-player]');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].addEventListener('click', function () {
+            var idx = parseInt(this.getAttribute('data-overview-player'), 10);
+            switchTab('players');
+            setTimeout(function () { openPlayerModal(idx); }, 400);
+        });
+    }
+}
+
+/** Last few console lines on the overview - gives the page some life and saves a tab switch. */
+function renderConsolePeek() {
+    var container = $('overview-console');
+    if (!container) return;
+    var lines = Object.keys(state.console.lines)
+        .map(function (key) { return state.console.lines[key]; })
+        .filter(function (el) { return el && el.parentElement; })
+        .slice(-4);
+    if (!lines.length) {
+        container.innerHTML = '<div class="line">Waiting for output...</div>';
+        return;
+    }
+    container.innerHTML = lines.map(function (el) {
+        var ts = el.querySelector('.ts');
+        var level = el.querySelector('.lvl');
+        var msg = el.querySelector('.msg');
+        return '<div class="line">'
+            + (ts ? '<span class="ts">' + escapeHtml(ts.textContent) + '</span> ' : '')
+            + (level ? '<span class="lvl ' + (level.className.split(' ')[1] || 'log-info') + '">' + escapeHtml(level.textContent) + '</span> ' : '')
+            + (msg ? msg.innerHTML : '') + '</div>';
+    }).join('');
+}
+
 function pushHistory(kind, value) {
     var arr = state.stats[kind];
     if (value == null || isNaN(value)) return;
@@ -438,6 +522,7 @@ function drawSparkline(canvasId, values, max, color) {
 function loadServerActionState() {
     api('/api/server-action').then(function (d) {
         var enabled = d.enabled !== false;
+        state.serverAction = { pending: !!d.pending, action: d.action, seconds: d.seconds };
         $('btn-restart').disabled = !enabled;
         $('btn-stop').disabled = !enabled || d.allowStop === false;
         $('btn-cancel-action').classList.toggle('hidden', !d.pending);
@@ -596,6 +681,9 @@ function appendConsoleLine(line) {
     }
     cfg.lines[index] = el;
     cfg.lastIndex = Math.max(cfg.lastIndex, index);
+    if (state.currentTab === 'overview' && !cfg.peekTimer) {
+        cfg.peekTimer = setTimeout(function () { cfg.peekTimer = null; renderConsolePeek(); }, 700);
+    }
     applyFilterTo(el);
     if (cfg.follow) out.scrollTop = out.scrollHeight;
 }
@@ -737,8 +825,17 @@ function copyConsole() {
 
 /* ---------------------------------------------------------------- players */
 
+var lastPlayersFetch = 0;
+
+/** The overview shows players too, so both views share one fetch (at most every few seconds). */
+function refreshPlayersIfStale(maxAgeMs) {
+    if (Date.now() - lastPlayersFetch < (maxAgeMs || 6000)) return;
+    loadPlayers();
+}
+
 function loadPlayers() {
     var list = $('players-list');
+    lastPlayersFetch = Date.now();
     // Returns the promise so callers can re-render after the list is fresh
     return api('/api/players').then(function (d) {
         state.players = d.players || [];
@@ -753,6 +850,7 @@ function loadPlayers() {
         }
         list.innerHTML = state.players.map(function (p, i) { return playerCard(p, i); }).join('');
         bindPlayerCards(list);
+        renderOverviewPlayers();
     }).catch(function (e) {
         list.innerHTML = '<div class="empty-state">' + escapeHtml(e.message) + '</div>';
     });
@@ -1511,6 +1609,20 @@ function init() {
     $('login-form').addEventListener('submit', function (e) { e.preventDefault(); doLogin(); });
 
     /* overview */
+    var heroRestart = $('hero-restart');
+    if (heroRestart) heroRestart.addEventListener('click', function () { triggerServerAction('restart'); });
+    var heroStop = $('hero-stop');
+    if (heroStop) heroStop.addEventListener('click', function () { triggerServerAction('stop'); });
+    $('hero-address').classList.add('clickable');
+    $('hero-address').addEventListener('click', function () {
+        var text = $('hero-address-text').textContent;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function () { showToast('Address copied', 'ok'); })
+                .catch(function () { showToast('Clipboard blocked by the browser', 'err'); });
+        }
+    });
+    $('peek-all-players').addEventListener('click', function () { switchTab('players'); });
+    $('peek-console').addEventListener('click', function () { switchTab('console'); });
     $('btn-restart').addEventListener('click', function () { triggerServerAction('restart'); });
     $('btn-stop').addEventListener('click', function () { triggerServerAction('stop'); });
     $('btn-cancel-action').addEventListener('click', function () {
