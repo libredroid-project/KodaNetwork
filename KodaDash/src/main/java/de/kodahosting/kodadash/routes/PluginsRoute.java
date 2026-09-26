@@ -55,6 +55,8 @@ public class PluginsRoute extends RouteHandler {
             if ("GET".equalsIgnoreCase(method)) {
                 if (path.endsWith("/search")) {
                     handleModrinthSearch(exchange);
+                } else if (path.endsWith("/icon")) {
+                    handleIcon(exchange);
                 } else {
                     handleGet(exchange);
                 }
@@ -156,22 +158,6 @@ public class PluginsRoute extends RouteHandler {
         }
     }
 
-    private String queryParam(HttpExchange exchange, String name) {
-        String query = exchange.getRequestURI().getQuery();
-        if (query == null) return null;
-        for (String param : query.split("&")) {
-            String[] pair = param.split("=", 2);
-            if (pair.length == 2 && name.equals(pair[0])) {
-                try {
-                    return java.net.URLDecoder.decode(pair[1], "UTF-8");
-                } catch (Exception e) {
-                    return pair[1];
-                }
-            }
-        }
-        return null;
-    }
-
     @Override
     protected void handleGet(HttpExchange exchange) throws IOException {
         PluginManager pm = Bukkit.getPluginManager();
@@ -188,13 +174,94 @@ public class PluginsRoute extends RouteHandler {
             
             pJson.addProperty("description", p.getDescription().getDescription());
             pJson.addProperty("enabled", p.isEnabled());
-            
+            pJson.addProperty("hasIcon", iconBytes(p.getName()) != null);
+
             pluginsArray.add(pJson);
         }
 
         JsonObject response = new JsonObject();
         response.add("plugins", pluginsArray);
         sendJson(exchange, 200, response);
+    }
+
+    /** Serves the icon.png a plugin ships inside its own jar (cached per plugin name). */
+    private void handleIcon(HttpExchange exchange) throws IOException {
+        String name = queryParam(exchange, "plugin");
+        if (name == null || name.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing 'plugin' parameter");
+            return;
+        }
+        byte[] icon = iconBytes(name.trim());
+        if (icon == null) {
+            sendError(exchange, 404, "No icon for this plugin");
+            return;
+        }
+        exchange.getResponseHeaders().set("Content-Type", "image/png");
+        exchange.getResponseHeaders().set("Cache-Control", "public, max-age=3600");
+        exchange.sendResponseHeaders(200, icon.length);
+        try (java.io.OutputStream os = exchange.getResponseBody()) {
+            os.write(icon);
+        }
+    }
+
+    private static final java.util.Map<String, byte[]> iconCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<String, Boolean> iconMisses = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private byte[] iconBytes(String pluginName) {
+        if (iconCache.containsKey(pluginName)) return iconCache.get(pluginName);
+        if (iconMisses.containsKey(pluginName)) return null;
+
+        Plugin target = Bukkit.getPluginManager().getPlugin(pluginName);
+        if (target == null) {
+            iconMisses.put(pluginName, Boolean.TRUE);
+            return null;
+        }
+
+        String[] candidates = {"icon.png", "assets/icon.png", "logo.png", "icon.jpg"};
+        try {
+            java.io.File jar = new java.io.File(
+                    target.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+            if (jar.isFile()) {
+                try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(jar)) {
+                    for (String candidate : candidates) {
+                        java.util.zip.ZipEntry entry = zip.getEntry(candidate);
+                        if (entry == null) continue;
+                        try (java.io.InputStream in = zip.getInputStream(entry);
+                             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                            byte[] buffer = new byte[8192];
+                            int read;
+                            while ((read = in.read(buffer)) > 0 && out.size() < 512 * 1024) {
+                                out.write(buffer, 0, read);
+                            }
+                            if (out.size() > 0) {
+                                byte[] bytes = out.toByteArray();
+                                iconCache.put(pluginName, bytes);
+                                return bytes;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        iconMisses.put(pluginName, Boolean.TRUE);
+        return null;
+    }
+
+    private String queryParam(HttpExchange exchange, String name) {
+        String query = exchange.getRequestURI().getQuery();
+        if (query == null) return null;
+        for (String param : query.split("&")) {
+            String[] pair = param.split("=", 2);
+            if (pair.length == 2 && name.equals(pair[0])) {
+                try {
+                    return java.net.URLDecoder.decode(pair[1], "UTF-8");
+                } catch (Exception e) {
+                    return pair[1];
+                }
+            }
+        }
+        return null;
     }
 
     private void handlePluginAction(HttpExchange exchange, boolean enable) throws IOException {

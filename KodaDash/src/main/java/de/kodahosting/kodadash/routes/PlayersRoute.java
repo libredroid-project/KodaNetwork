@@ -73,6 +73,8 @@ public class PlayersRoute extends RouteHandler {
                     handleUnban(exchange);
                 } else if (path.endsWith("/message")) {
                     handleMessage(exchange);
+                } else if (path.endsWith("/move-item")) {
+                    handleMoveItem(exchange);
                 } else if (path.endsWith("/heal")) {
                     handleSimpleAction(exchange, "heal");
                 } else if (path.endsWith("/feed")) {
@@ -146,7 +148,28 @@ public class PlayersRoute extends RouteHandler {
                         JsonObject inv = new JsonObject();
                         PlayerInventory playerInv = player.getInventory();
                         inv.add("armor", serializeItems(playerInv.getArmorContents()));
-                        inv.add("main", serializeItems(playerInv.getContents())); 
+                        inv.add("main", serializeItems(playerInv.getContents()));
+                        // Slot view for the dashboard: 0-8 hotbar, 9-35 main, 36-39 armor, 40 offhand.
+                        // The indexes are the Bukkit slot numbers, so the UI can move items by index.
+                        JsonArray slotArray = new JsonArray();
+                        for (int slot = 0; slot <= 40; slot++) {
+                            JsonObject slotObj = new JsonObject();
+                            slotObj.addProperty("slot", slot);
+                            ItemStack stack = null;
+                            try {
+                                stack = playerInv.getItem(slot);
+                            } catch (Exception ignored) {}
+                            if (stack == null || stack.getType().name().equals("AIR")) {
+                                slotObj.add("item", com.google.gson.JsonNull.INSTANCE);
+                            } else {
+                                JsonObject itemObj = new JsonObject();
+                                itemObj.addProperty("type", stack.getType().name());
+                                itemObj.addProperty("amount", stack.getAmount());
+                                slotObj.add("item", itemObj);
+                            }
+                            slotArray.add(slotObj);
+                        }
+                        inv.add("slots", slotArray);
                         
                         String offhandStr = null;
                         try {
@@ -308,6 +331,62 @@ public class PlayersRoute extends RouteHandler {
 
         } catch (Exception e) {
             sendError(exchange, 400, "Invalid JSON format");
+        }
+    }
+
+    /**
+     * Swap two inventory slots of an online player.
+     * Slots are the Bukkit indexes: 0-8 hotbar, 9-35 main, 36-39 armor, 40 offhand.
+     */
+    private void handleMoveItem(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+            if (!json.has("player") || !json.has("from") || !json.has("to")) {
+                sendError(exchange, 400, "Missing player, from or to");
+                return;
+            }
+
+            final String targetPlayer = json.get("player").getAsString();
+            final int from = json.get("from").getAsInt();
+            final int to = json.get("to").getAsInt();
+
+            if (from < 0 || from > 40 || to < 0 || to > 40) {
+                sendError(exchange, 400, "Slot out of range (0-40)");
+                return;
+            }
+
+            Future<Boolean> future = Bukkit.getScheduler().callSyncMethod(plugin, new Callable<Boolean>() {
+                @Override
+                public Boolean call() {
+                    Player p = Bukkit.getPlayer(targetPlayer);
+                    if (p == null) return false;
+                    PlayerInventory inv = p.getInventory();
+                    ItemStack source = inv.getItem(from);
+                    ItemStack target = inv.getItem(to);
+                    inv.setItem(from, target);
+                    inv.setItem(to, source);
+                    p.updateInventory();
+                    return true;
+                }
+            });
+
+            boolean moved = future.get();
+            if (!moved) {
+                sendError(exchange, 404, "Player is not online");
+                return;
+            }
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            sendJson(exchange, 200, response);
+        } catch (Exception e) {
+            sendError(exchange, 400, "Could not move the item: " + e.getMessage());
         }
     }
 

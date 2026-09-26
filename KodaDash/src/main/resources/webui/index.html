@@ -175,6 +175,33 @@
                     <button class="btn btn-danger hidden" id="btn-cancel-action">Cancel countdown</button>
                 </div>
             </div>
+
+            <div class="card">
+                <h2 class="card-title">Device &amp; host</h2>
+                <p class="card-sub" id="device-kernel"></p>
+                <div class="info-columns">
+                    <div>
+                        <div class="info-column-title">Device</div>
+                        <div class="info-grid" id="device-device"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">System</div>
+                        <div class="info-grid" id="device-system"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">Memory</div>
+                        <div class="info-grid" id="device-memory"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">Storage</div>
+                        <div class="info-grid" id="device-disk"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">Runtime</div>
+                        <div class="info-grid" id="device-runtime"></div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- ===== Console ===== -->
@@ -304,6 +331,49 @@
 
             <div id="settings-sections"></div>
         </section>
+
+        <!-- ---------- Footer: same notices and links as the main website ---------- -->
+        <footer class="dash-footer">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-brand">
+                        <div class="brand-dot">K</div>
+                        <div>
+                            <div class="footer-title">KodaDash</div>
+                            <div class="muted small">Remote control panel for your KodaHosting server</div>
+                        </div>
+                    </div>
+                    <p class="footer-note">
+                        <strong>About this dashboard.</strong> Parts of this interface (layout, wording and the
+                        legal documents linked below) were drafted with the assistance of an AI language model and
+                        reviewed by the developer. The KodaHosting app, its server-hosting logic, the networking
+                        infrastructure and the KodaDash plugin itself are written by the developer. Legal
+                        responsibility for all content rests with the developer and their legal guardians.
+                    </p>
+                </div>
+                <div class="footer-col">
+                    <h4>Tabs</h4>
+                    <button type="button" class="footer-link" data-footer-tab="overview">Overview</button>
+                    <button type="button" class="footer-link" data-footer-tab="console">Console</button>
+                    <button type="button" class="footer-link" data-footer-tab="players">Players</button>
+                    <button type="button" class="footer-link" data-footer-tab="files">Files</button>
+                    <button type="button" class="footer-link" data-footer-tab="plugins">Plugins</button>
+                    <button type="button" class="footer-link" data-footer-tab="settings">Settings</button>
+                </div>
+                <div class="footer-col">
+                    <h4>KodaHosting</h4>
+                    <a href="https://host.kodanetwork.eu/index.html" target="_blank" rel="noopener">Main page</a>
+                    <a href="https://host.kodanetwork.eu/dashboard" target="_blank" rel="noopener">Account dashboard</a>
+                    <a href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">Terms of Service</a>
+                    <a href="https://host.kodanetwork.eu/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+                    <a href="https://host.kodanetwork.eu/impressum.txt" target="_blank" rel="noopener">Impressum</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2026 KodaHosting</span>
+                <span id="footer-version">KodaDash</span>
+            </div>
+        </footer>
     </main>
 </div>
 

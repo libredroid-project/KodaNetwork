@@ -31,6 +31,8 @@ var state = {
     players: [],
     settings: null,
     settingsDirty: {},
+    suggestions: { commands: [], players: [], arguments: {} },
+    completion: { base: '', list: [], index: -1 },
     editor: { instance: null, ready: false, loading: false, pending: null, file: null },
     stats: { tps: [], ram: [] },
     needsPassword: false
@@ -140,6 +142,13 @@ function parseConsoleText(text) {
 
 /* --------------------------------------------------------------------- api */
 
+/** Token as query parameters - needed by <img> and window.open, which cannot send headers. */
+function authQuery() {
+    var query = 'token=' + encodeURIComponent(state.token);
+    if (state.password) query += '&password=' + encodeURIComponent(state.password);
+    return query;
+}
+
 function api(path, options) {
     var opts = Object.assign({ method: 'GET' }, options || {});
     opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
@@ -213,6 +222,7 @@ function enterDashboard() {
     startStatsPolling();
     connectConsole();
     loadServerActionState();
+    loadSuggestions();
 }
 
 function signOut() {
@@ -301,14 +311,81 @@ function loadOverview() {
         $('info-difficulty').textContent = d.difficulty || '--';
         $('info-onlinemode').textContent = d.onlineMode ? 'yes' : 'no';
         $('info-port').textContent = d.port || '--';
+        var footerVersion = $('footer-version');
+        if (footerVersion) footerVersion.textContent = 'KodaDash on ' + (d.name || 'server') + ' ' + (d.version || '');
 
         pushHistory('tps', tpsNow);
         pushHistory('ram', maxRam > 0 ? pct : null);
+        if (!state.deviceLoaded || Date.now() - state.deviceLoaded > 30000) {
+            state.deviceLoaded = Date.now();
+            loadDeviceInfo();
+        }
         drawSparkline('spark-tps', state.stats.tps, 20, 'var(--brand)');
         drawSparkline('spark-ram', state.stats.ram, 100, 'var(--md-primary)');
     }).catch(function (e) {
         if (e.status === 401) handleUnauthorized();
     });
+}
+
+/** Host details: the Android device (provided by the app) plus the system the JVM runs on. */
+function loadDeviceInfo() {
+    api('/api/device').then(function (d) {
+        var device = d.device || {};
+        var system = d.system || {};
+        var memory = d.memory || {};
+        var disk = d.disk || {};
+        var runtime = d.runtime || {};
+
+        function mb(value) { return value == null ? null : formatMegabytes(value); }
+        function gb(value) {
+            if (value == null) return null;
+            // Small folders read better in MB than as "0 GB"
+            return value < 1 ? Math.max(1, Math.round(value * 1024)) + ' MB' : value + ' GB';
+        }
+
+        var deviceRows = [
+            ['Model', device.model], ['Manufacturer', device.manufacturer || device.brand],
+            ['Android', device.android], ['API level', device.sdk],
+            ['Device RAM', mb(device.totalRamMb)],
+            ['Battery', device.batteryPct != null ? device.batteryPct + ' %' : null]
+        ].filter(function (row) { return row[1] != null && row[1] !== ''; });
+
+        $('device-device').innerHTML = deviceRows.length
+            ? deviceRows.map(function (row) { return infoRow(row[0], row[1]); }).join('')
+            : '<div class="muted small">No device details reported by the app yet.</div>';
+
+        // Android hides /proc/cpuinfo and /proc/loadavg from apps, so the CPU falls back to
+        // the SoC the app reports and rows without data are left out entirely.
+        var cpu = system.cpuModel || (device.soc && device.soc.trim()) || device.hardware || null;
+        var systemRows = [
+            infoRow('Platform', system.os + ' / ' + system.arch),
+            cpu ? infoRow('CPU', cpu) : '',
+            system.cores ? infoRow('Cores', system.cores) : '',
+            system.loadAvg && system.loadAvg.length ? infoRow('Load (1m)', Number(system.loadAvg[0]).toFixed(2)) : ''
+        ].filter(Boolean);
+        $('device-system').innerHTML = systemRows.join('');
+
+        $('device-memory').innerHTML = [
+            infoRow('System RAM', memory.totalMb ? mb(memory.totalMb) + ' total' : '--'),
+            infoRow('Available', mb(memory.availableMb)),
+            infoRow('Server heap', mb(memory.jvmUsedMb) + ' of ' + mb(memory.jvmMaxMb))
+        ].join('');
+
+        $('device-disk').innerHTML = [
+            infoRow('Storage', disk.totalGb != null ? gb(disk.totalGb) + ' total' : '--'),
+            infoRow('Free', gb(disk.freeGb)),
+            infoRow('Server folder', disk.serverDirGb != null ? gb(disk.serverDirGb) : '--')
+        ].join('');
+
+        var kernel = String(system.kernel || '');
+        $('device-runtime').innerHTML = [
+            infoRow('Java', runtime.java), infoRow('VM', runtime.jvm),
+            infoRow('Uptime', formatUptime(runtime.uptimeMs)), infoRow('Threads', runtime.threads),
+            kernel ? infoRow('Kernel', kernel.split(' ').slice(0, 3).join(' ')) : ''
+        ].filter(Boolean).join('');
+
+        $('device-kernel').textContent = system.kernel || '';
+    }).catch(function () { /* the panel simply stays empty on older builds */ });
 }
 
 function pushHistory(kind, value) {
@@ -390,12 +467,90 @@ function triggerServerAction(action) {
 
 /* ---------------------------------------------------------------- console */
 
+/** Command and player names for the TAB completion of the console input. */
+function loadSuggestions() {
+    api('/api/console/commands').then(function (d) {
+        state.suggestions.commands = d.commands || [];
+        state.suggestions.players = d.players || [];
+        state.suggestions.arguments = d.arguments || {};
+    }).catch(function () { /* older builds may not have this route */ });
+}
+
+/**
+ * Shell-like completion: TAB cycles through the candidates for the token under the cursor,
+ * Shift+TAB walks back. The candidates are printed once per cycle so the user sees the options.
+ */
+function completeConsoleInput(input, backwards) {
+    var text = input.value;
+    var cursor = input.selectionStart == null ? text.length : input.selectionStart;
+    var before = text.slice(0, cursor);
+    var token = (before.match(/[^\s]*$/) || [''])[0];
+    var isCommand = before.trim().indexOf(' ') < 0;
+    var prefix = token.toLowerCase();
+
+    var candidates;
+    if (isCommand) {
+        candidates = state.suggestions.commands.filter(function (name) {
+            return name.toLowerCase().indexOf(prefix) === 0;
+        });
+    } else {
+        var command = before.trim().split(/\s+/)[0].toLowerCase();
+        var hint = state.suggestions.arguments[command] || [];
+        var names = state.suggestions.players.slice();
+        candidates = names.concat(hint).filter(function (value) {
+            return value.toLowerCase().indexOf(prefix) === 0;
+        });
+    }
+    candidates = candidates.filter(function (value, index, all) { return all.indexOf(value) === index; }).sort();
+
+    if (!candidates.length) return;
+
+    var cycleKey = prefix + '|' + (isCommand ? 'cmd' : 'arg');
+    if (state.completion.base !== cycleKey) {
+        state.completion = { base: cycleKey, list: candidates, index: -1 };
+        appendLocalLine('  ' + candidates.join('   '), 'cmd-hint');
+    }
+    var total = state.completion.list.length;
+    state.completion.index = (state.completion.index + (backwards ? -1 : 1) + total) % total;
+
+    var choice = state.completion.list[state.completion.index];
+    var head = text.slice(0, cursor - token.length);
+    var tail = text.slice(cursor);
+    if (choice.indexOf(' ') >= 0) choice = '"' + choice + '"';
+    input.value = head + choice + tail;
+    var caret = (head + choice).length;
+    input.setSelectionRange(caret, caret);
+}
+
+/** Jump back to the newest output and re-enable following. */
+function scrollConsoleToBottom() {
+    var out = $('console-output');
+    out.scrollTop = out.scrollHeight;
+    state.console.follow = true;
+    $('follow-toggle').classList.add('selected');
+}
+
+/** Following pauses while the user reads older lines - like every good log viewer. */
+function bindConsoleFollowPause() {
+    var out = $('console-output');
+    out.addEventListener('scroll', function () {
+        var atBottom = out.scrollHeight - out.scrollTop - out.clientHeight < 24;
+        if (atBottom && !state.console.follow) {
+            state.console.follow = true;
+            $('follow-toggle').classList.add('selected');
+        } else if (!atBottom && state.console.follow) {
+            state.console.follow = false;
+            $('follow-toggle').classList.remove('selected');
+        }
+    });
+}
+
+
 function connectConsole() {
     var cfg = state.console;
     if (cfg.source) { try { cfg.source.close(); } catch (e) {} cfg.source = null; }
 
-    var url = state.baseUrl + '/api/console/stream?token=' + encodeURIComponent(state.token);
-    if (state.password) url += '&password=' + encodeURIComponent(state.password);
+    var url = state.baseUrl + '/api/console/stream?' + authQuery();
 
     var source = new EventSource(url);
     cfg.source = source;
@@ -564,9 +719,7 @@ function sendCommand(command) {
 }
 
 function downloadLog() {
-    var query = '?token=' + encodeURIComponent(state.token)
-        + (state.password ? '&password=' + encodeURIComponent(state.password) : '');
-    window.open(state.baseUrl + '/api/logs/download' + query, '_blank');
+    window.open(state.baseUrl + '/api/logs/download?' + authQuery(), '_blank');
 }
 
 function copyConsole() {
@@ -586,7 +739,8 @@ function copyConsole() {
 
 function loadPlayers() {
     var list = $('players-list');
-    api('/api/players').then(function (d) {
+    // Returns the promise so callers can re-render after the list is fresh
+    return api('/api/players').then(function (d) {
         state.players = d.players || [];
         var badge = $('player-count-badge');
         badge.textContent = state.players.length;
@@ -604,26 +758,63 @@ function loadPlayers() {
     });
 }
 
+/** Coloured action button; "tone" maps to the state colours used across the dashboard. */
+function actionButton(spec) {
+    return '<button class="btn btn-tone-' + spec.tone + ' btn-sm"'
+        + ' data-player-action="' + spec.action + '"'
+        + (spec.altAction ? ' data-player-alt-action="' + spec.altAction + '"' : '')
+        + (spec.state ? ' data-player-state="' + spec.state + '"' : '')
+        + ' data-player-name="' + escapeHtml(spec.player) + '">'
+        + '<svg class="icon icon-sm"><use href="icons.svg#' + spec.icon + '"></use></svg>'
+        + escapeHtml(spec.label) + '</button>';
+}
+
+/**
+ * The action set for one player. Stateful things (OP, whitelist) are a single button that
+ * flips its label, colour and target action depending on the current state - no double buttons.
+ */
+function playerActions(p) {
+    return [
+        { action: 'heal', label: 'Heal', tone: 'ok', icon: 'i-favorite', player: p.name },
+        { action: 'feed', label: 'Feed', tone: 'ok', icon: 'i-restaurant', player: p.name },
+        // One button per stateful action: while it is on, the button turns it off again.
+        p.isOp
+            ? { action: 'op', altAction: 'deop', state: 'on', label: 'Remove OP', tone: 'warn', icon: 'i-star', player: p.name }
+            : { action: 'op', state: 'off', label: 'Make OP', tone: 'primary', icon: 'i-star', player: p.name },
+        p.isWhitelisted
+            ? { action: 'whitelist', altAction: 'unwhitelist', state: 'on', label: 'Whitelisted', tone: 'ok', icon: 'i-shield', player: p.name }
+            : { action: 'whitelist', state: 'off', label: 'Whitelist', tone: 'neutral', icon: 'i-shield', player: p.name },
+        { action: 'message', label: 'Message', tone: 'neutral', icon: 'i-chat', player: p.name },
+        { action: 'kick', label: 'Kick', tone: 'warn', icon: 'i-person_off', player: p.name },
+        { action: 'ban', label: 'Ban', tone: 'error', icon: 'i-person_off', player: p.name },
+        { action: 'kill', label: 'Kill', tone: 'error', icon: 'i-dangerous', player: p.name },
+        { action: 'starve', label: 'Starve', tone: 'warn', icon: 'i-nofood', player: p.name },
+        { action: 'wipe', label: 'Wipe data', tone: 'error', icon: 'i-wipe', player: p.name }
+    ];
+}
+
 function playerCard(p, index) {
     var health = Math.max(0, Math.min(20, Number(p.health != null ? p.health : 20)));
     var pct = Math.round(health / 20 * 100);
     var gm = (p.gamemode || '').toLowerCase();
     var colour = pct > 50 ? 'var(--md-success)' : pct > 25 ? 'var(--md-warning)' : 'var(--md-error)';
     var playtime = p.stats && p.stats.playTimeHours != null ? p.stats.playTimeHours + 'h played' : '';
+    var quick = [
+        { action: 'heal', label: 'Heal', tone: 'ok', icon: 'i-favorite', player: p.name },
+        { action: 'feed', label: 'Feed', tone: 'ok', icon: 'i-restaurant', player: p.name },
+        { action: 'kick', label: 'Kick', tone: 'warn', icon: 'i-person_off', player: p.name }
+    ];
     return '<div class="list-item" data-player-open="' + index + '" style="cursor:pointer">'
         + '<div class="avatar"><img src="https://mc-heads.net/avatar/' + encodeURIComponent(p.name) + '/44" alt=""></div>'
         + '<div class="body">'
         + '<div class="title">' + escapeHtml(p.name)
         + (p.isOp ? ' <span class="badge badge-warn">OP</span>' : '')
+        + (p.isWhitelisted ? ' <span class="badge badge-ok">WL</span>' : '')
         + '<span class="badge badge-muted">' + escapeHtml(gm || 'unknown') + '</span></div>'
         + '<div class="meta">' + escapeHtml(p.world || '') + (playtime ? ' - ' + escapeHtml(playtime) : '') + '</div>'
         + '<div class="healthbar"><span style="width:' + pct + '%;background:' + colour + '"></span></div>'
-        + '<div class="actions">'
-        + '<button class="btn btn-text btn-sm" data-player-action="heal" data-player-name="' + escapeHtml(p.name) + '">Heal</button>'
-        + '<button class="btn btn-text btn-sm" data-player-action="feed" data-player-name="' + escapeHtml(p.name) + '">Feed</button>'
-        + '<button class="btn btn-text btn-sm" data-player-action="kick" data-player-name="' + escapeHtml(p.name) + '">Kick</button>'
-        + '<button class="btn btn-text btn-sm" data-player-action="ban" data-player-name="' + escapeHtml(p.name) + '">Ban</button>'
-        + '</div></div></div>';
+        + '<div class="actions">' + quick.map(actionButton).join('') + '</div>'
+        + '</div></div>';
 }
 
 function bindPlayerCards(scope) {
@@ -642,9 +833,79 @@ function bindPlayerActions(scope) {
     for (var i = 0; i < buttons.length; i++) {
         buttons[i].addEventListener('click', function (ev) {
             ev.stopPropagation();
-            runPlayerAction(this.getAttribute('data-player-action'), this.getAttribute('data-player-name'));
+            // A stateful button fires its opposite action while the state is on
+            var state = this.getAttribute('data-player-state');
+            var action = this.getAttribute('data-player-action');
+            var alt = this.getAttribute('data-player-alt-action');
+            if (state === 'on' && alt) action = alt;
+            runPlayerAction(action, this.getAttribute('data-player-name'));
         });
     }
+}
+
+/** Vanilla textures straight from a CDN; block/ is tried when there is no item/ texture. */
+var ITEM_TEXTURE_BASE = 'https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/';
+
+window.itemIconFallback = function (img) {
+    var blockSrc = img.getAttribute('data-block-src');
+    if (blockSrc) {
+        img.removeAttribute('data-block-src');
+        img.src = blockSrc;
+        return;
+    }
+    var slot = img.parentElement;
+    if (slot) {
+        slot.classList.add('no-texture');
+        slot.setAttribute('data-fallback-label', img.getAttribute('data-label') || '?');
+        img.remove();
+    }
+};
+
+function itemIcon(type, amount) {
+    var name = String(type || '').replace(/^minecraft:/, '').toLowerCase();
+    var label = prettyItemName(type);
+    return '<img class="inv-icon" alt="' + escapeHtml(label) + '" loading="lazy"'
+        + ' data-label="' + escapeHtml(label) + '"'
+        + ' data-block-src="' + ITEM_TEXTURE_BASE + 'block/' + name + '.png"'
+        + ' src="' + ITEM_TEXTURE_BASE + 'item/' + name + '.png"'
+        + ' onerror="itemIconFallback(this)">'
+        + (amount > 1 ? '<span class="inv-count">' + amount + '</span>' : '');
+}
+
+function prettyItemName(type) {
+    if (!type) return '';
+    return String(type).replace(/^minecraft:/, '').split('_')
+        .map(function (part) { return part.charAt(0).toUpperCase() + part.slice(1); }).join(' ');
+}
+
+/**
+ * Inventory as the server sees it: 0-8 hotbar, 9-35 main, 36-39 armour, 40 offhand.
+ * Slots can be rearranged - by dragging on a desktop or by tapping two slots on a phone.
+ */
+function inventoryHtml(inventory) {
+    var slots = inventory.slots || [];
+    var byIndex = {};
+    slots.forEach(function (slot) { byIndex[slot.slot] = slot; });
+
+    function slotHtml(index, extraClass) {
+        var slot = byIndex[index] || {};
+        var item = slot.item || null;
+        return '<div class="inv-slot' + (item ? ' filled' : '') + (extraClass ? ' ' + extraClass : '') + '"'
+            + ' data-slot="' + index + '"'
+            + ' title="' + (item ? escapeHtml(prettyItemName(item.type) + ' x' + item.amount) : 'Slot ' + index) + '">'
+            + (item ? itemIcon(item.type, item.amount) : '')
+            + '</div>';
+    }
+
+    var hotbar = '', main = '';
+    for (var i = 0; i <= 8; i++) hotbar += slotHtml(i);
+    for (var j = 9; j <= 35; j++) main += slotHtml(j);
+
+    return '<div class="inv-section"><div class="inv-label">Hotbar</div><div class="inv-row">' + hotbar + '</div></div>'
+        + '<div class="inv-section"><div class="inv-label">Inventory</div><div class="inv-grid">' + main + '</div></div>'
+        + '<div class="inv-section"><div class="inv-label">Armour &amp; offhand</div><div class="inv-row">'
+        + slotHtml(36) + slotHtml(37) + slotHtml(38) + slotHtml(39) + '<span class="inv-gap"></span>' + slotHtml(40)
+        + '</div></div>';
 }
 
 function openPlayerModal(index) {
@@ -652,11 +913,14 @@ function openPlayerModal(index) {
     if (!p) return;
     $('player-modal-title').textContent = p.name;
     var stats = p.stats || {};
-    var inventory = p.inventory || { armor: [], main: [] };
+    var inventory = p.inventory || {};
 
     var html = '<div class="row" style="gap:16px;align-items:center;margin-bottom:16px">'
         + '<div class="avatar" style="width:64px;height:64px"><img src="https://mc-heads.net/avatar/' + encodeURIComponent(p.name) + '/64" alt=""></div>'
-        + '<div><div style="font-size:1.125rem;font-weight:500">' + escapeHtml(p.name) + '</div>'
+        + '<div><div style="font-size:1.125rem;font-weight:500">' + escapeHtml(p.name)
+        + (p.isOp ? ' <span class="badge badge-warn">OP</span>' : '')
+        + (p.isWhitelisted ? ' <span class="badge badge-ok">Whitelisted</span>' : '')
+        + '</div>'
         + '<div class="muted small mono">' + escapeHtml(p.uuid || '') + '</div></div></div>';
 
     html += '<div class="info-grid" style="margin-bottom:16px">'
@@ -668,33 +932,79 @@ function openPlayerModal(index) {
         + infoRow('Play time', stats.playTimeHours != null ? stats.playTimeHours + ' h' : '--')
         + '</div>';
 
-    html += '<h3 class="card-title" style="margin-bottom:8px">Inventory</h3><div class="inv-grid">';
-    var items = (inventory.armor || []).concat(inventory.main || []);
-    for (var i = 0; i < items.length; i++) {
-        var item = items[i];
-        html += item
-            ? '<div class="inv-slot filled" title="' + escapeHtml(item.type + ' x' + item.amount) + '">'
-                + escapeHtml(shorten(item.type)) + (item.amount > 1 ? '<br>' + item.amount : '') + '</div>'
-            : '<div class="inv-slot"></div>';
-    }
-    html += '</div>';
+    html += '<div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:8px">'
+        + '<h3 class="card-title" style="margin:0">Inventory</h3>'
+        + '<span class="muted small" id="inv-hint">Drag an item onto another slot, or tap two slots to swap them</span>'
+        + '</div><div class="inv-wrap" id="player-inventory">' + inventoryHtml(inventory) + '</div>';
 
     $('player-modal-body').innerHTML = html;
+    bindInventory(p.name);
 
-    var actions = [
-        ['heal', 'Heal'], ['feed', 'Feed'], ['op', 'Make OP'], ['deop', 'Remove OP'],
-        ['whitelist', 'Whitelist'], ['unwhitelist', 'Unwhitelist'],
-        ['kill', 'Kill'], ['starve', 'Starve'], ['wipe', 'Wipe player data'],
-        ['message', 'Message'], ['kick', 'Kick'], ['ban', 'Ban']
-    ];
-    $('player-modal-actions').innerHTML = actions.map(function (a) {
-        var danger = (a[0] === 'ban' || a[0] === 'wipe' || a[0] === 'kill' || a[0] === 'starve');
-        return '<button class="btn ' + (danger ? 'btn-danger' : 'btn-tonal') + ' btn-sm" '
-            + 'data-player-action="' + a[0] + '" data-player-name="' + escapeHtml(p.name) + '">' + a[1] + '</button>';
-    }).join('');
+    $('player-modal-actions').innerHTML = playerActions(p).map(actionButton).join('');
     bindPlayerActions($('player-modal-actions'));
 
     openModal('player-overlay');
+}
+
+/** Selection + drag & drop for the inventory grid. */
+function bindInventory(playerName) {
+    var wrap = $('player-inventory');
+    if (!wrap) return;
+    var selected = null;
+
+    function clearSelection() {
+        if (selected) selected.classList.remove('selected');
+        selected = null;
+    }
+
+    function swap(from, to) {
+        if (from === to) return;
+        api('/api/players/move-item', { method: 'POST', body: { player: playerName, from: from, to: to } })
+            .then(function () { return reloadPlayerInventory(playerName); })
+            .catch(function (e) { showToast(e.message, 'err'); });
+    }
+
+    wrap.querySelectorAll('.inv-slot').forEach(function (slot) {
+        slot.setAttribute('draggable', 'true');
+
+        slot.addEventListener('dragstart', function (ev) {
+            ev.dataTransfer.setData('text/plain', slot.getAttribute('data-slot'));
+            slot.classList.add('dragging');
+        });
+        slot.addEventListener('dragend', function () { slot.classList.remove('dragging'); });
+        slot.addEventListener('dragover', function (ev) { ev.preventDefault(); slot.classList.add('drop-target'); });
+        slot.addEventListener('dragleave', function () { slot.classList.remove('drop-target'); });
+        slot.addEventListener('drop', function (ev) {
+            ev.preventDefault();
+            slot.classList.remove('drop-target');
+            var from = parseInt(ev.dataTransfer.getData('text/plain'), 10);
+            var to = parseInt(slot.getAttribute('data-slot'), 10);
+            if (!isNaN(from) && !isNaN(to)) swap(from, to);
+        });
+
+        slot.addEventListener('click', function () {
+            if (selected === slot) { clearSelection(); return; }
+            if (!selected) { selected = slot; slot.classList.add('selected'); return; }
+            var from = parseInt(selected.getAttribute('data-slot'), 10);
+            var to = parseInt(slot.getAttribute('data-slot'), 10);
+            clearSelection();
+            swap(from, to);
+        });
+    });
+}
+
+/** Refresh the open inventory after a change, without closing the modal. */
+function reloadPlayerInventory(playerName) {
+    return api('/api/players').then(function (d) {
+        state.players = d.players || [];
+        var fresh = state.players.find(function (p) { return p.name === playerName; });
+        if (fresh && $('player-overlay').classList.contains('open')) {
+            var wrap = $('player-inventory');
+            if (wrap) wrap.innerHTML = inventoryHtml(fresh.inventory || {});
+            bindInventory(playerName);
+        }
+        return loadPlayers();
+    });
 }
 
 function infoRow(key, value) {
@@ -734,8 +1044,13 @@ function runPlayerAction(action, playerName) {
         return api('/api/players/' + action, { method: 'POST', body: body })
             .then(function () {
                 showToast(playerName + ': ' + action + ' done', 'ok');
-                closeModal('player-overlay');
-                loadPlayers();
+                var idx = state.players.findIndex(function (x) { return x.name === playerName; });
+                if (idx >= 0 && $('player-overlay').classList.contains('open')) {
+                    // Keep the panel open so the button state visibly flips
+                    loadPlayers().then(function () { openPlayerModal(idx); });
+                } else {
+                    loadPlayers();
+                }
             })
             .catch(function (e) { showToast(e.message, 'err'); });
     });
@@ -849,9 +1164,7 @@ function deleteEntry(path) {
 }
 
 function downloadFile(path) {
-    var query = '?path=' + encodeURIComponent(path) + '&token=' + encodeURIComponent(state.token)
-        + (state.password ? '&password=' + encodeURIComponent(state.password) : '');
-    window.open(state.baseUrl + '/api/files/download' + query, '_blank');
+    window.open(state.baseUrl + '/api/files/download?path=' + encodeURIComponent(path) + '&' + authQuery(), '_blank');
 }
 
 function createEntry(isFolder) {
@@ -965,8 +1278,12 @@ function loadPlugins() {
         list.innerHTML = plugins.map(function (p) {
             var enabled = p.enabled !== false;
             var colour = enabled ? 'var(--md-success)' : 'var(--md-outline)';
+            var icon = p.hasIcon
+                ? '<img class="plugin-icon" loading="lazy" alt="" src="api/plugins/icon?plugin='
+                    + encodeURIComponent(p.name) + '&' + authQuery() + '">'
+                : '<svg class="icon" style="color:' + colour + '"><use href="icons.svg#i-extension"></use></svg>';
             return '<div class="list-item">'
-                + '<div class="avatar"><svg class="icon" style="color:' + colour + '"><use href="icons.svg#i-extension"></use></svg></div>'
+                + '<div class="avatar plugin-avatar">' + icon + '</div>'
                 + '<div class="body"><div class="title">' + escapeHtml(p.name)
                 + '<span class="badge ' + (enabled ? 'badge-ok' : 'badge-muted') + '">' + (enabled ? 'enabled' : 'disabled') + '</span></div>'
                 + '<div class="meta">' + escapeHtml(p.version || '') + (p.authors ? ' - ' + escapeHtml(p.authors) : '') + '</div>'
@@ -1241,7 +1558,11 @@ function init() {
             var pending = consoleInput.value;
             consoleInput.value = '';
             state.historyPos = state.history.length;
+            state.completion = { base: '', list: [], index: -1 };
             sendCommand(pending);
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            completeConsoleInput(consoleInput, e.shiftKey);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (state.historyPos > 0) {
@@ -1257,18 +1578,27 @@ function init() {
                 state.historyPos = state.history.length;
                 consoleInput.value = '';
             }
-        } else if (e.key === 'Tab') {
+        } else if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
+            // Ctrl+L clears the view, Ctrl+U clears the line (like a terminal)
             e.preventDefault();
-            var value = consoleInput.value;
-            if (!value) return;
-            var match = null;
-            for (var i = 0; i < state.players.length; i++) {
-                var name = state.players[i].name;
-                if (name && name.toLowerCase().indexOf(value.toLowerCase()) === 0) { match = name; break; }
-            }
-            if (match) consoleInput.value = match;
+            $('console-output').innerHTML = '';
+            state.console.lines = {};
+            state.console.matches = [];
+            $('search-count').textContent = '0/0';
+        } else if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) {
+            e.preventDefault();
+            consoleInput.value = '';
+        } else if (e.key === 'Escape') {
+            consoleInput.value = '';
         }
     });
+
+    // Any other key starts a new completion cycle
+    consoleInput.addEventListener('input', function () {
+        state.completion = { base: '', list: [], index: -1 };
+    });
+
+    bindConsoleFollowPause();
 
     /* players */
     $('players-refresh').addEventListener('click', loadPlayers);
@@ -1311,6 +1641,15 @@ function init() {
     for (var o = 0; o < overlays.length; o++) {
         overlays[o].addEventListener('click', function (e) {
             if (e.target === this && this.id !== 'editor-overlay') this.classList.remove('open');
+        });
+    }
+
+    /* footer: switch tabs and show the plugin version */
+    var footerLinks = document.querySelectorAll('[data-footer-tab]');
+    for (var f = 0; f < footerLinks.length; f++) {
+        footerLinks[f].addEventListener('click', function () {
+            switchTab(this.getAttribute('data-footer-tab'));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
 

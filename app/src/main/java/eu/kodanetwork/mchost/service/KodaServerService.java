@@ -323,6 +323,9 @@ public class KodaServerService extends Service {
                 payload.put("cpu_cores", Runtime.getRuntime().availableProcessors());
                 payload.put("screen_resolution", resolution);
                 payload.put("battery_level", (int) batteryPct);
+
+                // KodaDash shows these values in its "Device & host" panel
+                maybeWriteKodaDashDeviceInfo(totalMegs, freeMegs, (int) batteryPct);
                 payload.put("is_charging", isCharging);
                 payload.put("network_type", networkType);
 
@@ -2856,6 +2859,47 @@ public class KodaServerService extends Service {
 
         if (srv.isKodadashSupport()) {
             extractPlugin(pluginsDir, "kodadash.jar", "KodaDash.jar");
+        }
+    }
+
+    private long lastDeviceInfoWrite = 0L;
+
+    /**
+     * Writes the device details that the KodaDash dashboard shows under "Device & host" into
+     * plugins/KodaDash/device-info.json. At most once every five minutes - it is the same data
+     * on every heartbeat and the file lives on the device's flash storage.
+     */
+    private void maybeWriteKodaDashDeviceInfo(long totalRamMb, long freeRamMb, int batteryPct) {
+        long now = System.currentTimeMillis();
+        if (now - lastDeviceInfoWrite < 5 * 60 * 1000L) return;
+        lastDeviceInfoWrite = now;
+        try {
+            org.json.JSONObject info = new org.json.JSONObject();
+            info.put("model", android.os.Build.MODEL);
+            info.put("manufacturer", android.os.Build.MANUFACTURER);
+            info.put("brand", android.os.Build.BRAND);
+            info.put("device", android.os.Build.DEVICE);
+            info.put("android", android.os.Build.VERSION.RELEASE);
+            info.put("sdk", android.os.Build.VERSION.SDK_INT);
+            info.put("totalRamMb", totalRamMb);
+            info.put("freeRamMb", freeRamMb);
+            info.put("cpuCores", Runtime.getRuntime().availableProcessors());
+            info.put("hardware", android.os.Build.HARDWARE);
+            info.put("board", android.os.Build.BOARD);
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                info.put("soc", android.os.Build.SOC_MODEL + " " + android.os.Build.SOC_MANUFACTURER);
+            }
+            info.put("batteryPct", batteryPct);
+            info.put("updatedAt", now);
+
+            for (ServerInstance srv : ServerRepo.get(this).all()) {
+                if (!srv.isKodadashSupport()) continue;
+                java.io.File folder = new java.io.File(srv.getServerDir(), "plugins/KodaDash");
+                if (!folder.exists() && !folder.mkdirs()) continue;
+                write(new java.io.File(folder, "device-info.json"), info.toString());
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not write device info", e);
         }
     }
 

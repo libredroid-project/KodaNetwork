@@ -11,10 +11,15 @@ package de.kodahosting.kodadash.routes;
  * For commercial inquiries: licence@kodaserv.eu
  */
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.sun.net.httpserver.HttpExchange;
 import de.kodahosting.kodadash.KodaDash;
 import de.kodahosting.kodadash.server.RouteHandler;
+import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.entity.Player;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -56,6 +61,8 @@ public class ConsoleRoute extends RouteHandler {
 
             if (path.endsWith("/stream") && "GET".equalsIgnoreCase(method)) {
                 handleStream(exchange);
+            } else if (path.endsWith("/commands") && "GET".equalsIgnoreCase(method)) {
+                handleCommandList(exchange);
             } else if (path.endsWith("/command") && "POST".equalsIgnoreCase(method)) {
                 handleCommand(exchange);
             } else if ("GET".equalsIgnoreCase(method)) {
@@ -170,6 +177,74 @@ public class ConsoleRoute extends RouteHandler {
         response.addProperty("success", dispatched);
         response.addProperty("command", command);
         sendJson(exchange, dispatched ? 200 : 403, response);
+    }
+
+    /**
+     * Suggestions for the console input: every command the server knows (namespaces stripped)
+     * plus the online player names. Argument hints for a few common commands are included so the
+     * browser can offer a second-level completion.
+     */
+    private void handleCommandList(HttpExchange exchange) throws IOException {
+        JsonArray commands = new JsonArray();
+        java.util.TreeSet<String> names = new java.util.TreeSet<>();
+
+        try {
+            Object server = Bukkit.getServer();
+            Object commandMap = server.getClass().getMethod("getCommandMap").invoke(server);
+            Object all = commandMap.getClass().getMethod("getCommands").invoke(commandMap);
+
+            // Older servers return a Map<String, Command>, newer ones a Collection<Command>.
+            if (all instanceof java.util.Map) {
+                for (Object key : ((java.util.Map<?, ?>) all).keySet()) {
+                    addCommandName(names, String.valueOf(key));
+                }
+            } else if (all instanceof java.util.Collection) {
+                for (Object entry : (java.util.Collection<?>) all) {
+                    if (entry instanceof Command) {
+                        Command command = (Command) entry;
+                        addCommandName(names, command.getName());
+                        for (String alias : command.getAliases()) addCommandName(names, alias);
+                    } else {
+                        addCommandName(names, String.valueOf(entry));
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Could not read the command map: " + t.getMessage());
+        }
+
+        for (String name : names) commands.add(new JsonPrimitive(name));
+
+        JsonArray players = new JsonArray();
+        for (Player player : Bukkit.getOnlinePlayers()) players.add(new JsonPrimitive(player.getName()));
+
+        JsonObject arguments = new JsonObject();
+        addHints(arguments, "gamemode", "survival", "creative", "adventure", "spectator");
+        addHints(arguments, "difficulty", "peaceful", "easy", "normal", "hard");
+        addHints(arguments, "weather", "clear", "rain", "thunder");
+        addHints(arguments, "time", "set", "add", "query");
+        addHints(arguments, "kill", "@e", "@a");
+        addHints(arguments, "defaultgamemode", "survival", "creative", "adventure", "spectator");
+
+        JsonObject response = new JsonObject();
+        response.add("commands", commands);
+        response.add("players", players);
+        response.add("arguments", arguments);
+        sendJson(exchange, 200, response);
+    }
+
+    /** Command names arrive namespaced ("minecraft:give") - the plain name is what users type. */
+    private void addCommandName(java.util.Set<String> names, String raw) {
+        String name = raw == null ? "" : raw.trim().toLowerCase();
+        int colon = name.indexOf(':');
+        if (colon >= 0) name = name.substring(colon + 1);
+        if (!name.isEmpty() && name.matches("[a-z0-9_-]+")) names.add(name);
+    }
+
+    private void addHints(JsonObject target, String command, String... values) {
+        JsonArray array = new JsonArray();
+        for (String value : values) array.add(new JsonPrimitive(value));
+        target.add(command, array);
     }
 
     /** Read an integer query parameter with a fallback. */
