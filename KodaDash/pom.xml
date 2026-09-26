@@ -61,9 +61,24 @@
 
     <build>
         <resources>
+            <!-- YAML files need Maven filtering (${project.version} in plugin.yml).
+                 Everything else (webui JS/CSS, the bundled Monaco editor) must be copied
+                 verbatim - filtering would silently replace any "${...}" in JS code. -->
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <includes>
+                    <include>**/*.yml</include>
+                    <include>**/*.yaml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/*.yml</exclude>
+                    <exclude>**/*.yaml</exclude>
+                </excludes>
             </resource>
         </resources>
 

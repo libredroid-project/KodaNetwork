@@ -3368,7 +3368,9 @@ public class KodaServerService extends Service {
                             } else if (cmd.equals("INSTALL_KODADASH")) {
                                 srv.setKodadashSupport(true);
                                 if (srv.getKodadashPort() <= 0) {
-                                    int dPort = allocatePortSync(srv, "kodadash", 7800, 7900);
+                                    // Ports below 30000 are not reachable through the VPS firewall,
+                                    // so even the local fallback has to stay in the allowed band.
+                                    int dPort = allocatePortSync(srv, "kodadash", 39000, 40000);
                                     srv.setKodadashPort(dPort);
                                 }
                                 ServerRepo.get(KodaServerService.this).update(srv);

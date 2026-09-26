@@ -42,10 +42,32 @@ blocked-paths:
   - "banned-ips.json"
   - "ops.json"
 
-# Commands that are blocked from being executed via the console
+# Commands that are blocked from being executed via the console.
+# Leading slashes are stripped, so "/stop" hits the entry "stop" as well.
 blocked-commands:
   - "stop"
+  - "restart"
+  - "reload"
   - "kodadash"
   - "op"
   - "deop"
+  - "ban"
   - "ban-ip"
+  - "pardon"
+  - "pardon-ip"
+  - "kick"
+  - "save-off"
+  - "save-all"
+  - "whitelist"
+  - "bukkit:reload"
+  - "bukkit:stop"
+  - "minecraft:stop"
+
+# Deliberate server control from the dashboard (restart/stop with player countdown
+# and a cancel option). These stay blocked in the console - only this route may use them.
+server-actions:
+  enabled: true
+  # Seconds between the request and the action (broadcast to all players)
+  countdown-seconds: 30
+  # Allow "stop" (shuts the server down); restart is always available when enabled
+  allow-stop: true

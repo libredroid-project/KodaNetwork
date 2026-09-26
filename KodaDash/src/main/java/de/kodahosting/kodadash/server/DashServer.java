@@ -49,6 +49,8 @@ public class DashServer {
             server.createContext("/api/files", new FilesRoute(plugin));
             server.createContext("/api/settings", new SettingsRoute(plugin));
             server.createContext("/api/plugins", new PluginsRoute(plugin));
+            server.createContext("/api/logs", new LogsRoute(plugin));
+            server.createContext("/api/server-action", new ServerActionRoute(plugin));
 
             // Static web UI files (SPA fallback)
             server.createContext("/", new StaticHandler(plugin));

@@ -223,4 +223,48 @@ public class FileManager {
         File file = new File(rootDir, path);
         return file.length();
     }
+
+    /**
+     * Rename a file or directory. The new name is a plain name (no path separators),
+     * the file stays in its current parent directory.
+     *
+     * @return the new relative path
+     */
+    public String rename(String path, String newName) throws IOException {
+        if (!isPathSafe(path)) throw new SecurityException("Access denied: blocked path");
+        if (newName == null) throw new IOException("Missing new name");
+        String clean = newName.trim();
+        if (clean.isEmpty() || clean.contains("/") || clean.contains("\\") || clean.equals(".") || clean.equals("..")) {
+            throw new IOException("Invalid name");
+        }
+        File source = new File(rootDir, path);
+        if (!source.exists()) throw new IOException("File not found");
+        File target = new File(source.getParentFile(), clean);
+        if (!isPathSafe(target.getPath())) throw new SecurityException("Access denied: blocked path");
+        if (target.exists()) throw new IOException("A file with that name already exists");
+        Files.move(source.toPath(), target.toPath());
+        String root = rootDir.getCanonicalPath();
+        String absolute = target.getCanonicalPath();
+        String relative = absolute.startsWith(root) ? absolute.substring(root.length()) : absolute;
+        return relative.replace('\\', '/').replaceFirst("^/", "");
+    }
+
+    /**
+     * Read a file as raw bytes for download (hard limit 200 MB).
+     */
+    public byte[] readBytes(String path) throws IOException {
+        if (!isPathSafe(path)) throw new SecurityException("Access denied: blocked path");
+        File file = new File(rootDir, path);
+        if (!file.exists() || !file.isFile()) throw new IOException("Not a file");
+        if (file.length() > 200L * 1024 * 1024) throw new IOException("File too large to download");
+        return Files.readAllBytes(file.toPath());
+    }
+
+    /**
+     * @return the absolute File for a safe relative path (used for log files)
+     */
+    public File resolve(String path) throws IOException {
+        if (!isPathSafe(path)) throw new SecurityException("Access denied: blocked path");
+        return new File(rootDir, path);
+    }
 }

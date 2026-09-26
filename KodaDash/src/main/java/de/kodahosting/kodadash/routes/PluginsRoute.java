@@ -37,10 +37,7 @@ public class PluginsRoute extends RouteHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            String origin = plugin.getConfig().getString("cors-origins", "*");
-            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", origin);
-            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-            exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Token, X-Dashboard-Password");
+            applyCors(exchange);
 
             if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
                 exchange.sendResponseHeaders(204, -1);
@@ -56,7 +53,11 @@ public class PluginsRoute extends RouteHandler {
             String method = exchange.getRequestMethod();
 
             if ("GET".equalsIgnoreCase(method)) {
-                handleGet(exchange);
+                if (path.endsWith("/search")) {
+                    handleModrinthSearch(exchange);
+                } else {
+                    handleGet(exchange);
+                }
             } else if ("POST".equalsIgnoreCase(method)) {
                 if (path.endsWith("/enable")) {
                     handlePluginAction(exchange, true);
@@ -76,6 +77,99 @@ public class PluginsRoute extends RouteHandler {
                 sendError(exchange, 500, "Internal Server Error");
             } catch (IOException ignored) {}
         }
+    }
+
+    /**
+     * Server-side proxy for the Modrinth plugin search. Runs on the server so the browser
+     * does not hit CORS restrictions and works even when the dashboard is reached through
+     * the tunnel without direct internet access.
+     *
+     * GET /api/plugins/search?query=essentials&limit=12
+     */
+    private void handleModrinthSearch(HttpExchange exchange) throws IOException {
+        String query = queryParam(exchange, "query");
+        if (query == null || query.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing 'query' parameter");
+            return;
+        }
+        int limit = 12;
+        String limitParam = queryParam(exchange, "limit");
+        if (limitParam != null) {
+            try {
+                limit = Math.max(1, Math.min(24, Integer.parseInt(limitParam)));
+            } catch (NumberFormatException ignored) {}
+        }
+
+        try {
+            String encodedQuery = java.net.URLEncoder.encode(query.trim(), "UTF-8");
+            String facets = java.net.URLEncoder.encode("[[\"project_type:plugin\"]]", "UTF-8");
+            String url = "https://api.modrinth.com/v2/search?query=" + encodedQuery
+                    + "&facets=" + facets + "&limit=" + limit;
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setRequestProperty("User-Agent", "KodaDash/1.0 (KodaHosting)");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+
+            if (conn.getResponseCode() != 200) {
+                sendError(exchange, 502, "Modrinth API returned HTTP " + conn.getResponseCode());
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+            }
+
+            JsonObject modrinth = new JsonParser().parse(sb.toString()).getAsJsonObject();
+            JsonArray hits = modrinth.has("hits") ? modrinth.getAsJsonArray("hits") : new JsonArray();
+
+            JsonArray results = new JsonArray();
+            for (int i = 0; i < hits.size(); i++) {
+                JsonObject hit = hits.get(i).getAsJsonObject();
+                JsonObject entry = new JsonObject();
+                entry.addProperty("projectId", getString(hit, "project_id"));
+                entry.addProperty("slug", getString(hit, "slug"));
+                entry.addProperty("title", getString(hit, "title"));
+                entry.addProperty("description", getString(hit, "description"));
+                entry.addProperty("downloads", hit.has("downloads") ? hit.get("downloads").getAsLong() : 0L);
+                entry.addProperty("iconUrl", getString(hit, "icon_url"));
+                entry.addProperty("author", getString(hit, "author"));
+                results.add(entry);
+            }
+
+            JsonObject response = new JsonObject();
+            response.add("results", results);
+            sendJson(exchange, 200, response);
+        } catch (Exception e) {
+            sendError(exchange, 502, "Modrinth search failed: " + e.getMessage());
+        }
+    }
+
+    private String getString(JsonObject obj, String key) {
+        try {
+            return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsString() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String queryParam(HttpExchange exchange, String name) {
+        String query = exchange.getRequestURI().getQuery();
+        if (query == null) return null;
+        for (String param : query.split("&")) {
+            String[] pair = param.split("=", 2);
+            if (pair.length == 2 && name.equals(pair[0])) {
+                try {
+                    return java.net.URLDecoder.decode(pair[1], "UTF-8");
+                } catch (Exception e) {
+                    return pair[1];
+                }
+            }
+        }
+        return null;
     }
 
     @Override

@@ -1,191 +1,394 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KodaDash</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs/editor/editor.main.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.38.0/min/vs/loader.min.js"></script>
-  <script type="module" src="app.js" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>KodaDash</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="toast-container"></div>
-  
-  <div id="app">
-    <!-- Login Screen -->
-    <div id="login-screen">
-      <div id="login-particles"></div>
-      <div class="login-card">
-        <h1 class="logo">Koda<span class="accent">Dash</span></h1>
-        <p class="subtitle">Enter your token to manage your server</p>
+
+<!-- ---------- Login ---------- -->
+<div id="login-screen">
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="brand-dot">K</div>
+            <h1>KodaDash</h1>
+        </div>
+        <p class="sub">Remote control for your KodaHosting server</p>
+
         <form id="login-form">
-          <div class="input-group">
-            <input type="text" id="token-input" placeholder="Connection Token" autocomplete="off" required>
-          </div>
-          <div class="input-group" id="password-group" style="display: none;">
-            <input type="password" id="password-input" placeholder="Server Password (Optional)">
-          </div>
-          <button type="submit" class="btn-primary login-btn">Connect</button>
+            <div class="field">
+                <label for="token-input">Access token</label>
+                <input type="password" id="token-input" class="input" placeholder="Paste your dashboard token" autocomplete="off">
+            </div>
+            <div class="field hidden" id="password-group">
+                <label for="password-input">Dashboard password</label>
+                <input type="password" id="password-input" class="input" placeholder="Secondary password" autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-filled btn-block" id="login-btn">Connect</button>
+            <p class="small" id="login-error" style="margin-top:12px;color:var(--md-error)"></p>
         </form>
-        <div id="login-error" class="error-msg"></div>
-      </div>
+        <p class="small muted" style="margin-top:20px">
+            You can also open this page with <span class="mono">?token=...</span> to sign in automatically.
+        </p>
     </div>
+</div>
 
-    <!-- Dashboard -->
-    <div id="dashboard" style="display: none;">
-      <!-- Sidebar -->
-      <nav id="sidebar">
+<!-- ---------- App ---------- -->
+<div id="app">
+    <div class="scrim" id="scrim"></div>
+
+    <aside id="sidebar">
         <div class="sidebar-header">
-          <span class="logo">Koda<span class="accent">Dash</span></span>
-          <span class="server-name" id="server-name">Loading...</span>
-          <button id="mobile-menu-close" class="mobile-only">&times;</button>
+            <div class="brand-dot">K</div>
+            <div style="min-width:0">
+                <div class="name" id="server-name">Server</div>
+                <div class="sub">KodaDash</div>
+            </div>
+            <button class="icon-btn" id="mobile-menu-close" aria-label="Close menu">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
         </div>
-        <ul class="nav-links">
-          <li class="nav-item active" data-tab="overview"><span class="nav-icon">📊</span> Overview</li>
-          <li class="nav-item" data-tab="console"><span class="nav-icon">💻</span> Console</li>
-          <li class="nav-item" data-tab="files"><span class="nav-icon">📁</span> Files</li>
-        </ul>
-        <div class="sidebar-footer">
-          <div class="connection-status" id="connection-status">
-            <span class="status-dot connected"></span>
-            <span>Connected</span>
-          </div>
-          <button id="logout-btn" class="btn-ghost">Disconnect</button>
-        </div>
-      </nav>
 
-      <!-- Main Content -->
-      <main id="main-content">
-        <header class="mobile-header mobile-only">
-          <button id="mobile-menu-btn">☰</button>
-          <span class="logo">Koda<span class="accent">Dash</span></span>
+        <div class="nav-section">Monitor</div>
+        <div class="nav-item active" data-tab="overview">
+            <svg class="icon"><use href="icons.svg#i-dashboard"></use></svg>
+            <span>Overview</span>
+        </div>
+        <div class="nav-item" data-tab="console">
+            <svg class="icon"><use href="icons.svg#i-terminal"></use></svg>
+            <span>Console</span>
+        </div>
+        <div class="nav-item" data-tab="players">
+            <svg class="icon"><use href="icons.svg#i-group"></use></svg>
+            <span>Players</span>
+            <span class="badge hidden" id="player-count-badge">0</span>
+        </div>
+
+        <div class="nav-section">Manage</div>
+        <div class="nav-item" data-tab="files">
+            <svg class="icon"><use href="icons.svg#i-folder"></use></svg>
+            <span>Files</span>
+        </div>
+        <div class="nav-item" data-tab="plugins">
+            <svg class="icon"><use href="icons.svg#i-extension"></use></svg>
+            <span>Plugins</span>
+        </div>
+        <div class="nav-item" data-tab="settings">
+            <svg class="icon"><use href="icons.svg#i-tune"></use></svg>
+            <span>Settings</span>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="nav-item danger" id="logout-btn">
+                <svg class="icon"><use href="icons.svg#i-logout"></use></svg>
+                <span>Sign out</span>
+            </div>
+            <div id="connection-status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Not connected</span>
+            </div>
+        </div>
+    </aside>
+
+    <main id="main-content">
+        <header class="mobile-header">
+            <button class="icon-btn" id="mobile-menu-btn" aria-label="Open menu">
+                <svg class="icon"><use href="icons.svg#i-menu"></use></svg>
+            </button>
+            <span class="title" id="mobile-title">KodaDash</span>
         </header>
 
-        <!-- Overview Tab -->
-        <section id="tab-overview" class="tab-content active">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon">📈</div>
-              <div class="stat-info">
-                <span class="stat-label">TPS</span>
-                <span class="stat-value" id="stat-tps">--</span>
-              </div>
+        <!-- ===== Overview ===== -->
+        <section class="tab-content active" id="tab-overview">
+            <h1 class="page-title">Overview</h1>
+            <p class="page-sub">Live status of your server</p>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-head">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-bolt"></use></svg>
+                        <span>TPS</span>
+                    </div>
+                    <div class="stat-value" id="stat-tps">--</div>
+                    <div class="stat-foot" id="stat-tps-foot">ticks per second</div>
+                    <canvas class="sparkline" id="spark-tps" width="300" height="48"></canvas>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-head">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-memory"></use></svg>
+                        <span>Memory</span>
+                    </div>
+                    <div class="stat-value" id="stat-ram">--</div>
+                    <div class="stat-foot" id="stat-ram-foot">of allocated</div>
+                    <div class="progress"><span id="stat-ram-bar" style="width:0%"></span></div>
+                    <canvas class="sparkline" id="spark-ram" width="300" height="48"></canvas>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-head">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-group"></use></svg>
+                        <span>Players</span>
+                    </div>
+                    <div class="stat-value" id="stat-players">--</div>
+                    <div class="stat-foot" id="stat-players-foot">online now</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-head">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-schedule"></use></svg>
+                        <span>Uptime</span>
+                    </div>
+                    <div class="stat-value" id="stat-uptime">--</div>
+                    <div class="stat-foot">since last start</div>
+                </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon">🧠</div>
-              <div class="stat-info">
-                <span class="stat-label">RAM Usage</span>
-                <span class="stat-value" id="stat-ram">-- / --</span>
-                <div class="progress-bar-bg"><div class="progress-bar" id="stat-ram-bar"></div></div>
-              </div>
+
+            <div class="card" style="margin-bottom:16px">
+                <h2 class="card-title">Server information</h2>
+                <div class="info-grid">
+                    <div class="info-row"><span class="k">Version</span><span class="v" id="info-version">--</span></div>
+                    <div class="info-row"><span class="k">MOTD</span><span class="v" id="info-motd">--</span></div>
+                    <div class="info-row"><span class="k">World</span><span class="v" id="info-world">--</span></div>
+                    <div class="info-row"><span class="k">Gamemode</span><span class="v" id="info-gamemode">--</span></div>
+                    <div class="info-row"><span class="k">Difficulty</span><span class="v" id="info-difficulty">--</span></div>
+                    <div class="info-row"><span class="k">Online mode</span><span class="v" id="info-onlinemode">--</span></div>
+                    <div class="info-row"><span class="k">Port</span><span class="v" id="info-port">--</span></div>
+                </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon">👥</div>
-              <div class="stat-info">
-                <span class="stat-label">Players</span>
-                <span class="stat-value" id="stat-players">-- / --</span>
-              </div>
+
+            <div class="card">
+                <h2 class="card-title">Server control</h2>
+                <p class="card-sub" id="action-status">Restart or shut down the server with a countdown for all players.</p>
+                <div class="row" style="margin-top:16px">
+                    <button class="btn btn-tonal" id="btn-restart">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-restart_alt"></use></svg>
+                        Restart
+                    </button>
+                    <button class="btn btn-outlined" id="btn-stop">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-stop_circle"></use></svg>
+                        Stop
+                    </button>
+                    <button class="btn btn-danger hidden" id="btn-cancel-action">Cancel countdown</button>
+                </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon">⏱️</div>
-              <div class="stat-info">
-                <span class="stat-label">Uptime</span>
-                <span class="stat-value" id="stat-uptime">--</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="server-info-card">
-            <h3>Server Information</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Version</span>
-                <span class="info-value" id="info-version">--</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">MOTD</span>
-                <span class="info-value" id="info-motd">--</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Online Mode</span>
-                <span class="info-value" id="info-onlinemode">--</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Difficulty</span>
-                <span class="info-value" id="info-difficulty">--</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Gamemode</span>
-                <span class="info-value" id="info-gamemode">--</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">World</span>
-                <span class="info-value" id="info-world">--</span>
-              </div>
-            </div>
-          </div>
         </section>
 
-        <!-- Console Tab -->
-        <section id="tab-console" class="tab-content">
-          <div class="console-container">
-            <div id="console-output" class="console-output"></div>
-            <form id="console-form" class="console-input-area">
-              <span class="console-prompt">&gt;</span>
-              <input type="text" id="console-input" placeholder="Enter command..." autocomplete="off">
-              <button type="submit" class="btn-primary">Send</button>
+        <!-- ===== Console ===== -->
+        <section class="tab-content" id="tab-console">
+            <h1 class="page-title">Console</h1>
+            <p class="page-sub">Live server output and command input</p>
+
+            <div class="console-toolbar">
+                <button class="chip selected" data-level="ALL">All</button>
+                <button class="chip" data-level="INFO">Info</button>
+                <button class="chip" data-level="WARN">Warn</button>
+                <button class="chip" data-level="ERROR">Error</button>
+                <span class="spacer"></span>
+                <div class="row" style="gap:6px">
+                    <input type="text" id="console-search" class="input" placeholder="Search…" style="width:180px;padding:8px 12px">
+                    <button class="icon-btn" id="search-prev" aria-label="Previous match">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-chevron_left"></use></svg>
+                    </button>
+                    <span class="small muted mono" id="search-count">0/0</span>
+                    <button class="icon-btn" id="search-next" aria-label="Next match">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-chevron_right"></use></svg>
+                    </button>
+                </div>
+                <button class="chip selected" id="follow-toggle" title="Auto-scroll to new lines">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-expand_more"></use></svg>
+                    Follow
+                </button>
+                <button class="icon-btn" id="console-copy" title="Copy visible output">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-content_copy"></use></svg>
+                </button>
+                <button class="icon-btn" id="console-download" title="Download full log">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-download"></use></svg>
+                </button>
+                <button class="icon-btn" id="console-clear" title="Clear view">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-delete"></use></svg>
+                </button>
+            </div>
+
+            <div id="console-output"></div>
+
+            <form class="console-input-row" id="console-form">
+                <input type="text" id="console-input" class="input" placeholder="Type a command and press Enter (arrow up/down for history, Tab to complete)">
+                <button type="submit" class="btn btn-filled">Send</button>
             </form>
-          </div>
         </section>
 
-
-
-        <!-- Files Tab -->
-        <section id="tab-files" class="tab-content">
-          <div class="files-header">
-            <div class="breadcrumb" id="files-breadcrumb">
-              <!-- Populated by JS -->
+        <!-- ===== Players ===== -->
+        <section class="tab-content" id="tab-players">
+            <h1 class="page-title">Players</h1>
+            <p class="page-sub">Online players, stats and moderation</p>
+            <div class="toolbar">
+                <button class="btn btn-tonal btn-sm" id="players-refresh">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-refresh"></use></svg>
+                    Refresh
+                </button>
             </div>
-            <div class="files-actions">
-              <button class="btn-ghost" id="new-file-btn">New File</button>
-              <button class="btn-ghost" id="new-folder-btn">New Folder</button>
-              <button class="btn-ghost" id="refresh-files-btn">Refresh</button>
-            </div>
-          </div>
-          <div class="files-list" id="files-list">
-            <!-- Populated by JS -->
-          </div>
+            <div class="list" id="players-list"></div>
         </section>
 
+        <!-- ===== Files ===== -->
+        <section class="tab-content" id="tab-files">
+            <h1 class="page-title">Files</h1>
+            <p class="page-sub">Browse and edit your server files</p>
 
-      </main>
-    </div>
+            <div class="toolbar">
+                <button class="btn btn-tonal btn-sm" id="new-file-btn">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-add"></use></svg>
+                    New file
+                </button>
+                <button class="btn btn-tonal btn-sm" id="new-folder-btn">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-add"></use></svg>
+                    New folder
+                </button>
+                <button class="btn btn-outlined btn-sm" id="upload-btn">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-upload"></use></svg>
+                    Upload
+                </button>
+                <input type="file" id="upload-input" class="hidden">
+                <span class="spacer"></span>
+                <button class="icon-btn" id="refresh-files-btn" title="Refresh">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-refresh"></use></svg>
+                </button>
+            </div>
 
+            <div class="breadcrumb" id="files-breadcrumb"></div>
+            <div class="file-list" id="files-list"></div>
+        </section>
 
+        <!-- ===== Plugins ===== -->
+        <section class="tab-content" id="tab-plugins">
+            <h1 class="page-title">Plugins</h1>
+            <p class="page-sub">Installed plugins and Modrinth search</p>
 
-    <!-- File Editor Overlay -->
-    <div id="file-editor-overlay" class="overlay" style="display: none; padding: 0;">
-      <div class="modal editor-modal" style="width: 100vw; height: 100vh; max-width: 100%; max-height: 100%; margin: 0; border-radius: 0; border: none;">
+            <div class="toolbar">
+                <button class="btn btn-tonal btn-sm" id="plugins-refresh">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-refresh"></use></svg>
+                    Refresh
+                </button>
+                <span class="spacer"></span>
+                <button class="btn btn-filled btn-sm" id="open-modrinth">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-search"></use></svg>
+                    Search Modrinth
+                </button>
+            </div>
+
+            <div class="list" id="plugins-list"></div>
+        </section>
+
+        <!-- ===== Settings ===== -->
+        <section class="tab-content" id="tab-settings">
+            <h1 class="page-title">Settings</h1>
+            <p class="page-sub">server.properties</p>
+
+            <div class="notice notice-warn hidden" id="settings-restart-notice" style="margin-bottom:16px">
+                <svg class="icon icon-sm"><use href="icons.svg#i-warning"></use></svg>
+                <span>Some changes only take effect after a restart (see the Overview tab).</span>
+            </div>
+
+            <div class="toolbar">
+                <input type="text" id="settings-search" class="input" placeholder="Filter settings…" style="max-width:280px">
+                <span class="spacer"></span>
+                <button class="btn btn-filled btn-sm" id="settings-save">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-save"></use></svg>
+                    Save changes
+                </button>
+            </div>
+
+            <div id="settings-sections"></div>
+        </section>
+    </main>
+</div>
+
+<!-- ---------- Editor modal ---------- -->
+<div class="modal-overlay" id="editor-overlay">
+    <div class="modal fullscreen">
         <div class="modal-header">
-          <h2 id="editor-filename">filename.yml</h2>
-          <div class="editor-actions">
-            <button class="btn-success" id="editor-save-btn">Save</button>
-            <button class="btn-ghost" id="editor-close-btn">Exit</button>
-          </div>
+            <svg class="icon"><use href="icons.svg#i-edit"></use></svg>
+            <h2 id="editor-filename">file</h2>
+            <button class="btn btn-outlined btn-sm" id="editor-download">Download</button>
+            <button class="btn btn-filled btn-sm" id="editor-save-btn">Save</button>
+            <button class="icon-btn" id="editor-close-btn" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
         </div>
-        <div class="modal-content editor-modal-content" style="height: calc(100vh - 60px); padding: 0;">
-          <div id="monaco-container" style="width: 100%; height: 100%;"></div>
+        <div class="modal-body" style="display:flex;flex-direction:column;padding:0 24px 24px;flex:1;min-height:0">
+            <div class="notice notice-warn hidden" id="editor-warning" style="margin-bottom:12px">
+                <svg class="icon icon-sm"><use href="icons.svg#i-warning"></use></svg>
+                <span id="editor-warning-text"></span>
+            </div>
+            <div id="monaco-container"></div>
         </div>
-      </div>
     </div>
+</div>
 
+<!-- ---------- Player modal ---------- -->
+<div class="modal-overlay" id="player-overlay">
+    <div class="modal wide">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-person"></use></svg>
+            <h2 id="player-modal-title">Player</h2>
+            <button class="icon-btn" id="player-modal-close" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+        <div class="modal-body" id="player-modal-body"></div>
+        <div class="modal-footer" id="player-modal-actions"></div>
+    </div>
+</div>
 
+<!-- ---------- Confirm / prompt modal ---------- -->
+<div class="modal-overlay" id="dialog-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <svg class="icon" id="dialog-icon"><use href="icons.svg#i-warning"></use></svg>
+            <h2 id="dialog-title">Are you sure?</h2>
+        </div>
+        <div class="modal-body">
+            <p class="muted" id="dialog-message" style="margin-bottom:16px"></p>
+            <div class="field hidden" id="dialog-input-group">
+                <label for="dialog-input" id="dialog-input-label">Value</label>
+                <input type="text" id="dialog-input" class="input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-text" id="dialog-cancel">Cancel</button>
+            <button class="btn btn-filled" id="dialog-confirm">Confirm</button>
+        </div>
+    </div>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
-    <script src="app.js?v=2"></script>
-  </body>
+<!-- ---------- Modrinth modal ---------- -->
+<div class="modal-overlay" id="modrinth-overlay">
+    <div class="modal wide">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-search"></use></svg>
+            <h2>Search Modrinth</h2>
+            <button class="icon-btn" id="modrinth-close" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="row" style="margin-bottom:16px">
+                <input type="text" id="modrinth-query" class="input" placeholder="e.g. EssentialsX, WorldEdit…" style="flex:1">
+                <button class="btn btn-filled" id="modrinth-search-btn">Search</button>
+            </div>
+            <div class="list" id="modrinth-results"></div>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- Monaco editor, bundled locally so the dashboard works without internet -->
+<script src="monaco/vs/loader.js"></script>
+<script src="app.js"></script>
+</body>
 </html>
