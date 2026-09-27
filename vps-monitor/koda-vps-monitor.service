@@ -1,0 +1,9 @@
+[Unit]
+Description=KodaHosting VPS monitor (reports load, memory and connections to Supabase)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/koda-monitor.env
+ExecStart=/opt/koda-monitor/koda-vps-monitor.sh

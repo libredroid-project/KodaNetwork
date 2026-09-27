@@ -631,4 +631,19 @@
     <string name="github_open_source">Open source on GitHub</string>
     <string name="kodadash_dashboard">KODADASH DASHBOARD</string>
     <string name="ram_budget_hint">Device %1$d GB - other servers use %2$d MB - %3$d MB fit right now</string>
+    <string name="vps_state_ok">network OK</string>
+    <string name="vps_state_busy">network busy</string>
+    <string name="vps_state_overloaded">network overloaded</string>
+    <string name="vps_state_unknown">no data</string>
+    <string name="vps_status_line">Tunnel server: %1$s - %2$d%% RAM, %3$d online, %4$d tunnels</string>
+    <string name="vps_details_title">Tunnel server</string>
+    <string name="vps_detail_load">Load</string>
+    <string name="vps_detail_ram">Memory</string>
+    <string name="vps_detail_disk">Disk</string>
+    <string name="vps_free">free</string>
+    <string name="vps_detail_players">Player connections</string>
+    <string name="vps_detail_tunnels">Open tunnels</string>
+    <string name="vps_detail_measured">Measured</string>
+    <string name="vps_cores">cores</string>
+    <string name="vps_clients">clients</string>
 </resources>

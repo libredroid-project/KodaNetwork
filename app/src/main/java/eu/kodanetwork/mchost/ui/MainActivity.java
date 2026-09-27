@@ -747,8 +747,120 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 } catch (Exception ignored) {}
+
+                // Network state of the tunnel server (overload hint)
+                loadVpsStatus(baseUrl, apiKey);
             } catch (Exception ignored) {}
         }).start();
+    }
+
+    /**
+     * Reads the newest measurement from the tunnel server and shows a compact status line.
+     * Values come from rpc_get_vps_stats(), written every minute by the reporter on the VPS.
+     */
+    private void loadVpsStatus(String baseUrl, String apiKey) {
+        try {
+            okhttp3.RequestBody body = okhttp3.RequestBody.create("{}",
+                    okhttp3.MediaType.parse("application/json; charset=utf-8"));
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url(baseUrl + "/rest/v1/rpc/rpc_get_vps_stats")
+                    .post(body)
+                    .addHeader("apikey", apiKey)
+                    .addHeader("Authorization", "Bearer " + apiKey)
+                    .build();
+
+            try (okhttp3.Response response = new okhttp3.OkHttpClient().newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) return;
+                String json = response.body().string();
+                org.json.JSONArray rows = new org.json.JSONArray(json);
+                if (rows.length() == 0) {
+                    runOnUiThread(() -> showVpsStatus(null));
+                    return;
+                }
+                final org.json.JSONObject stats = rows.getJSONObject(0);
+                runOnUiThread(() -> showVpsStatus(stats));
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private org.json.JSONObject lastVpsStats = null;
+
+    private void showVpsStatus(org.json.JSONObject stats) {
+        android.view.View bar = findViewById(R.id.vps_status_bar);
+        android.widget.TextView text = findViewById(R.id.vps_status_text);
+        android.view.View dot = findViewById(R.id.vps_status_dot);
+        if (bar == null || text == null || dot == null) return;
+
+        if (stats == null) { bar.setVisibility(android.view.View.GONE); return; }
+        lastVpsStats = stats;
+
+        int cores = Math.max(1, stats.optInt("cpu_cores", 1));
+        double load1 = stats.optDouble("load1", 0);
+        long ramTotal = stats.optLong("ram_total_mb", 0);
+        long ramUsed = stats.optLong("ram_used_mb", 0);
+        int players = stats.optInt("players_connected", 0);
+        int tunnels = stats.optInt("open_tunnels", 0);
+
+        double loadPct = load1 / cores;
+        double ramPct = ramTotal > 0 ? (double) ramUsed / ramTotal : 0;
+
+        // measurements older than three minutes are stale
+        long ageMs = 0;
+        try {
+            java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US);
+            String stamp = stats.optString("measured_at", "");
+            if (stamp.length() >= 19) {
+                format.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+                ageMs = System.currentTimeMillis() - format.parse(stamp.substring(0, 19)).getTime() + java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis());
+            }
+        } catch (Exception ignored) {}
+        boolean stale = ageMs > 3 * 60 * 1000L;
+
+        String state;
+        int color;
+        int dotRes;
+        if (stale) {
+            state = getString(R.string.vps_state_unknown);
+            color = 0xFF888899; dotRes = R.drawable.dot_offline;
+        } else if (ramPct >= 0.92 || loadPct >= 1.5) {
+            state = getString(R.string.vps_state_overloaded);
+            color = 0xFFFF6B6B; dotRes = R.drawable.dot_err;
+        } else if (ramPct >= 0.80 || loadPct >= 0.9) {
+            state = getString(R.string.vps_state_busy);
+            color = 0xFFFFCC00; dotRes = R.drawable.dot_warn;
+        } else {
+            state = getString(R.string.vps_state_ok);
+            color = 0xFF00E676; dotRes = R.drawable.dot_online;
+        }
+
+        text.setText(String.format(getString(R.string.vps_status_line), state,
+                Math.round(ramPct * 100), players, tunnels));
+        text.setTextColor(color);
+        dot.setBackgroundResource(dotRes);
+        bar.setVisibility(android.view.View.VISIBLE);
+        bar.setOnClickListener(v -> showVpsDetails());
+    }
+
+    private void showVpsDetails() {
+        if (lastVpsStats == null) return;
+        org.json.JSONObject s = lastVpsStats;
+        int cores = Math.max(1, s.optInt("cpu_cores", 1));
+        long ramTotal = s.optLong("ram_total_mb", 0);
+        long ramUsed = s.optLong("ram_used_mb", 0);
+        String body = getString(R.string.vps_detail_load) + ": " + String.format(java.util.Locale.US, "%.2f", s.optDouble("load1", 0))
+                + " / " + cores + " " + getString(R.string.vps_cores)
+                + "\n" + getString(R.string.vps_detail_ram) + ": " + ramUsed + " MB / " + ramTotal + " MB"
+                + "\n" + getString(R.string.vps_detail_disk) + ": " + s.optLong("disk_free_gb", 0) + " GB " + getString(R.string.vps_free)
+                + "\n" + getString(R.string.vps_detail_players) + ": " + s.optInt("players_connected", 0)
+                + "\n" + getString(R.string.vps_detail_tunnels) + ": " + s.optInt("open_tunnels", 0)
+                + " (" + s.optInt("tunnel_clients", 0) + " " + getString(R.string.vps_clients) + ")"
+                + "\n" + getString(R.string.vps_detail_measured) + ": " + s.optString("measured_at", "").replace("T", " ").substring(0, Math.min(16, s.optString("measured_at", "").length()));
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.vps_details_title)
+                .setMessage(body)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
     }
 
     /**

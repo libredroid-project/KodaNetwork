@@ -608,4 +608,19 @@
     <string name="github_open_source">GitHub 上的开源项目</string>
     <string name="kodadash_dashboard">KODADASH 面板</string>
     <string name="ram_budget_hint">设备 %1$d GB - 其他服务器占用 %2$d MB - 当前可用 %3$d MB</string>
+    <string name="vps_state_ok">网络正常</string>
+    <string name="vps_state_busy">网络繁忙</string>
+    <string name="vps_state_overloaded">网络过载</string>
+    <string name="vps_state_unknown">无数据</string>
+    <string name="vps_status_line">隧道服务器：%1$s - %2$d%% 内存, %3$d 在线, %4$d 隧道</string>
+    <string name="vps_details_title">隧道服务器</string>
+    <string name="vps_detail_load">负载</string>
+    <string name="vps_detail_ram">内存</string>
+    <string name="vps_detail_disk">磁盘</string>
+    <string name="vps_free">可用</string>
+    <string name="vps_detail_players">玩家连接</string>
+    <string name="vps_detail_tunnels">打开的隧道</string>
+    <string name="vps_detail_measured">测量时间</string>
+    <string name="vps_cores">核心</string>
+    <string name="vps_clients">客户端</string>
 </resources>
