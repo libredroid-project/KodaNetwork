@@ -155,14 +155,22 @@ async function registerCommands() {
     console.log('slash commands registered');
 }
 
-client.once('ready', async () => {
+let started = false;
+
+/** discord.js v14 still calls it "ready", v15 renamed it to "clientReady" - handle both, once. */
+async function onReady() {
+    if (started) return;
+    started = true;
     console.log(`logged in as ${client.user.tag}`);
     console.log(`servers: ${client.guilds.cache.map(guild => guild.name).join(', ') || 'none - invite the bot first'}`);
     resolveAnnounceChannel();
     await registerCommands().catch(error => console.error('command registration failed:', error.message));
     await announcePendingReleases();
     setInterval(announcePendingReleases, Math.max(15, parseInt(POLL_SECONDS, 10)) * 1000);
-});
+}
+
+// discord.js >= 14.16 emits "clientReady"; "ready" only still works as a deprecated alias
+client.once('clientReady', onReady);
 
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
