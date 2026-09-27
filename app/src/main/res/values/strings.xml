@@ -656,4 +656,6 @@
         <item quantity="one">Overloaded for %d minute</item>
         <item quantity="other">Overloaded for %d minutes</item>
     </plurals>
+    <string name="brand_kodahosting">KodaHosting</string>
+    <string name="overload_limits">Limits: %1$d%% memory - %2$d connections - %3$d tunnels</string>
 </resources>

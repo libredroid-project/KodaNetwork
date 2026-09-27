@@ -1,27 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Blocking screen while the shared tunnel server is overloaded (see InfraOverloadActivity). -->
+<!-- Blocking screen while the shared tunnel server is overloaded (see InfraOverloadActivity).
+     Branding block (P.R.A.E.T.O.R. wordmark, subtitle, divider) matches the other P.R.A.E.T.O.R.
+     screens of the app: space_grotesk_bold 36sp with the hex letter colours, subtitle 10sp #8A8A9A,
+     40x2dp divider in #FF6B00. Below the divider the brand and the actual information. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:background="#141011" android:fillViewport="true">
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="vertical" android:gravity="center_horizontal"
         android:paddingStart="28dp" android:paddingEnd="28dp"
-        android:paddingTop="72dp" android:paddingBottom="48dp">
+        android:paddingTop="64dp" android:paddingBottom="48dp">
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="@string/overload_title" android:textColor="#FFB68C"
-            android:textSize="12sp" android:letterSpacing="0.18"
-            android:fontFamily="@font/font_koda" android:textStyle="bold"/>
+        <!-- P.R.A.E.T.O.R. wordmark: same letters, colours and font as the rest of the app -->
+        <TextView android:id="@+id/praetorTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/praetor_title"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            android:textColor="#FF3333" android:textSize="36sp" android:textStyle="bold"
+            android:gravity="center"/>
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="KODAHOSTING"
-            android:textColor="#5B4032" android:textSize="12sp" android:letterSpacing="0.35"
-            android:fontFamily="@font/font_koda" android:textStyle="bold"
-            android:layout_marginTop="10dp" android:layout_marginBottom="28dp"/>
+        <TextView android:id="@+id/praetorSubtitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/praetor_subtitle"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:textColor="#8A8A9A" android:textSize="10sp" android:textStyle="bold"
+            android:gravity="center" android:layout_marginTop="8dp"/>
 
-        <View android:layout_width="64dp" android:layout_height="3dp"
-            android:background="#FF6B00" android:layout_marginBottom="28dp"/>
+        <View android:layout_width="40dp" android:layout_height="2dp"
+            android:background="#FF6B00"
+            android:layout_marginTop="24dp" android:layout_marginBottom="20dp"/>
+
+        <!-- below the line: brand, then everything important -->
+        <TextView android:id="@+id/brandName"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/brand_kodahosting"
+            android:fontFamily="@font/font_koda"
+            android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold"
+            android:letterSpacing="0.12" android:layout_marginBottom="24dp"/>
 
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="@string/overload_headline" android:textColor="#FFFFFF"
@@ -30,21 +49,21 @@
 
         <TextView android:id="@+id/overloadReasonText"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:textColor="#F0F0F0" android:textSize="15sp"
+            android:textColor="#FFB68C" android:textSize="15sp"
             android:fontFamily="@font/font_koda" android:gravity="center"
             android:lineSpacingExtra="4dp" android:layout_marginBottom="18dp"/>
 
         <TextView android:id="@+id/overloadValuesText"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:textColor="#888899" android:textSize="13sp"
+            android:textColor="#B5B5B8" android:textSize="13sp"
             android:fontFamily="@font/font_koda" android:gravity="center"
-            android:layout_marginBottom="26dp"/>
+            android:lineSpacingExtra="3dp" android:layout_marginBottom="14dp"/>
 
         <TextView android:id="@+id/overloadSinceText"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:textColor="#888899" android:textSize="13sp"
             android:fontFamily="@font/font_koda" android:gravity="center"
-            android:layout_marginBottom="26dp"/>
+            android:layout_marginBottom="24dp"/>
 
         <View android:layout_width="match_parent" android:layout_height="1dp"
             android:background="#2E241E" android:layout_marginBottom="22dp"/>
@@ -57,5 +76,11 @@
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:text="@string/overload_retry" android:textColor="#FFB68C"
             android:textSize="13sp" android:fontFamily="@font/font_koda" android:gravity="center"/>
+
+        <TextView android:id="@+id/overloadLimitsText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#5B4032" android:textSize="11sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:layout_marginTop="28dp"/>
     </LinearLayout>
 </ScrollView>

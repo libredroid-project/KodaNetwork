@@ -664,4 +664,6 @@
         <item quantity="one">Überlastet seit %d Minute</item>
         <item quantity="other">Überlastet seit %d Minuten</item>
     </plurals>
+    <string name="brand_kodahosting">KodaHosting</string>
+    <string name="overload_limits">Grenzwerte: %1$d%% Speicher - %2$d Verbindungen - %3$d Tunnel</string>
 </resources>

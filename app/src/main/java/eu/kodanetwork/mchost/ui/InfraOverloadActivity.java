@@ -47,6 +47,25 @@ public class InfraOverloadActivity extends AppCompatActivity {
         eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_infra_overload);
+
+        // Same wordmark as the other P.R.A.E.T.O.R. screens (letter colours + font from there)
+        TextView title = findViewById(R.id.praetorTitle);
+        if (title != null) {
+            String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font>"
+                    + "<font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font>"
+                    + "<font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font>"
+                    + "<font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font>"
+                    + "<font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
+            title.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
+
+        // brand below the divider: "Koda" white, "Hosting" in the Koda orange
+        TextView brand = findViewById(R.id.brandName);
+        if (brand != null) {
+            brand.setText(android.text.Html.fromHtml(
+                    "Koda<font color=\"#FF6B00\">Hosting</font>", android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
+
         refresh();
     }
 
@@ -69,6 +88,31 @@ public class InfraOverloadActivity extends AppCompatActivity {
         // intentionally empty
     }
 
+    /** Reads one threshold from app_settings.vps_limits (cached across the screen's lifetime). */
+    private static org.json.JSONObject cachedLimits = null;
+
+    private double pluginLimit(String key, double fallback) {
+        if (cachedLimits == null) {
+            cachedLimits = new org.json.JSONObject();
+            try {
+                String baseUrl = PraetorSecurity.getSupabaseUrl();
+                String apiKey = PraetorSecurity.getSupabaseKey();
+                okhttp3.Request request = new okhttp3.Request.Builder()
+                        .url(baseUrl + "/rest/v1/app_settings?key=eq.vps_limits&select=value")
+                        .addHeader("apikey", apiKey)
+                        .addHeader("Authorization", "Bearer " + apiKey)
+                        .build();
+                try (okhttp3.Response response = new okhttp3.OkHttpClient().newCall(request).execute()) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        org.json.JSONArray rows = new org.json.JSONArray(response.body().string());
+                        if (rows.length() > 0) cachedLimits = rows.getJSONObject(0).optJSONObject("value");
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return cachedLimits.optDouble(key, fallback);
+    }
+
     private void refresh() {
         boolean overloaded = eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false);
         if (!overloaded) {
@@ -88,6 +132,16 @@ public class InfraOverloadActivity extends AppCompatActivity {
         if (sinceText != null && since > 0) {
             long minutes = Math.max(1, (System.currentTimeMillis() - since) / 60000);
             sinceText.setText(getResources().getQuantityString(R.plurals.overload_since, (int) minutes, (int) minutes));
+        }
+
+        // Which limits are being enforced - that is what has to recover
+        TextView limits = findViewById(R.id.overloadLimitsText);
+        if (limits != null) {
+            double maxRam = pluginLimit("ram_pct", 80);
+            int maxConnections = (int) pluginLimit("connections", 300);
+            int maxTunnels = (int) pluginLimit("tunnels", 200);
+            limits.setText(getString(R.string.overload_limits,
+                    Math.round(maxRam), maxConnections, maxTunnels));
         }
 
         // show the current values next to the reason, so it is clear what has to recover

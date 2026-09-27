@@ -633,4 +633,6 @@
         <item quantity="one">已过载 %d 分钟</item>
         <item quantity="other">已过载 %d 分钟</item>
     </plurals>
+    <string name="brand_kodahosting">KodaHosting</string>
+    <string name="overload_limits">阈值：内存 %1$d%% - 连接 %2$d - 隧道 %3$d</string>
 </resources>
