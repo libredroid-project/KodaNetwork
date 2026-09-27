@@ -716,14 +716,7 @@ public class MainActivity extends AppCompatActivity {
                 try (okhttp3.Response response = client.newCall(tosReq).execute()) {
                     if (response.isSuccessful() && response.body() != null) {
                         String json = response.body().string();
-                        long latestTs = 0;
-                        try {
-                            org.json.JSONArray arr = new org.json.JSONArray(json);
-                            if (arr.length() > 0) {
-                                String valStr = arr.getJSONObject(0).optString("value", "0");
-                                latestTs = Long.parseLong(valStr);
-                            }
-                        } catch (Exception ignored) {}
+                        long latestTs = readSettingNumber(json);
                         
                         long acceptedTs = eu.kodanetwork.mchost.App.getPrefs(MainActivity.this).getLong("accepted_tos_version_ts", 0);
                         if (latestTs > acceptedTs) {
@@ -744,14 +737,7 @@ public class MainActivity extends AppCompatActivity {
                 try (okhttp3.Response response = client.newCall(versionReq).execute()) {
                     if (response.isSuccessful() && response.body() != null) {
                         String json = response.body().string();
-                        int latestVer = 0;
-                        try {
-                            org.json.JSONArray arr = new org.json.JSONArray(json);
-                            if (arr.length() > 0) {
-                                String valStr = arr.getJSONObject(0).optString("value", "0");
-                                latestVer = Integer.parseInt(valStr);
-                            }
-                        } catch (Exception ignored) {}
+                        long latestVer = readSettingNumber(json);
                         
                         if (latestVer > eu.kodanetwork.mchost.BuildConfig.VERSION_CODE) {
                             if (!updateDialogShown) {
@@ -763,6 +749,33 @@ public class MainActivity extends AppCompatActivity {
                 } catch (Exception ignored) {}
             } catch (Exception ignored) {}
         }).start();
+    }
+
+    /**
+     * app_settings stores its values as JSON objects, e.g. {"ts": 8510} or {"active": true}.
+     * Reading them with Integer.parseInt("{\"ts\":8510}") always failed, which is why the
+     * "update available" screen and the updated-terms prompt never appeared. This accepts the
+     * JSON object, a plain number and a numeric string.
+     */
+    private long readSettingNumber(String json) {
+        try {
+            org.json.JSONArray arr = new org.json.JSONArray(json);
+            if (arr.length() == 0) return 0;
+            Object raw = arr.getJSONObject(0).opt("value");
+            if (raw instanceof Number) return ((Number) raw).longValue();
+            if (raw instanceof org.json.JSONObject) {
+                org.json.JSONObject obj = (org.json.JSONObject) raw;
+                if (obj.has("ts")) return obj.optLong("ts", 0);
+                if (obj.has("version")) return obj.optLong("version", 0);
+                if (obj.has("value")) return obj.optLong("value", 0);
+                return 0;
+            }
+            if (raw != null) {
+                String digits = String.valueOf(raw).replaceAll("[^0-9]", "");
+                return digits.isEmpty() ? 0 : Long.parseLong(digits);
+            }
+        } catch (Exception ignored) {}
+        return 0;
     }
 
     private void showUpdateRequiredDialog() {

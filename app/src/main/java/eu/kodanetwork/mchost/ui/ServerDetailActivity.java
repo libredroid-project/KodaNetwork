@@ -4791,7 +4791,60 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Shows the KodaDash address of this server (same DNS as the join address, plus the dashboard
+     * port) as a link that opens the dashboard. The token is appended so it signs in automatically.
+     */
+    private void updateKodadashLink() {
+        android.view.View group = findViewById(R.id.layout_kodadash);
+        android.widget.TextView tvUrl = findViewById(R.id.tv_kodadash_url);
+        if (group == null || tvUrl == null) return;
+
+        boolean enabled = server != null && server.isKodadashSupport() && server.getKodadashPort() > 0;
+        group.setVisibility(enabled ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (!enabled) return;
+
+        String host = server.getJoinAddress();
+        int port = server.getKodadashPort();
+        String shown = host + ":" + port;
+        String token = readKodadashToken();
+        String url = "http://" + shown + (token.isEmpty() ? "" : "?token=" + token);
+
+        tvUrl.setText(shown);
+        tvUrl.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+            try {
+                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)));
+            } catch (Exception e) {
+                copyToClipboard("KodaDash", url);
+            }
+        });
+        tvUrl.setOnLongClickListener(v -> {
+            copyToClipboard("KodaDash", url);
+            return true;
+        });
+    }
+
+    /** Reads the dashboard token from the plugin config of this server. */
+    private String readKodadashToken() {
+        try {
+            java.io.File config = new java.io.File(server.getServerDir(), "plugins/KodaDash/config.yml");
+            if (!config.isFile()) return "";
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(config))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    if (trimmed.startsWith("api-token:")) {
+                        return trimmed.substring(trimmed.indexOf(':') + 1).trim().replace("\"", "").replace("'", "");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return "";
+    }
+
     private void updateJoinAddressDisplay() {
+        updateKodadashLink();
         if (tvJoinAddr == null || server == null) return;
         String customDomain = server.getCustomDomain();
         String defaultDomain = server.getJoinAddress();

@@ -325,7 +325,7 @@ public class KodaServerService extends Service {
                 payload.put("battery_level", (int) batteryPct);
 
                 // KodaDash shows these values in its "Device & host" panel
-                maybeWriteKodaDashDeviceInfo(totalMegs, freeMegs, (int) batteryPct);
+                maybeWriteKodaDashDeviceInfo(totalMegs, freeMegs, (int) batteryPct, isCharging);
                 payload.put("is_charging", isCharging);
                 payload.put("network_type", networkType);
 
@@ -2907,7 +2907,7 @@ public class KodaServerService extends Service {
      * plugins/KodaDash/device-info.json. At most once every five minutes - it is the same data
      * on every heartbeat and the file lives on the device's flash storage.
      */
-    private void maybeWriteKodaDashDeviceInfo(long totalRamMb, long freeRamMb, int batteryPct) {
+    private void maybeWriteKodaDashDeviceInfo(long totalRamMb, long freeRamMb, int batteryPct, boolean myIsCharging) {
         long now = System.currentTimeMillis();
         if (now - lastDeviceInfoWrite < 5 * 60 * 1000L) return;
         lastDeviceInfoWrite = now;
@@ -2928,6 +2928,24 @@ public class KodaServerService extends Service {
                 info.put("soc", android.os.Build.SOC_MODEL + " " + android.os.Build.SOC_MANUFACTURER);
             }
             info.put("batteryPct", batteryPct);
+            info.put("charging", myIsCharging);
+
+            // Storage of the volume the servers live on
+            try {
+                java.io.File dir = android.os.Environment.getDataDirectory();
+                long gb = 1024L * 1024L * 1024L;
+                info.put("storageTotalGb", Math.round(dir.getTotalSpace() / (double) gb * 10) / 10.0);
+                info.put("storageFreeGb", Math.round(dir.getUsableSpace() / (double) gb * 10) / 10.0);
+            } catch (Exception ignored) {}
+
+            // Thermal state (Android 10+) - shows whether the phone is throttling
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 29) {
+                    android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+                    if (pm != null) info.put("thermalStatus", pm.getCurrentThermalStatus());
+                }
+            } catch (Exception ignored) {}
+
             info.put("updatedAt", now);
 
             for (ServerInstance srv : ServerRepo.get(this).all()) {

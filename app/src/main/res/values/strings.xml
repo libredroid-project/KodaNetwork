@@ -629,4 +629,5 @@
     <string name="pra_main_toggle">Main Account</string>
     <string name="pra_main_desc">This account has full permissions</string>
     <string name="github_open_source">Open source on GitHub</string>
+    <string name="kodadash_dashboard">KODADASH DASHBOARD</string>
 </resources>

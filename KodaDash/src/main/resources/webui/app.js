@@ -355,6 +355,13 @@ function loadOverview() {
 }
 
 /** Host details: the Android device (provided by the app) plus the system the JVM runs on. */
+/** Android thermal status (0 = none, higher = more throttling). */
+function thermalLabel(status) {
+    if (status == null) return null;
+    var labels = ['normal', 'light', 'moderate', 'severe', 'critical', 'emergency', 'shutdown'];
+    return labels[status] || ('level ' + status);
+}
+
 function loadDeviceInfo() {
     api('/api/device').then(function (d) {
         var device = d.device || {};
@@ -374,7 +381,9 @@ function loadDeviceInfo() {
             ['Model', device.model], ['Manufacturer', device.manufacturer || device.brand],
             ['Android', device.android], ['API level', device.sdk],
             ['Device RAM', mb(device.totalRamMb)],
-            ['Battery', device.batteryPct != null ? device.batteryPct + ' %' : null]
+            ['Battery', device.batteryPct != null ? device.batteryPct + ' %' + (device.charging ? ' (charging)' : '') : null],
+            ['Storage', device.storageFreeGb != null ? gb(device.storageFreeGb) + ' free of ' + gb(device.storageTotalGb) : null],
+            ['Thermal', thermalLabel(device.thermalStatus)]
         ].filter(function (row) { return row[1] != null && row[1] !== ''; });
 
         $('device-device').innerHTML = deviceRows.length
