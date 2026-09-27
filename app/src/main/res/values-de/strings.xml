@@ -754,22 +754,9 @@
     <string name="schedule_type_short_command">Befehl</string>
 
     <!-- Ressourcenpaket und Gerätewarnungen -->
-    <string name="rp_title">RESSOURCENPAKET</string>
-    <string name="rp_url">Paket-URL oder Dateiname</string>
-    <string name="rp_url_hint">pack.zip oder https://example.com/pack.zip</string>
-    <string name="rp_prompt">Hinweis für die Spieler</string>
-    <string name="rp_prompt_hint">Optionaler Text, während das Paket lädt</string>
-    <string name="rp_sha1">SHA-1-Prüfsumme</string>
-    <string name="rp_sha1_hint">Nur für externe URLs nötig</string>
-    <string name="rp_require">Paket verpflichtend</string>
-    <string name="rp_require_summary">Spieler müssen es vor dem Beitritt annehmen</string>
-    <string name="rp_files">Pakete im Ordner resourcepacks</string>
-    <string name="rp_files_empty">Noch nichts hochgeladen. Dateien im Dateien-Tab ablegen.</string>
-    <string name="rp_use">Verwenden</string>
-    <string name="rp_save">Ressourcenpaket speichern</string>
-    <string name="rp_saved">Ressourcenpaket gespeichert</string>
     <string name="notify_device_title">Akku- und Hitzewarnung</string>
     <string name="notify_device_summary">Melden, wenn das Handy heiß wird oder der Akku leer läuft</string>
     <string name="notify_device_on">Warnungen aktiv</string>
     <string name="notify_device_off">Warnungen aus</string>
+    <string name="bio_delete_server">Server löschen</string>
 </resources>

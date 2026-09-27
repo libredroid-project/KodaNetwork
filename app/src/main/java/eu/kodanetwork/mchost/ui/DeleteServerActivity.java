@@ -104,9 +104,69 @@ public class DeleteServerActivity extends AppCompatActivity {
         });
         
         btnExport.setOnClickListener(v -> exportAndDelete());
-        btnPermanent.setOnClickListener(v -> confirmPermanentDelete());
-        
-        startDeletionProcess();
+        btnPermanent.setOnClickListener(v -> requestDeleteConfirmation());
+
+        // Never delete straight away: first the biometric check (when enabled) and then the
+        // server name. This is what accidental deletions in other apps come from.
+        requestDeleteConfirmation();
+    }
+
+    private static final int REQ_BIO_DELETE = 9011;
+    private boolean biometricPassed = false;
+
+    /** Biometrics first (when the user enabled them), then the name confirmation. */
+    private void requestDeleteConfirmation() {
+        if (biometricPassed) {
+            askForServerName();
+            return;
+        }
+        if (eu.kodanetwork.mchost.util.BiometricHelper.isBioEnabledFor(this, "bio_on_delete_server")) {
+            Intent intent = new Intent(this, eu.kodanetwork.mchost.ui.BiometricAuthActivity.class);
+            startActivityForResult(intent, REQ_BIO_DELETE);
+            return;
+        }
+        askForServerName();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_BIO_DELETE) {
+            if (resultCode == RESULT_OK) {
+                biometricPassed = true;
+                askForServerName();
+            } else {
+                finish();
+            }
+        }
+    }
+
+    /** The owner has to type the server name before anything is removed. */
+    private void askForServerName() {
+        final android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint(getString(R.string.delete_confirm_hint));
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout wrapper = new android.widget.FrameLayout(this);
+        wrapper.setPadding(pad, pad / 2, pad, 0);
+        wrapper.addView(input);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setCancelable(false)
+                .setTitle(getString(R.string.delete_confirm_title, server.getName()))
+                .setMessage(getString(R.string.delete_confirm_text))
+                .setView(wrapper)
+                .setPositiveButton(getString(R.string.delete_confirm_yes), (dialog, which) -> {
+                    if (!server.getName().equalsIgnoreCase(input.getText().toString().trim())) {
+                        android.widget.Toast.makeText(this, getString(R.string.delete_confirm_wrong),
+                                android.widget.Toast.LENGTH_LONG).show();
+                        finish();
+                        return;
+                    }
+                    pbDelete.setVisibility(View.VISIBLE);
+                    startDeletionProcess();
+                })
+                .setNegativeButton(android.R.string.cancel, (dialog, which) -> finish())
+                .show();
     }
     
     private void setMsg(String msg, String sub) {
@@ -283,34 +343,6 @@ public class DeleteServerActivity extends AppCompatActivity {
         }).start();
     }
     
-    /**
-     * Deleting a server cannot be undone, so the owner has to type the server name first.
-     * This is what most accidental deletions in the competitor's community came from.
-     */
-    private void confirmPermanentDelete() {
-        android.widget.EditText input = new android.widget.EditText(this);
-        input.setHint(getString(R.string.delete_confirm_hint));
-        int pad = (int) (20 * getResources().getDisplayMetrics().density);
-        android.widget.FrameLayout wrapper = new android.widget.FrameLayout(this);
-        wrapper.setPadding(pad, pad / 2, pad, 0);
-        wrapper.addView(input);
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(getString(R.string.delete_confirm_title, server.getName()))
-                .setMessage(getString(R.string.delete_confirm_text))
-                .setView(wrapper)
-                .setPositiveButton(getString(R.string.delete_confirm_yes), (dialog, which) -> {
-                    if (!server.getName().equalsIgnoreCase(input.getText().toString().trim())) {
-                        android.widget.Toast.makeText(this, getString(R.string.delete_confirm_wrong),
-                                android.widget.Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    permanentlyDelete();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
     private void permanentlyDelete() {
         llActions.setVisibility(View.GONE);
         pbDelete.setVisibility(View.VISIBLE);

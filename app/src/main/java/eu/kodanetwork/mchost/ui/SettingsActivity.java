@@ -1457,6 +1457,7 @@ public class SettingsActivity extends Activity {
         com.google.android.material.checkbox.MaterialCheckBox cbCold = findViewById(R.id.cb_bio_cold_start);
         com.google.android.material.checkbox.MaterialCheckBox cbServer = findViewById(R.id.cb_bio_server_click);
         com.google.android.material.checkbox.MaterialCheckBox cbCreate = findViewById(R.id.cb_bio_create_server);
+        com.google.android.material.checkbox.MaterialCheckBox cbDelete = findViewById(R.id.cb_bio_delete_server);
 
         boolean enabled = prefs.getBoolean("bio_enabled", false);
         swMain.setChecked(enabled);
@@ -1466,6 +1467,7 @@ public class SettingsActivity extends Activity {
         cbCold.setChecked(prefs.getBoolean("bio_on_cold_start", false));
         cbServer.setChecked(prefs.getBoolean("bio_on_server_click", false));
         cbCreate.setChecked(prefs.getBoolean("bio_on_create_server", false));
+        if (cbDelete != null) cbDelete.setChecked(prefs.getBoolean("bio_on_delete_server", false));
 
         swMain.setOnCheckedChangeListener((btn, isChecked) -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
@@ -1483,6 +1485,10 @@ public class SettingsActivity extends Activity {
         cbCold.setOnCheckedChangeListener((btn, isChecked) -> prefs.edit().putBoolean("bio_on_cold_start", isChecked).apply());
         cbServer.setOnCheckedChangeListener((btn, isChecked) -> prefs.edit().putBoolean("bio_on_server_click", isChecked).apply());
         cbCreate.setOnCheckedChangeListener((btn, isChecked) -> prefs.edit().putBoolean("bio_on_create_server", isChecked).apply());
+        if (cbDelete != null) {
+            cbDelete.setOnCheckedChangeListener((btn, isChecked) ->
+                    prefs.edit().putBoolean("bio_on_delete_server", isChecked).apply());
+        }
     }
 
     private void sync2FAToSupabase(boolean enabled, String password) {
