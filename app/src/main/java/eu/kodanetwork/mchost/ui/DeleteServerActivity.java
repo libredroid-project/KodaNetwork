@@ -97,30 +97,36 @@ public class DeleteServerActivity extends AppCompatActivity {
             return;
         }
         
+        btnExport.setOnClickListener(v -> exportAndDelete());
+        // "Delete permanently" removes the files immediately (online cleanup runs afterwards in
+        // the background), the automatic flow below does the online steps first.
+        btnPermanent.setOnClickListener(v -> requestDeleteConfirmation(true));
         btnRetry.setOnClickListener(v -> {
             btnRetry.setVisibility(View.GONE);
             pbDelete.setVisibility(View.VISIBLE);
             startDeletionProcess();
         });
-        
-        btnExport.setOnClickListener(v -> exportAndDelete());
-        btnPermanent.setOnClickListener(v -> requestDeleteConfirmation());
-
-        // Never delete straight away: first the biometric check (when enabled) and then the
-        // server name. This is what accidental deletions in other apps come from.
-        requestDeleteConfirmation();
+        requestDeleteConfirmation(false);
     }
 
     private static final int REQ_BIO_DELETE = 9011;
+
+    /** True when the join address could not be removed online (reported to the owner). */
+    private boolean dnsCleanupFailed = false;
     private boolean biometricPassed = false;
 
+    /** True for the "delete permanently" button: locals first, online cleanup in the background. */
+    private boolean pendingLocalOnly = false;
+
     /**
-     * Deletion starts after the biometric check (when the owner enabled it for this action).
-     * The process shows its own progress, so there is no second prompt.
+     * Both buttons ask for the biometric check first (when the owner enabled it for this action):
+     * the automatic flow cleans up online and then deletes, "permanently delete" removes the files
+     * right away and tries the online cleanup in the background. Neither can get stuck.
      */
-    private void requestDeleteConfirmation() {
+    private void requestDeleteConfirmation(boolean localOnly) {
+        pendingLocalOnly = localOnly;
         if (biometricPassed) {
-            startDeletionProcess();
+            proceedAfterConfirm();
             return;
         }
         if (eu.kodanetwork.mchost.util.BiometricHelper.isBioEnabledFor(this, "bio_on_delete_server")) {
@@ -128,7 +134,15 @@ public class DeleteServerActivity extends AppCompatActivity {
             startActivityForResult(intent, REQ_BIO_DELETE);
             return;
         }
-        startDeletionProcess();
+        proceedAfterConfirm();
+    }
+
+    private void proceedAfterConfirm() {
+        if (pendingLocalOnly) {
+            permanentlyDelete();
+        } else {
+            startDeletionProcess();
+        }
     }
 
     @Override
@@ -137,7 +151,7 @@ public class DeleteServerActivity extends AppCompatActivity {
         if (requestCode == REQ_BIO_DELETE) {
             if (resultCode == RESULT_OK) {
                 biometricPassed = true;
-                startDeletionProcess();
+                proceedAfterConfirm();
             } else {
                 finish();
             }
@@ -211,20 +225,23 @@ public class DeleteServerActivity extends AppCompatActivity {
                     try {
                         new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(this)
                             .deleteDnsLink("", server.getSubdomain(), server.getBaseDomain());
-                    } catch (Exception e) {
-                        String errMsg = e.getMessage();
-                        if (errMsg != null && errMsg.contains("429")) {
-                            showError("DNS Deletion Failed", "Rate Limit reached. Please try again later.");
-                            return;
-                        }
-                        // A finished deletion leaves no DNS record, and the function answers
-                        // "unauthorized" for unknown hosts. When the address no longer resolves
-                        // there is nothing left to delete, so the flow continues.
-                        if (addressIsGone(server.getSubdomain(), server.getBaseDomain())) {
-                            android.util.Log.i("DeleteServer", "DNS record already gone, continuing");
-                        } else {
-                            showError("DNS Deletion Failed", errMsg != null ? errMsg : "Unknown error");
-                            return;
+                    } catch (Exception first) {
+                        // Short timeouts and "Server disconnected" are usually a hiccup: one retry
+                        android.util.Log.w("DeleteServer", "DNS deletion failed, retrying: " + first.getMessage());
+                        try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+                        try {
+                            new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(this)
+                                .deleteDnsLink("", server.getSubdomain(), server.getBaseDomain());
+                        } catch (Exception e) {
+                            // Nothing left to delete (a finished attempt leaves no record and the
+                            // function answers "unauthorized" for unknown hosts), or the API is
+                            // briefly unavailable. The deletion must never get stuck here.
+                            if (addressIsGone(server.getSubdomain(), server.getBaseDomain())) {
+                                android.util.Log.i("DeleteServer", "DNS record already gone, continuing");
+                            } else {
+                                dnsCleanupFailed = true;
+                                android.util.Log.w("DeleteServer", "DNS record kept: " + e.getMessage());
+                            }
                         }
                     }
                 }
@@ -311,6 +328,10 @@ public class DeleteServerActivity extends AppCompatActivity {
                 deleteRecursively(new File(server.getServerDir()));
                 
                 handler.post(() -> {
+                    if (dnsCleanupFailed) {
+                        Toast.makeText(this, getString(R.string.delete_dns_leftover, server.getJoinAddress()),
+                                Toast.LENGTH_LONG).show();
+                    }
                     repo.delete(server.getId());
                     if (blobAnimator != null) blobAnimator.cancel();
                     Intent homeIntent = new Intent(DeleteServerActivity.this, MainActivity.class);
@@ -325,9 +346,14 @@ public class DeleteServerActivity extends AppCompatActivity {
         }).start();
     }
     
+    /**
+     * Removes the server from the phone straight away. The online entries (DNS record, row) are
+     * cleaned up in the background afterwards, so a slow or failing API can never block this.
+     */
     private void permanentlyDelete() {
         llActions.setVisibility(View.GONE);
         pbDelete.setVisibility(View.VISIBLE);
+        new Thread(this::cleanupOnline, "KodaDeleteCleanup").start();
         setMsg(getString(R.string.delete_server_permanent), getString(R.string.delete_server_permanent_sub));
         
         new Thread(() -> {
@@ -343,6 +369,46 @@ public class DeleteServerActivity extends AppCompatActivity {
         }).start();
     }
     
+    /**
+     * Best effort cleanup of the online entries: DNS record first, then the tombstone in the
+     * database. Failures are logged only - the server is already gone from the phone.
+     */
+    private void cleanupOnline() {
+        try {
+            if (server.getSubdomain() != null && !server.getSubdomain().isEmpty()
+                    && !addressIsGone(server.getSubdomain(), server.getBaseDomain())) {
+                try {
+                    new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(this)
+                            .deleteDnsLink("", server.getSubdomain(), server.getBaseDomain());
+                } catch (Exception e) {
+                    android.util.Log.w("DeleteServer", "Background DNS cleanup failed: " + e.getMessage());
+                }
+            }
+            android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
+            String anonKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
+            org.json.JSONObject payload = new org.json.JSONObject()
+                    .put("host", "deleted_" + server.getSubdomain())
+                    .put("server_version", "DELETED");
+            org.json.JSONObject body = new org.json.JSONObject()
+                    .put("p_app_uuid", prefs.getString("app_uuid", "unknown"))
+                    .put("p_device_token", prefs.getString("device_token", ""))
+                    .put("p_host", server.getSubdomain())
+                    .put("p_payload", payload);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(
+                    eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                            + "/rest/v1/rpc/rpc_patch_server").openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("apikey", anonKey);
+            conn.setRequestProperty("Authorization", "Bearer " + anonKey);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.getOutputStream().write(body.toString().getBytes());
+            android.util.Log.i("DeleteServer", "Background row update: HTTP " + conn.getResponseCode());
+        } catch (Exception e) {
+            android.util.Log.w("DeleteServer", "Background cleanup failed: " + e.getMessage());
+        }
+    }
+
     private long lastUpdate = 0;
     
     private void deleteRecursively(File fileOrDirectory) {

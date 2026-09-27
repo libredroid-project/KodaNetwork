@@ -754,4 +754,5 @@
     <string name="notify_device_on">Warnungen aktiv</string>
     <string name="notify_device_off">Warnungen aus</string>
     <string name="bio_delete_server">Server löschen</string>
+    <string name="delete_dns_leftover">Server entfernt. Die Adresse %1$s konnte online nicht entfernt werden - bitte dem Support melden, falls sie weiter auflöst.</string>
 </resources>
