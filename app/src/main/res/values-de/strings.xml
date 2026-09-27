@@ -788,4 +788,19 @@
     <string name="version_switch_only_paper">Der Versionswechsel ist für Paper-Server verfügbar</string>
     <string name="plugins_mode_install">Installieren</string>
     <string name="plugins_mode_installed">Installiert</string>
+
+    <!-- P.R.A.E.T.O.R.-Screen fuer Versionswechsel -->
+    <string name="praetor_version_subtitle">MINECRAFT-VERSION</string>
+    <string name="praetor_version_upgrade">UPGRADE</string>
+    <string name="praetor_version_downgrade">DOWNGRADE</string>
+    <string name="praetor_version_upgrade_reason">Eine neuere Version liest die Welt in der Regel problemlos. Plugins und Mods können aber hinterherhinken, und manche Welten bekommen Inhalte, die der ältere Code nicht kennt.</string>
+    <string name="praetor_version_downgrade_reason">Minecraft-Welten und Chunks sind nicht abwärtskompatibel. Eine ältere Version kann nicht lesen, was eine neuere geschrieben hat: Chunks können zurückgesetzt werden, Bauwerke und Entities verschwinden, und die Welt kann unbrauchbar werden. Plugins und Mods der neueren Version laden ebenfalls nicht.</string>
+    <string name="praetor_version_backup_required">Bei einem Downgrade ist ein Backup Pflicht. Es wird vor jeder Änderung erstellt und bleibt auf dem Handy.</string>
+    <string name="praetor_version_backup_optional">Ein Backup ist empfehlenswert, aber nicht Pflicht. Du kannst auch ohne fortfahren.</string>
+    <string name="praetor_version_confirm_upgrade">BACKUP + UPGRADE</string>
+    <string name="praetor_version_confirm_downgrade">BACKUP + DOWNGRADE</string>
+    <string name="praetor_version_without_backup">OHNE BACKUP FORTFAHREN</string>
+    <string name="praetor_version_step_backup">Backup wird erstellt…</string>
+    <string name="praetor_version_step_download">Neues Server-Jar wird geladen…</string>
+    <string name="praetor_version_backup_failed">Backup konnte nicht erstellt werden - es wurde nichts geändert.</string>
 </resources>

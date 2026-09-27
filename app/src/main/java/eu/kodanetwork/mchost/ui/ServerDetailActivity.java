@@ -4179,128 +4179,45 @@ public class ServerDetailActivity extends AppCompatActivity {
     /**
      * Changes the Minecraft version of a Paper server.
      *
-     * The world is not version-safe: going backwards can corrupt it, so a backup is offered first.
-     * The server has to be stopped, otherwise the running process would keep the old jar open.
+     * Shows the same version scroller as the server setup, then hands over to the
+     * P.R.A.E.T.O.R. screen, which explains the risks: downgrades require a backup,
+     * upgrades offer one.
      */
     private void showVersionSwitchSheet() {
         if (server.getType() != eu.kodanetwork.mchost.model.ServerInstance.Type.PAPER) {
             toast(getString(R.string.version_switch_only_paper));
             return;
         }
-        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
-                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        setupWindowDecor(sheet.getWindow());
-
-        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
-        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
-        root.setOrientation(android.widget.LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1D1714);
-        float d = getResources().getDisplayMetrics().density;
-        int pad = (int) (20 * d);
-        root.setPadding(pad, pad, pad, pad);
-        scroller.addView(root);
-
-        android.widget.TextView title = new android.widget.TextView(this);
-        title.setText(getString(R.string.version_switch_title));
-        title.setTextColor(0xFFF0F0F0);
-        title.setTextSize(18);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(title);
-
-        android.widget.TextView hint = new android.widget.TextView(this);
-        hint.setText(getString(R.string.version_switch_hint, server.getVersion()));
-        hint.setTextColor(0xFF8A8A9A);
-        hint.setTextSize(12);
-        hint.setPadding(0, (int) (6 * d), 0, (int) (12 * d));
-        root.addView(hint);
-
-        android.widget.TextView loading = new android.widget.TextView(this);
-        loading.setText(getString(R.string.version_switch_loading));
-        loading.setTextColor(0xFF8A8A9A);
-        loading.setTextSize(12);
-        root.addView(loading);
-
-        sheet.setContentView(scroller);
-        sheet.show();
-
-        new Thread(() -> {
-            java.util.List<String> fetched = eu.kodanetwork.mchost.util.PaperMCDownloader.fetchPaperVersions();
-            final java.util.List<String> versions = fetched.size() > 25
-                    ? new java.util.ArrayList<>(fetched.subList(0, 25)) : fetched;
-            runOnUiThread(() -> {
-                root.removeView(loading);
-                if (versions.isEmpty()) {
-                    android.widget.TextView failed = new android.widget.TextView(this);
-                    failed.setText(getString(R.string.version_switch_failed));
-                    failed.setTextColor(0xFFFF8A80);
-                    failed.setTextSize(13);
-                    root.addView(failed);
-                    return;
-                }
-                for (final String version : versions) {
-                    android.widget.TextView row = new android.widget.TextView(this);
-                    row.setText(version + (version.equals(server.getVersion()) ? "  (" + getString(R.string.version_switch_current) + ")" : ""));
-                    row.setTextColor(version.equals(server.getVersion()) ? 0xFF8A8A9A : 0xFFE8E2D6);
-                    row.setTextSize(14);
-                    row.setPadding(0, (int) (12 * d), 0, (int) (12 * d));
-                    if (!version.equals(server.getVersion())) {
-                        row.setOnClickListener(v -> {
-                            sheet.dismiss();
-                            confirmVersionSwitch(version);
-                        });
-                    }
-                    root.addView(row);
-                }
-            });
-        }, "KodaVersions").start();
-    }
-
-    private void confirmVersionSwitch(final String version) {
         boolean running = server.state == eu.kodanetwork.mchost.model.ServerInstance.State.ONLINE
                 || server.state == eu.kodanetwork.mchost.model.ServerInstance.State.STARTING;
         if (running) {
             toast(getString(R.string.version_switch_stop_first));
             return;
         }
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(getString(R.string.version_switch_title))
-                .setMessage(getString(R.string.version_switch_warning, server.getVersion(), version))
-                .setPositiveButton(getString(R.string.version_switch_with_backup), (dialog, which) -> {
-                    toast(getString(R.string.extras_backup_started));
-                    new Thread(() -> {
-                        eu.kodanetwork.mchost.util.BackupManager.createBackup(this, server, "before_" + version);
-                        eu.kodanetwork.mchost.util.BackupManager.rotate(this, server.getId(), server.getBackupKeep());
-                        runOnUiThread(() -> switchVersion(version));
-                    }, "KodaVersionBackup").start();
-                })
-                .setNeutralButton(getString(R.string.version_switch_without_backup), (dialog, which) -> switchVersion(version))
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    private void switchVersion(final String version) {
-        toast(getString(R.string.version_switch_running));
+        toast(getString(R.string.version_switch_loading));
         new Thread(() -> {
-            boolean ok;
-            try {
-                java.io.File jar = eu.kodanetwork.mchost.util.PaperMCDownloader.downloadLatestPaperSync(
-                        version, new java.io.File(server.getServerDir()), null);
-                ok = jar != null && jar.exists();
-            } catch (Exception e) {
-                android.util.Log.w("ServerDetail", "Version switch failed: " + e.getMessage());
-                ok = false;
-            }
-            final boolean success = ok;
+            java.util.List<String> fetched = eu.kodanetwork.mchost.util.PaperMCDownloader.fetchPaperVersions();
+            final java.util.List<String> versions = fetched.size() > 40
+                    ? new java.util.ArrayList<>(fetched.subList(0, 40)) : fetched;
             runOnUiThread(() -> {
-                if (success) {
-                    server.setVersion(version);
-                    eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
-                    toast(getString(R.string.version_switch_done, version));
-                } else {
+                if (versions.isEmpty()) {
                     toast(getString(R.string.version_switch_failed));
+                    return;
                 }
+                java.util.Map<String, String> descriptions = new java.util.HashMap<>();
+                if (!versions.isEmpty()) descriptions.put(versions.get(0), getString(R.string.version_desc_latest));
+                if (versions.size() > 1) descriptions.put(versions.get(1), getString(R.string.version_desc_stable));
+                eu.kodanetwork.mchost.util.KodaVersionWheel.show(this, versions, descriptions,
+                        server.getVersion(), getString(R.string.version_switch_title), picked -> {
+                            if (picked == null || picked.equals(server.getVersion())) return;
+                            android.content.Intent intent = new android.content.Intent(this,
+                                    eu.kodanetwork.mchost.ui.PraetorVersionActivity.class);
+                            intent.putExtra(eu.kodanetwork.mchost.ui.PraetorVersionActivity.EXTRA_SERVER_ID, server.getId());
+                            intent.putExtra(eu.kodanetwork.mchost.ui.PraetorVersionActivity.EXTRA_TARGET_VERSION, picked);
+                            startActivity(intent);
+                        });
             });
-        }, "KodaVersionSwitch").start();
+        }, "KodaVersions").start();
     }
 
     /**

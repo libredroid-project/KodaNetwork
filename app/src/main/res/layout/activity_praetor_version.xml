@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  P.R.A.E.T.O.R. screen for changing the Minecraft version of a server.
+  Same structure as the other Praetor screens: wordmark, brand, headline, explanation, actions.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0908"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="48dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            android:id="@+id/praetor_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:gravity="center"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            app:autoSizeTextType="uniform"
+            app:autoSizeMinTextSize="16sp"
+            app:autoSizeMaxTextSize="36sp"
+            app:autoSizeStepGranularity="2sp"
+            android:textStyle="bold"
+            android:text="@string/praetor_title" />
+
+        <TextView
+            android:id="@+id/praetor_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:textColor="#8A8A9A"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.18"
+            android:text="@string/praetor_version_subtitle" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="#FF6B00" />
+
+        <TextView
+            android:id="@+id/brand_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            android:textSize="26sp"
+            android:textColor="#FFFFFF"
+            android:text="@string/brand_kodahosting" />
+
+        <TextView
+            android:id="@+id/tv_change_headline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:gravity="center"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="@string/praetor_version_upgrade" />
+
+        <TextView
+            android:id="@+id/tv_change_versions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:fontFamily="@font/font_koda_mono"
+            android:textColor="#FFB68C"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tv_change_reason"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:lineSpacingMultiplier="1.25"
+            android:textColor="#C9BFB8"
+            android:textSize="13.5sp" />
+
+        <TextView
+            android:id="@+id/tv_change_backup_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:lineSpacingMultiplier="1.25"
+            android:textColor="#8A8A9A"
+            android:textSize="12.5sp" />
+
+        <TextView
+            android:id="@+id/tv_change_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center"
+            android:textColor="#FFB68C"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_change_confirm"
+            style="@style/KodaButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="26dp"
+            android:textSize="13sp"
+            android:fontFamily="@font/font_koda"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_change_without_backup"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/praetor_version_without_backup"
+            android:textColor="#F2E6E0"
+            android:textSize="12sp"
+            app:cornerRadius="12dp"
+            app:strokeColor="#5B4032" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_change_cancel"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:text="@string/cancel"
+            android:textColor="#8A8A9A"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

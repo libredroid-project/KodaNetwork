@@ -757,4 +757,19 @@
     <string name="version_switch_only_paper">版本切换目前支持 Paper 服务端</string>
     <string name="plugins_mode_install">安装</string>
     <string name="plugins_mode_installed">已安装</string>
+
+    <!-- 版本切换的 P.R.A.E.T.O.R. 页面 -->
+    <string name="praetor_version_subtitle">MINECRAFT 版本</string>
+    <string name="praetor_version_upgrade">升级</string>
+    <string name="praetor_version_downgrade">降级</string>
+    <string name="praetor_version_upgrade_reason">较新版本通常可以正常读取世界。但插件与模组可能尚未适配，部分世界会包含旧代码无法处理的内容。</string>
+    <string name="praetor_version_downgrade_reason">Minecraft 世界与区块不向下兼容。旧版本无法读取新版本写入的数据：区块可能被重置，建筑与实体会消失，世界可能彻底无法使用；新版本的插件与模组也无法加载。</string>
+    <string name="praetor_version_backup_required">降级时必须备份。备份会在任何更改之前创建，并保存在手机上。</string>
+    <string name="praetor_version_backup_optional">建议备份，但并非必须。也可以不备份继续。</string>
+    <string name="praetor_version_confirm_upgrade">备份并升级</string>
+    <string name="praetor_version_confirm_downgrade">备份并降级</string>
+    <string name="praetor_version_without_backup">不备份继续</string>
+    <string name="praetor_version_step_backup">正在创建备份…</string>
+    <string name="praetor_version_step_download">正在下载新的服务端 jar…</string>
+    <string name="praetor_version_backup_failed">无法创建备份——未做任何更改。</string>
 </resources>
