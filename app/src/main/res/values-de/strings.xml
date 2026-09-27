@@ -705,11 +705,6 @@
     <string name="logout_confirm_title">Abmelden?</string>
     <string name="logout_confirm_text">Deine Server laufen auf diesem Handy weiter. Du musst dich nur neu anmelden, um sie zu verwalten.</string>
     <string name="logout_confirm_yes">Abmelden</string>
-    <string name="delete_confirm_title">%1$s wirklich löschen?</string>
-    <string name="delete_confirm_text">Welt, Konfigurationen und Plugins werden endgültig entfernt. Tippe den Servernamen ein, um zu bestätigen.</string>
-    <string name="delete_confirm_hint">Servername</string>
-    <string name="delete_confirm_yes">Endgültig löschen</string>
-    <string name="delete_confirm_wrong">Der Name stimmt nicht - es wurde nichts gelöscht.</string>
 
     <string name="extras_backups_subtitle">Welt, Konfigurationen und Plugins als eine ZIP, neben der App gespeichert.</string>
     <string name="extras_backup_hint">Beim Wiederherstellen wird der Serverordner durch den gewählten Stand ersetzt. Der Server muss gestoppt sein.</string>

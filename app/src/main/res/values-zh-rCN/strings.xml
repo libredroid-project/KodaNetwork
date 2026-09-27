@@ -674,11 +674,6 @@
     <string name="logout_confirm_title">退出登录？</string>
     <string name="logout_confirm_text">服务器会继续在这台手机上运行。只需重新登录即可继续管理。</string>
     <string name="logout_confirm_yes">退出登录</string>
-    <string name="delete_confirm_title">确定删除 %1$s？</string>
-    <string name="delete_confirm_text">世界、配置与插件将被永久删除。请输入服务器名称以确认。</string>
-    <string name="delete_confirm_hint">服务器名称</string>
-    <string name="delete_confirm_yes">永久删除</string>
-    <string name="delete_confirm_wrong">名称不匹配——未删除任何内容。</string>
 
     <string name="extras_backups_subtitle">世界、配置与插件打包为一个 ZIP，保存在应用旁边。</string>
     <string name="extras_backup_hint">恢复会用所选状态替换服务器目录。服务器必须处于停止状态。</string>

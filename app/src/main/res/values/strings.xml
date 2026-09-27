@@ -697,11 +697,6 @@
     <string name="logout_confirm_title">Sign out?</string>
     <string name="logout_confirm_text">Your servers keep running on this phone. You only need to sign in again to manage them.</string>
     <string name="logout_confirm_yes">Sign out</string>
-    <string name="delete_confirm_title">Delete %1$s?</string>
-    <string name="delete_confirm_text">This removes the world, configs and plugins for good. Type the server name to confirm.</string>
-    <string name="delete_confirm_hint">Server name</string>
-    <string name="delete_confirm_yes">Delete for good</string>
-    <string name="delete_confirm_wrong">The name does not match - nothing was deleted.</string>
 
     <string name="extras_backups_subtitle">World, configs and plugins as one ZIP, stored next to the app.</string>
     <string name="extras_backup_hint">Restoring replaces the server folder with the chosen state. The server has to be stopped.</string>

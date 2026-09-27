@@ -114,10 +114,13 @@ public class DeleteServerActivity extends AppCompatActivity {
     private static final int REQ_BIO_DELETE = 9011;
     private boolean biometricPassed = false;
 
-    /** Biometrics first (when the user enabled them), then the name confirmation. */
+    /**
+     * Deletion starts after the biometric check (when the owner enabled it for this action).
+     * The process shows its own progress, so there is no second prompt.
+     */
     private void requestDeleteConfirmation() {
         if (biometricPassed) {
-            askForServerName();
+            startDeletionProcess();
             return;
         }
         if (eu.kodanetwork.mchost.util.BiometricHelper.isBioEnabledFor(this, "bio_on_delete_server")) {
@@ -125,7 +128,7 @@ public class DeleteServerActivity extends AppCompatActivity {
             startActivityForResult(intent, REQ_BIO_DELETE);
             return;
         }
-        askForServerName();
+        startDeletionProcess();
     }
 
     @Override
@@ -134,41 +137,23 @@ public class DeleteServerActivity extends AppCompatActivity {
         if (requestCode == REQ_BIO_DELETE) {
             if (resultCode == RESULT_OK) {
                 biometricPassed = true;
-                askForServerName();
+                startDeletionProcess();
             } else {
                 finish();
             }
         }
     }
 
-    /** The owner has to type the server name before anything is removed. */
-    private void askForServerName() {
-        final android.widget.EditText input = new android.widget.EditText(this);
-        input.setHint(getString(R.string.delete_confirm_hint));
-        int pad = (int) (20 * getResources().getDisplayMetrics().density);
-        android.widget.FrameLayout wrapper = new android.widget.FrameLayout(this);
-        wrapper.setPadding(pad, pad / 2, pad, 0);
-        wrapper.addView(input);
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setCancelable(false)
-                .setTitle(getString(R.string.delete_confirm_title, server.getName()))
-                .setMessage(getString(R.string.delete_confirm_text))
-                .setView(wrapper)
-                .setPositiveButton(getString(R.string.delete_confirm_yes), (dialog, which) -> {
-                    if (!server.getName().equalsIgnoreCase(input.getText().toString().trim())) {
-                        android.widget.Toast.makeText(this, getString(R.string.delete_confirm_wrong),
-                                android.widget.Toast.LENGTH_LONG).show();
-                        finish();
-                        return;
-                    }
-                    pbDelete.setVisibility(View.VISIBLE);
-                    startDeletionProcess();
-                })
-                .setNegativeButton(android.R.string.cancel, (dialog, which) -> finish())
-                .show();
+    /** True when the join address does not resolve any more (record already removed). */
+    private boolean addressIsGone(String subdomain, String baseDomain) {
+        try {
+            java.net.InetAddress.getByName(subdomain + "." + baseDomain);
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
     }
-    
+
     private void setMsg(String msg, String sub) {
         handler.post(() -> {
             tvMsg.setText(msg);
@@ -230,10 +215,17 @@ public class DeleteServerActivity extends AppCompatActivity {
                         String errMsg = e.getMessage();
                         if (errMsg != null && errMsg.contains("429")) {
                             showError("DNS Deletion Failed", "Rate Limit reached. Please try again later.");
+                            return;
+                        }
+                        // A finished deletion leaves no DNS record, and the function answers
+                        // "unauthorized" for unknown hosts. When the address no longer resolves
+                        // there is nothing left to delete, so the flow continues.
+                        if (addressIsGone(server.getSubdomain(), server.getBaseDomain())) {
+                            android.util.Log.i("DeleteServer", "DNS record already gone, continuing");
                         } else {
                             showError("DNS Deletion Failed", errMsg != null ? errMsg : "Unknown error");
+                            return;
                         }
-                        return; // Stop here and wait for retry
                     }
                 }
                 
@@ -274,6 +266,12 @@ public class DeleteServerActivity extends AppCompatActivity {
                         // nothing to clean up in the DB, continue with local deletion.
                         if (errBody.contains("Server not found")) {
                             android.util.Log.w("DeleteServer", "No DB row for " + server.getSubdomain() + ", continuing");
+                        } else if (responseCode == 401 || errBody.contains("authorized")) {
+                            // The device token no longer matches the row, so the online entry cannot
+                            // be marked. The local server is removed anyway; the admin cleanup
+                            // (list-servers) removes orphaned rows later.
+                            android.util.Log.w("DeleteServer", "Row not marked, deleting locally: " + errBody);
+                            prefs.edit().putBoolean("orphaned_row_" + server.getSubdomain(), true).apply();
                         } else {
                             showError(getString(R.string.delete_server_db_failed),
                                     "Failed to update server status (Code " + responseCode + ")");
