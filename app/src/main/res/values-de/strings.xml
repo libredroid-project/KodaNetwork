@@ -786,4 +786,6 @@
     <string name="version_switch_done">Gewechselt auf %1$s - Server starten</string>
     <string name="version_switch_stop_first">Stoppe den Server, bevor du die Version wechselst</string>
     <string name="version_switch_only_paper">Der Versionswechsel ist für Paper-Server verfügbar</string>
+    <string name="plugins_mode_install">Installieren</string>
+    <string name="plugins_mode_installed">Installiert</string>
 </resources>

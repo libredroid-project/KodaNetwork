@@ -1482,18 +1482,21 @@ public class ServerDetailActivity extends AppCompatActivity {
             // Check Server Software
             if (server.getType() == ServerInstance.Type.PAPER) {
                 try {
-                    String buildUrl = "https://api.papermc.io/v2/projects/paper/versions/" + server.getVersion() + "/builds";
+                    // v3 API: the old api.papermc.io/v2 was sunset (HTTP 410)
+                    String buildUrl = "https://fill.papermc.io/v3/projects/paper/versions/" + server.getVersion() + "/builds";
                     java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(buildUrl).openConnection();
+                    conn.setRequestProperty("Accept", "application/json");
+                    conn.setRequestProperty("User-Agent", "KodaHosting/1.0 (contact@kodanetwork.eu)");
                     if (conn.getResponseCode() == 200) {
                         java.io.InputStream is = conn.getInputStream();
                         java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
                         String result = s.hasNext() ? s.next() : "";
                         is.close();
                         
-                        org.json.JSONObject res = new org.json.JSONObject(result);
-                        org.json.JSONArray builds = res.getJSONArray("builds");
+                        // v3 answers with a plain array, newest build first (v2 had {"builds":[...]})
+                        org.json.JSONArray builds = new org.json.JSONArray(result);
                         if (builds.length() > 0) {
-                            int latestBuildNum = builds.getJSONObject(builds.length() - 1).getInt("build");
+                            int latestBuildNum = builds.getJSONObject(0).getInt("id");
                             
                             // Check local jar
                             File serverJar = new File(server.getServerDir(), "paper-" + server.getVersion() + "-" + latestBuildNum + ".jar");
@@ -3266,6 +3269,24 @@ public class ServerDetailActivity extends AppCompatActivity {
         androidx.recyclerview.widget.RecyclerView rvPlugins = findViewById(R.id.rv_plugins);
         if (etSearch == null || rvPlugins == null) return;
 
+        // "Install" browses Modrinth, "Installed" manages what is already on the server
+        final android.view.View installPane = findViewById(R.id.ll_plugin_install);
+        final android.view.View installedPane = findViewById(R.id.ll_plugin_installed);
+        final android.widget.FrameLayout modeHost = findViewById(R.id.fl_plugins_mode);
+        if (modeHost != null && installPane != null && installedPane != null) {
+            modeHost.removeAllViews();
+            final android.widget.FrameLayout pill = makePillSwitch(
+                    new String[]{getString(R.string.plugins_mode_install), getString(R.string.plugins_mode_installed)},
+                    0, sel -> {
+                        installPane.setVisibility(sel == 0 ? View.VISIBLE : View.GONE);
+                        installedPane.setVisibility(sel == 1 ? View.VISIBLE : View.GONE);
+                        if (sel == 1) renderJarList();
+                    });
+            modeHost.addView(pill, new android.widget.FrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+
         java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> pluginList = new java.util.ArrayList<>();
         androidx.recyclerview.widget.RecyclerView.Adapter<?> pluginAdapter = new androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
             @Override public androidx.recyclerview.widget.RecyclerView.ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
@@ -4203,23 +4224,9 @@ public class ServerDetailActivity extends AppCompatActivity {
         sheet.show();
 
         new Thread(() -> {
-            java.util.List<String> versions = new java.util.ArrayList<>();
-            try {
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
-                        new java.net.URL("https://api.papermc.io/v2/projects/paper").openConnection();
-                conn.setConnectTimeout(10000);
-                conn.setReadTimeout(10000);
-                java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(conn.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                reader.close();
-                org.json.JSONArray arr = new org.json.JSONObject(sb.toString()).getJSONArray("versions");
-                for (int i = arr.length() - 1; i >= 0 && versions.size() < 25; i--) versions.add(arr.getString(i));
-            } catch (Exception e) {
-                android.util.Log.w("ServerDetail", "Paper versions failed: " + e.getMessage());
-            }
+            java.util.List<String> fetched = eu.kodanetwork.mchost.util.PaperMCDownloader.fetchPaperVersions();
+            final java.util.List<String> versions = fetched.size() > 25
+                    ? new java.util.ArrayList<>(fetched.subList(0, 25)) : fetched;
             runOnUiThread(() -> {
                 root.removeView(loading);
                 if (versions.isEmpty()) {
@@ -4303,10 +4310,6 @@ public class ServerDetailActivity extends AppCompatActivity {
      * Disabling renames "x.jar" to "x.jar.disabled" (every server software ignores that), the
      * trash lives outside the plugins/mods folder so no loader picks it up.
      */
-    private void setupJarManagerCard() {
-        renderJarList();
-    }
-
     /** Folder that holds the loadable files of this server type. */
     private java.io.File jarDir() {
         boolean modded = server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.FABRIC
@@ -5004,8 +5007,6 @@ public class ServerDetailActivity extends AppCompatActivity {
         // MOTD colour builder and the device warning switch
         setupMotdBuilder(etMotd);
         setupDeviceWarningSwitch();
-        // Installed mods and plugins with an enable switch and a trash folder
-        setupJarManagerCard();
 
         // Switch the Minecraft version of an existing Paper server
         android.view.View versionButton = findViewById(R.id.btn_settings_version);

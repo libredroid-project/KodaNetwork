@@ -778,4 +778,6 @@
     <string name="version_switch_done">Switched to %1$s - start the server</string>
     <string name="version_switch_stop_first">Stop the server before switching the version</string>
     <string name="version_switch_only_paper">Version switch is available for Paper servers</string>
+    <string name="plugins_mode_install">Install</string>
+    <string name="plugins_mode_installed">Installed</string>
 </resources>

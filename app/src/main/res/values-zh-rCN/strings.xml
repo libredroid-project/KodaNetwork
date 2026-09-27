@@ -755,4 +755,6 @@
     <string name="version_switch_done">已切换到 %1$s——请启动服务器</string>
     <string name="version_switch_stop_first">请先停止服务器再切换版本</string>
     <string name="version_switch_only_paper">版本切换目前支持 Paper 服务端</string>
+    <string name="plugins_mode_install">安装</string>
+    <string name="plugins_mode_installed">已安装</string>
 </resources>

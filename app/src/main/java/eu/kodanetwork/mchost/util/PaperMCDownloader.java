@@ -155,11 +155,40 @@ public class PaperMCDownloader {
         return targetJar;
     }
 
+    /**
+     * All Minecraft versions the Paper project offers, newest first.
+     *
+     * Uses the current v3 API (fill.papermc.io): the old api.papermc.io/v2 was sunset and answers
+     * HTTP 410, which looked like "no internet" in the UI.
+     */
+    public static java.util.List<String> fetchPaperVersions() {
+        java.util.List<String> versions = new java.util.ArrayList<>();
+        String json = fetchJson(API_BASE_URL);
+        if (json == null) return versions;
+        try {
+            org.json.JSONObject root = new org.json.JSONObject(json);
+            org.json.JSONObject families = root.getJSONObject("versions");
+            java.util.Iterator<String> keys = families.keys();
+            while (keys.hasNext()) {
+                String family = keys.next();
+                org.json.JSONArray arr = families.getJSONArray(family);
+                if (arr.length() > 0) {
+                    String newest = arr.getString(0).trim();
+                    if (!newest.isEmpty()) versions.add(newest);
+                }
+            }
+        } catch (Exception e) {
+            return versions;
+        }
+        return versions;
+    }
+
     private static String fetchJson(String urlString) {
         try {
             HttpURLConnection conn = (HttpURLConnection) new URL(urlString).openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("User-Agent", "KodaHosting/1.0 (contact@kodanetwork.eu)");
             
             if (conn.getResponseCode() != 200) {
                 return null;
