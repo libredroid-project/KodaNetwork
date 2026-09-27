@@ -4156,6 +4156,300 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     /**
+     * Changes the Minecraft version of a Paper server.
+     *
+     * The world is not version-safe: going backwards can corrupt it, so a backup is offered first.
+     * The server has to be stopped, otherwise the running process would keep the old jar open.
+     */
+    private void showVersionSwitchSheet() {
+        if (server.getType() != eu.kodanetwork.mchost.model.ServerInstance.Type.PAPER) {
+            toast(getString(R.string.version_switch_only_paper));
+            return;
+        }
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+
+        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
+        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
+        root.setOrientation(android.widget.LinearLayout.VERTICAL);
+        root.setBackgroundColor(0xFF1D1714);
+        float d = getResources().getDisplayMetrics().density;
+        int pad = (int) (20 * d);
+        root.setPadding(pad, pad, pad, pad);
+        scroller.addView(root);
+
+        android.widget.TextView title = new android.widget.TextView(this);
+        title.setText(getString(R.string.version_switch_title));
+        title.setTextColor(0xFFF0F0F0);
+        title.setTextSize(18);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        root.addView(title);
+
+        android.widget.TextView hint = new android.widget.TextView(this);
+        hint.setText(getString(R.string.version_switch_hint, server.getVersion()));
+        hint.setTextColor(0xFF8A8A9A);
+        hint.setTextSize(12);
+        hint.setPadding(0, (int) (6 * d), 0, (int) (12 * d));
+        root.addView(hint);
+
+        android.widget.TextView loading = new android.widget.TextView(this);
+        loading.setText(getString(R.string.version_switch_loading));
+        loading.setTextColor(0xFF8A8A9A);
+        loading.setTextSize(12);
+        root.addView(loading);
+
+        sheet.setContentView(scroller);
+        sheet.show();
+
+        new Thread(() -> {
+            java.util.List<String> versions = new java.util.ArrayList<>();
+            try {
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
+                        new java.net.URL("https://api.papermc.io/v2/projects/paper").openConnection();
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                reader.close();
+                org.json.JSONArray arr = new org.json.JSONObject(sb.toString()).getJSONArray("versions");
+                for (int i = arr.length() - 1; i >= 0 && versions.size() < 25; i--) versions.add(arr.getString(i));
+            } catch (Exception e) {
+                android.util.Log.w("ServerDetail", "Paper versions failed: " + e.getMessage());
+            }
+            runOnUiThread(() -> {
+                root.removeView(loading);
+                if (versions.isEmpty()) {
+                    android.widget.TextView failed = new android.widget.TextView(this);
+                    failed.setText(getString(R.string.version_switch_failed));
+                    failed.setTextColor(0xFFFF8A80);
+                    failed.setTextSize(13);
+                    root.addView(failed);
+                    return;
+                }
+                for (final String version : versions) {
+                    android.widget.TextView row = new android.widget.TextView(this);
+                    row.setText(version + (version.equals(server.getVersion()) ? "  (" + getString(R.string.version_switch_current) + ")" : ""));
+                    row.setTextColor(version.equals(server.getVersion()) ? 0xFF8A8A9A : 0xFFE8E2D6);
+                    row.setTextSize(14);
+                    row.setPadding(0, (int) (12 * d), 0, (int) (12 * d));
+                    if (!version.equals(server.getVersion())) {
+                        row.setOnClickListener(v -> {
+                            sheet.dismiss();
+                            confirmVersionSwitch(version);
+                        });
+                    }
+                    root.addView(row);
+                }
+            });
+        }, "KodaVersions").start();
+    }
+
+    private void confirmVersionSwitch(final String version) {
+        boolean running = server.state == eu.kodanetwork.mchost.model.ServerInstance.State.ONLINE
+                || server.state == eu.kodanetwork.mchost.model.ServerInstance.State.STARTING;
+        if (running) {
+            toast(getString(R.string.version_switch_stop_first));
+            return;
+        }
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.version_switch_title))
+                .setMessage(getString(R.string.version_switch_warning, server.getVersion(), version))
+                .setPositiveButton(getString(R.string.version_switch_with_backup), (dialog, which) -> {
+                    toast(getString(R.string.extras_backup_started));
+                    new Thread(() -> {
+                        eu.kodanetwork.mchost.util.BackupManager.createBackup(this, server, "before_" + version);
+                        eu.kodanetwork.mchost.util.BackupManager.rotate(this, server.getId(), server.getBackupKeep());
+                        runOnUiThread(() -> switchVersion(version));
+                    }, "KodaVersionBackup").start();
+                })
+                .setNeutralButton(getString(R.string.version_switch_without_backup), (dialog, which) -> switchVersion(version))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void switchVersion(final String version) {
+        toast(getString(R.string.version_switch_running));
+        new Thread(() -> {
+            boolean ok;
+            try {
+                java.io.File jar = eu.kodanetwork.mchost.util.PaperMCDownloader.downloadLatestPaperSync(
+                        version, new java.io.File(server.getServerDir()), null);
+                ok = jar != null && jar.exists();
+            } catch (Exception e) {
+                android.util.Log.w("ServerDetail", "Version switch failed: " + e.getMessage());
+                ok = false;
+            }
+            final boolean success = ok;
+            runOnUiThread(() -> {
+                if (success) {
+                    server.setVersion(version);
+                    eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+                    toast(getString(R.string.version_switch_done, version));
+                } else {
+                    toast(getString(R.string.version_switch_failed));
+                }
+            });
+        }, "KodaVersionSwitch").start();
+    }
+
+    /**
+     * Mods and plugins that are installed on the server: enable/disable without deleting and a
+     * trash folder to recover a file that broke the server.
+     *
+     * Disabling renames "x.jar" to "x.jar.disabled" (every server software ignores that), the
+     * trash lives outside the plugins/mods folder so no loader picks it up.
+     */
+    private void setupJarManagerCard() {
+        renderJarList();
+    }
+
+    /** Folder that holds the loadable files of this server type. */
+    private java.io.File jarDir() {
+        boolean modded = server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.FABRIC
+                || server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.FORGE
+                || server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.NEOFORGE;
+        return new java.io.File(server.getServerDir(), modded ? "mods" : "plugins");
+    }
+
+    private java.io.File jarTrashDir() {
+        // Outside plugins/ and mods/, so no loader ever sees a trashed file
+        return new java.io.File(server.getServerDir(), ".koda_trash");
+    }
+
+    private void renderJarList() {
+        android.widget.LinearLayout list = findViewById(R.id.ll_jars);
+        android.widget.LinearLayout trashList = findViewById(R.id.ll_jars_trash);
+        android.widget.TextView empty = findViewById(R.id.tv_jars_empty);
+        android.widget.TextView trashTitle = findViewById(R.id.tv_trash_title);
+        if (list == null) return;
+
+        java.io.File dir = jarDir();
+        java.io.File[] files = dir.listFiles();
+        java.util.List<java.io.File> entries = new java.util.ArrayList<>();
+        if (files != null) {
+            for (java.io.File file : files) {
+                String name = file.getName().toLowerCase();
+                if (file.isFile() && (name.endsWith(".jar") || name.endsWith(".jar.disabled"))) entries.add(file);
+            }
+        }
+        java.util.Collections.sort(entries, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+
+        list.removeAllViews();
+        if (empty != null) empty.setVisibility(entries.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
+
+        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
+        for (java.io.File file : entries) {
+            android.view.View row = inflater.inflate(R.layout.item_jar_entry, list, false);
+            boolean enabled = file.getName().toLowerCase().endsWith(".jar");
+            String display = file.getName().replace(".disabled", "").replace(".jar", "");
+            ((android.widget.TextView) row.findViewById(R.id.tv_jar_name)).setText(display);
+            ((android.widget.TextView) row.findViewById(R.id.tv_jar_meta)).setText(
+                    eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length())
+                            + (enabled ? "" : "  \u00b7  " + getString(R.string.jars_disabled)));
+            android.widget.CompoundButton toggle = row.findViewById(R.id.switch_jar_enabled);
+            toggle.setChecked(enabled);
+            toggle.setOnCheckedChangeListener((buttonView, isChecked) -> setJarEnabled(file, isChecked));
+            row.findViewById(R.id.btn_jar_trash).setOnClickListener(v -> moveJarToTrash(file));
+            list.addView(row);
+        }
+
+        java.io.File[] trashFiles = jarTrashDir().listFiles();
+        java.util.List<java.io.File> trashed = new java.util.ArrayList<>();
+        if (trashFiles != null) {
+            for (java.io.File file : trashFiles) if (file.isFile()) trashed.add(file);
+        }
+        java.util.Collections.sort(trashed, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        if (trashTitle != null) {
+            trashTitle.setVisibility(trashed.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
+        }
+        if (trashList != null) {
+            trashList.removeAllViews();
+            for (java.io.File file : trashed) {
+                android.view.View row = inflater.inflate(R.layout.item_jar_trash, trashList, false);
+                ((android.widget.TextView) row.findViewById(R.id.tv_trash_name)).setText(file.getName().replace(".jar", ""));
+                ((android.widget.TextView) row.findViewById(R.id.tv_trash_meta)).setText(
+                        eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()));
+                row.findViewById(R.id.btn_trash_restore).setOnClickListener(v -> restoreJar(file));
+                row.findViewById(R.id.btn_trash_delete).setOnClickListener(v ->
+                        confirmDialog(getString(R.string.jars_delete_forever),
+                                getString(R.string.jars_delete_forever_text, file.getName()), () -> {
+                                    if (!file.delete()) toast(getString(R.string.jars_action_failed));
+                                    renderJarList();
+                                }));
+                trashList.addView(row);
+            }
+        }
+    }
+
+    /** Renames the file so the server loads or ignores it. */
+    private void setJarEnabled(java.io.File file, boolean enabled) {
+        try {
+            String name = file.getName();
+            java.io.File target;
+            if (enabled) {
+                if (!name.toLowerCase().endsWith(".disabled")) return;
+                target = new java.io.File(file.getParentFile(), name.substring(0, name.length() - ".disabled".length()));
+            } else {
+                if (name.toLowerCase().endsWith(".disabled")) return;
+                target = new java.io.File(file.getParentFile(), name + ".disabled");
+            }
+            if (target.exists() || !file.renameTo(target)) {
+                toast(getString(R.string.jars_action_failed));
+                renderJarList();
+                return;
+            }
+            toast(getString(R.string.jars_restart_hint));
+            renderJarList();
+        } catch (Exception e) {
+            toast(getString(R.string.jars_action_failed));
+        }
+    }
+
+    /** Moves a file into the trash folder instead of deleting it. */
+    private void moveJarToTrash(java.io.File file) {
+        try {
+            java.io.File trash = jarTrashDir();
+            if (!trash.exists() && !trash.mkdirs()) {
+                toast(getString(R.string.jars_action_failed));
+                return;
+            }
+            java.io.File target = new java.io.File(trash, file.getName());
+            if (target.exists()) target = new java.io.File(trash, System.currentTimeMillis() + "_" + file.getName());
+            if (file.renameTo(target)) {
+                toast(getString(R.string.jars_trashed));
+            } else {
+                toast(getString(R.string.jars_action_failed));
+            }
+            renderJarList();
+        } catch (Exception e) {
+            toast(getString(R.string.jars_action_failed));
+        }
+    }
+
+    private void restoreJar(java.io.File file) {
+        try {
+            java.io.File dir = jarDir();
+            if (!dir.exists() && !dir.mkdirs()) {
+                toast(getString(R.string.jars_action_failed));
+                return;
+            }
+            java.io.File target = new java.io.File(dir, file.getName());
+            if (target.exists() || !file.renameTo(target)) {
+                toast(getString(R.string.jars_action_failed));
+            } else {
+                toast(getString(R.string.jars_restart_hint));
+            }
+            renderJarList();
+        } catch (Exception e) {
+            toast(getString(R.string.jars_action_failed));
+        }
+    }
+
+    /**
      * Colour builder under the MOTD field: the codes are plain text side by side, tapping one
      * inserts it at the cursor. The preview below shows the result with real Minecraft colours.
      */
@@ -4710,6 +5004,12 @@ public class ServerDetailActivity extends AppCompatActivity {
         // MOTD colour builder and the device warning switch
         setupMotdBuilder(etMotd);
         setupDeviceWarningSwitch();
+        // Installed mods and plugins with an enable switch and a trash folder
+        setupJarManagerCard();
+
+        // Switch the Minecraft version of an existing Paper server
+        android.view.View versionButton = findViewById(R.id.btn_settings_version);
+        if (versionButton != null) versionButton.setOnClickListener(v -> showVersionSwitchSheet());
 
         // Initialize values
         etMaxPlayers.setText(props.getProperty("max-players", "20"));

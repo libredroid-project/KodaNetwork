@@ -1838,6 +1838,21 @@ public class CreateServerActivity extends AppCompatActivity {
             s.setModpackName(selectedModpackTitle != null ? selectedModpackTitle : "");
         }
         s.setJavaRuntime(createJavaRuntime);
+        // World type and seed are written into server.properties before the first start
+        android.widget.Spinner spinnerWorldType = findViewById(R.id.spinner_world_type);
+        android.widget.EditText etWorldSeed = findViewById(R.id.et_world_seed);
+        if (spinnerWorldType != null) {
+            String[] types = {"normal", "flat", "large_biomes", "amplified"};
+            android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_item, types);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerWorldType.setAdapter(adapter);
+            s.setLevelType(types[spinnerWorldType.getSelectedItemPosition()]);
+        }
+        if (etWorldSeed != null) {
+            s.setLevelSeed(etWorldSeed.getText().toString().trim());
+        }
+
         // World pre-generation is asked here, once, while the server is being created
         android.widget.CompoundButton swPregen = findViewById(R.id.switch_pregenerate);
         s.setPregenerate(swPregen != null && swPregen.isChecked());

@@ -228,6 +228,25 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- World type and seed (written into server.properties before the first start) -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginBottom="16dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/world_type_label" android:textColor="#F0F0F0"
+                    android:textSize="13sp" android:layout_marginBottom="4dp"/>
+                <Spinner android:id="@+id/spinner_world_type"
+                    android:layout_width="match_parent" android:layout_height="44dp"
+                    android:background="#1B1613" android:popupBackground="#241C18"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/world_seed_label" android:textColor="#F0F0F0"
+                    android:textSize="13sp" android:layout_marginTop="12dp" android:layout_marginBottom="4dp"/>
+                <EditText android:id="@+id/et_world_seed"
+                    android:layout_width="match_parent" android:layout_height="44dp"
+                    android:background="#1B1613" android:textColor="#FFFFFF" android:textSize="13sp"
+                    android:paddingStart="10dp" android:paddingEnd="10dp"
+                    android:hint="@string/world_seed_hint" android:inputType="text"/>
+            </LinearLayout>
+
             <!-- World pre-generation (Chunky) on the first start -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:gravity="center_vertical"

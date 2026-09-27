@@ -80,6 +80,9 @@ public class ServerInstance {
     private String lastBackupTime;
 
     // Backups, world pre-generation and console behaviour travel with the server
+    // World generation, asked in the create wizard (empty = leave the server default alone)
+    private String levelType = "";
+    private String levelSeed = "";
     private String backupMode = "off";       // off | daily | on_stop
     private int backupKeep = 3;              // how many ZIPs to keep
     private boolean pregenerate = false;     // run Chunky on the first start
@@ -129,6 +132,11 @@ public class ServerInstance {
     public void setType(Type t) { this.type = t; }
     public void setPort(int port) { this.port = port; }
 
+    public String getLevelType() { return levelType; }
+    public void setLevelType(String value) { this.levelType = value == null ? "" : value; }
+    public String getLevelSeed() { return levelSeed; }
+    public void setLevelSeed(String value) { this.levelSeed = value == null ? "" : value; }
+
     public String getBackupMode() { return backupMode; }
     public void setBackupMode(String mode) { this.backupMode = mode == null ? "off" : mode; }
     public int getBackupKeep() { return backupKeep; }
@@ -172,6 +180,8 @@ public class ServerInstance {
         j.put("lastActive", lastActive);
         j.put("customDomain", customDomain);
         j.put("baseDomain", baseDomain);
+        j.put("levelType", levelType);
+        j.put("levelSeed", levelSeed);
         j.put("backupMode", backupMode);
         j.put("backupKeep", backupKeep);
         j.put("pregenerate", pregenerate);
@@ -229,6 +239,8 @@ public class ServerInstance {
         s.lastActive     = j.optLong("lastActive", System.currentTimeMillis());
         s.customDomain   = j.optString("customDomain", "");
         s.baseDomain     = j.optString("baseDomain", "kodanetwork.eu");
+        s.levelType         = j.optString("levelType", "");
+        s.levelSeed         = j.optString("levelSeed", "");
         s.backupMode        = j.optString("backupMode", "off");
         s.backupKeep        = j.optInt("backupKeep", 3);
         s.pregenerate       = j.optBoolean("pregenerate", false);

@@ -755,4 +755,35 @@
     <string name="notify_device_off">Warnungen aus</string>
     <string name="bio_delete_server">Server löschen</string>
     <string name="delete_dns_leftover">Server entfernt. Die Adresse %1$s konnte online nicht entfernt werden - bitte dem Support melden, falls sie weiter auflöst.</string>
+
+    <!-- Mods und Plugins in der App -->
+    <string name="jars_title">MODS &amp; PLUGINS</string>
+    <string name="jars_empty">Noch nichts installiert. Dateien oben im Browser hinzufügen oder in den Ordner kopieren.</string>
+    <string name="jars_disabled">deaktiviert</string>
+    <string name="jars_trash">Papierkorb</string>
+    <string name="jars_trash_title">PAPIERKORB</string>
+    <string name="jars_restore">Wiederherstellen</string>
+    <string name="jars_delete_forever">Löschen</string>
+    <string name="jars_delete_forever_text">%1$s endgültig löschen?</string>
+    <string name="jars_trashed">In den Papierkorb verschoben</string>
+    <string name="jars_restart_hint">Erledigt - Server neu starten, damit es wirkt</string>
+    <string name="jars_action_failed">Das hat nicht geklappt. Läuft der Server gerade?</string>
+    <string name="world_type_label">Welt-Typ</string>
+    <string name="world_seed_label">Welt-Seed (optional)</string>
+    <string name="world_seed_hint">Leer lassen für eine zufällige Welt</string>
+
+    <!-- Minecraft-Version wechseln -->
+    <string name="version_switch">MINECRAFT-VERSION WECHSELN</string>
+    <string name="version_switch_title">Version wechseln</string>
+    <string name="version_switch_hint">Aktuell %1$s. Wähle die Zielversion; die Welt ist nicht versionssicher, ein Backup ist empfehlenswert.</string>
+    <string name="version_switch_current">aktuell</string>
+    <string name="version_switch_loading">Versionen werden geladen…</string>
+    <string name="version_switch_failed">Versionsliste konnte nicht geladen werden (kein Internet?)</string>
+    <string name="version_switch_warning">Von %1$s auf %2$s wechseln? Die Welt lädt in einer anderen Version möglicherweise nicht.</string>
+    <string name="version_switch_with_backup">Backup + wechseln</string>
+    <string name="version_switch_without_backup">Ohne Backup wechseln</string>
+    <string name="version_switch_running">Neues Server-Jar wird geladen…</string>
+    <string name="version_switch_done">Gewechselt auf %1$s - Server starten</string>
+    <string name="version_switch_stop_first">Stoppe den Server, bevor du die Version wechselst</string>
+    <string name="version_switch_only_paper">Der Versionswechsel ist für Paper-Server verfügbar</string>
 </resources>

@@ -3673,6 +3673,13 @@ public class KodaServerService extends Service {
         updates.put("pvp", String.valueOf(s.isPvp()));
         updates.put("white-list", String.valueOf(s.isWhitelist()));
         updates.put("max-players", String.valueOf(s.getMaxPlayers()));
+        // Only written when the wizard asked for it, so existing servers keep their settings
+        if (s.getLevelType() != null && !s.getLevelType().isEmpty()) {
+            updates.put("level-type", s.getLevelType());
+        }
+        if (s.getLevelSeed() != null && !s.getLevelSeed().isEmpty()) {
+            updates.put("level-seed", s.getLevelSeed());
+        }
         
         java.util.Map<String, String> defaults = new java.util.HashMap<>();
         defaults.put("online-mode", "false");

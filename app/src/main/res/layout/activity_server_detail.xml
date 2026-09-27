@@ -684,6 +684,15 @@
                         app:strokeColor="#FF6B00"
                         app:strokeWidth="1dp"
                         app:cornerRadius="8dp"/>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_settings_version"
+                        style="@style/KodaButton"
+                        android:layout_width="match_parent" android:layout_height="52dp"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/version_switch"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/font_koda"
+                        app:cornerRadius="12dp"/>
                         
                     <View android:layout_width="match_parent" android:layout_height="1dp"
                         android:background="#332A24" android:layout_marginTop="16dp" android:layout_marginBottom="16dp"/>
@@ -1016,6 +1025,41 @@
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track" />
                     </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_settings_jars"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#241C18"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/jars_title" android:textColor="#FF6B00"
+                        android:textSize="11sp" android:fontFamily="@font/font_koda"
+                        android:letterSpacing="0.1" android:layout_marginBottom="4dp"/>
+
+                    <TextView android:id="@+id/tv_jars_empty"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp" android:text="@string/jars_empty"
+                        android:textColor="#8A8A9A" android:textSize="12sp"/>
+
+                    <LinearLayout android:id="@+id/ll_jars"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical" android:layout_marginTop="4dp"/>
+
+                    <TextView android:id="@+id/tv_trash_title"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp" android:text="@string/jars_trash_title"
+                        android:textColor="#8A8A9A" android:textSize="11sp"
+                        android:visibility="gone"/>
+
+                    <LinearLayout android:id="@+id/ll_jars_trash"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

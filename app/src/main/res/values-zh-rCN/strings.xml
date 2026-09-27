@@ -724,4 +724,35 @@
     <string name="notify_device_off">告警已关闭</string>
     <string name="bio_delete_server">删除服务器</string>
     <string name="delete_dns_leftover">服务器已删除。地址 %1$s 未能在线上移除——若仍可解析，请联系支持。</string>
+
+    <!-- 应用内的模组与插件 -->
+    <string name="jars_title">模组与插件</string>
+    <string name="jars_empty">尚未安装。可在上方浏览器中添加文件，或复制到相应目录。</string>
+    <string name="jars_disabled">已停用</string>
+    <string name="jars_trash">回收站</string>
+    <string name="jars_trash_title">回收站</string>
+    <string name="jars_restore">恢复</string>
+    <string name="jars_delete_forever">删除</string>
+    <string name="jars_delete_forever_text">确定永久删除 %1$s？</string>
+    <string name="jars_trashed">已移入回收站</string>
+    <string name="jars_restart_hint">已完成——重启服务器后生效</string>
+    <string name="jars_action_failed">操作失败。服务器是否正在运行？</string>
+    <string name="world_type_label">世界类型</string>
+    <string name="world_seed_label">世界种子（可选）</string>
+    <string name="world_seed_hint">留空则随机生成</string>
+
+    <!-- 切换 Minecraft 版本 -->
+    <string name="version_switch">切换 Minecraft 版本</string>
+    <string name="version_switch_title">切换版本</string>
+    <string name="version_switch_hint">当前为 %1$s。请选择目标版本；世界数据不保证跨版本兼容，建议先备份。</string>
+    <string name="version_switch_current">当前</string>
+    <string name="version_switch_loading">正在加载版本…</string>
+    <string name="version_switch_failed">无法加载版本列表（没有网络？）</string>
+    <string name="version_switch_warning">从 %1$s 切换到 %2$s？世界可能无法在其他版本中加载。</string>
+    <string name="version_switch_with_backup">备份并切换</string>
+    <string name="version_switch_without_backup">不备份直接切换</string>
+    <string name="version_switch_running">正在下载新的服务端 jar…</string>
+    <string name="version_switch_done">已切换到 %1$s——请启动服务器</string>
+    <string name="version_switch_stop_first">请先停止服务器再切换版本</string>
+    <string name="version_switch_only_paper">版本切换目前支持 Paper 服务端</string>
 </resources>

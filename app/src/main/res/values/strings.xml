@@ -747,4 +747,35 @@
     <string name="notify_device_off">Warnings disabled</string>
     <string name="bio_delete_server">Server deletion</string>
     <string name="delete_dns_leftover">Server removed. The address %1$s could not be removed online - tell support if it still resolves.</string>
+
+    <!-- Mods and plugins in the app -->
+    <string name="jars_title">MODS &amp; PLUGINS</string>
+    <string name="jars_empty">Nothing installed yet. Add files in the browser above or copy them into the folder.</string>
+    <string name="jars_disabled">disabled</string>
+    <string name="jars_trash">Trash</string>
+    <string name="jars_trash_title">TRASH</string>
+    <string name="jars_restore">Restore</string>
+    <string name="jars_delete_forever">Delete</string>
+    <string name="jars_delete_forever_text">Delete %1$s for good?</string>
+    <string name="jars_trashed">Moved to trash</string>
+    <string name="jars_restart_hint">Done - restart the server to apply it</string>
+    <string name="jars_action_failed">That did not work. Is the server running?</string>
+    <string name="world_type_label">World type</string>
+    <string name="world_seed_label">World seed (optional)</string>
+    <string name="world_seed_hint">Leave empty for a random world</string>
+
+    <!-- Minecraft version switch -->
+    <string name="version_switch">CHANGE MINECRAFT VERSION</string>
+    <string name="version_switch_title">Change version</string>
+    <string name="version_switch_hint">Running %1$s. Pick the version to switch to; the world is not version-safe, so a backup is recommended.</string>
+    <string name="version_switch_current">current</string>
+    <string name="version_switch_loading">Loading versions…</string>
+    <string name="version_switch_failed">Could not load the version list (no internet?)</string>
+    <string name="version_switch_warning">Switch from %1$s to %2$s? The world may not load in a different version.</string>
+    <string name="version_switch_with_backup">Back up + switch</string>
+    <string name="version_switch_without_backup">Switch without backup</string>
+    <string name="version_switch_running">Downloading the new server jar…</string>
+    <string name="version_switch_done">Switched to %1$s - start the server</string>
+    <string name="version_switch_stop_first">Stop the server before switching the version</string>
+    <string name="version_switch_only_paper">Version switch is available for Paper servers</string>
 </resources>
