@@ -1131,7 +1131,8 @@ public class CreateServerActivity extends AppCompatActivity {
                 com.google.gson.JsonArray arr = versionsObj.getAsJsonArray(key);
                 for (int i = 0; i < arr.size(); i++) {
                     String ver = arr.get(i).getAsString().trim();
-                    if (!ver.isEmpty()) res.add(ver);
+                    if (ver.isEmpty() || ver.contains("-")) continue;
+                    res.add(ver);
                 }
             }
             return res;

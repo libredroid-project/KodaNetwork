@@ -719,15 +719,24 @@
                         app:strokeColor="#FF6B00"
                         app:strokeWidth="1dp"
                         app:cornerRadius="8dp"/>
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_settings_version"
-                        style="@style/KodaButton"
-                        android:layout_width="match_parent" android:layout_height="52dp"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/version_switch"
-                        android:textSize="13sp"
-                        android:fontFamily="@font/font_koda"
-                        app:cornerRadius="12dp"/>
+                    <!-- Version switch: compact row instead of a full-width button -->
+                    <LinearLayout android:id="@+id/row_settings_version"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:clickable="true" android:focusable="true"
+                        android:paddingTop="10dp" android:paddingBottom="6dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/version_switch" android:textColor="#FFFFFF"
+                                android:textSize="13sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:id="@+id/tv_version_current"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp" android:textColor="#8A8A9A" android:textSize="11sp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="\u203a" android:textColor="#8A8A9A" android:textSize="20sp"/>
+                    </LinearLayout>
                         
                     <View android:layout_width="match_parent" android:layout_height="1dp"
                         android:background="#332A24" android:layout_marginTop="16dp" android:layout_marginBottom="16dp"/>

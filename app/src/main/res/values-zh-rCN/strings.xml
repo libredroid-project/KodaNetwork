@@ -772,4 +772,5 @@
     <string name="praetor_version_step_backup">正在创建备份…</string>
     <string name="praetor_version_step_download">正在下载新的服务端 jar…</string>
     <string name="praetor_version_backup_failed">无法创建备份——未做任何更改。</string>
+    <string name="version_switch_current_label">版本 %1$s · 点击切换</string>
 </resources>

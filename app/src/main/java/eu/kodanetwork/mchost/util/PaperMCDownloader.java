@@ -176,7 +176,10 @@ public class PaperMCDownloader {
                 org.json.JSONArray arr = families.getJSONArray(family);
                 for (int i = 0; i < arr.length(); i++) {
                     String version = arr.getString(i).trim();
-                    if (!version.isEmpty()) versions.add(version);
+                    // Release versions only: pre-releases and RCs (1.21.11-rc3) are not what
+                    // anybody hosts a world on, and they would land on the "stable" label
+                    if (version.isEmpty() || version.contains("-")) continue;
+                    versions.add(version);
                 }
             }
         } catch (Exception e) {

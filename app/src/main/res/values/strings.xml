@@ -795,4 +795,5 @@
     <string name="praetor_version_step_backup">Creating the backup…</string>
     <string name="praetor_version_step_download">Downloading the new server jar…</string>
     <string name="praetor_version_backup_failed">The backup could not be created - nothing was changed.</string>
+    <string name="version_switch_current_label">Version %1$s · tap to change</string>
 </resources>

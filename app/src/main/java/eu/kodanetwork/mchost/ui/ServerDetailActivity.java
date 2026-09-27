@@ -4925,9 +4925,13 @@ public class ServerDetailActivity extends AppCompatActivity {
         setupMotdBuilder(etMotd);
         setupDeviceWarningSwitch();
 
-        // Switch the Minecraft version of an existing Paper server
-        android.view.View versionButton = findViewById(R.id.btn_settings_version);
-        if (versionButton != null) versionButton.setOnClickListener(v -> showVersionSwitchSheet());
+        // Switch the Minecraft version of an existing Paper server (tappable row)
+        android.view.View versionRow = findViewById(R.id.row_settings_version);
+        if (versionRow != null) versionRow.setOnClickListener(v -> showVersionSwitchSheet());
+        android.widget.TextView versionCurrent = findViewById(R.id.tv_version_current);
+        if (versionCurrent != null) {
+            versionCurrent.setText(getString(R.string.version_switch_current_label, server.getVersion()));
+        }
 
         // Initialize values
         etMaxPlayers.setText(props.getProperty("max-players", "20"));
