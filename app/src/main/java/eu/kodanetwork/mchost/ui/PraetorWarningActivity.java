@@ -109,11 +109,11 @@ public class PraetorWarningActivity extends Activity {
                         eu.kodanetwork.mchost.model.ServerRepo.get(this).update(s);
                         Toast.makeText(this, "RAM reduced to " + maxRam + "MB", Toast.LENGTH_SHORT).show();
                         
-                        Intent intent = new Intent(PraetorWarningActivity.this, eu.kodanetwork.mchost.service.KodaServerService.class);
-                        intent.setAction("START");
-                        intent.putExtra("extra_id", serverId);
-                        startService(intent);
-                    } catch (Exception ignored) {}
+                        startServerWithFeedback(serverId);
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(PraetorWarningActivity.this,
+                                "Could not start: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                    }
                 }
                 finish();
             });
@@ -156,10 +156,7 @@ public class PraetorWarningActivity extends Activity {
                             HapticUtil.forceVibrate(PraetorWarningActivity.this, 80);
                             if (etMath.getText().toString().equals(String.valueOf(answer))) {
                                 if (serverId != null) {
-                                    Intent intent = new Intent(PraetorWarningActivity.this, eu.kodanetwork.mchost.service.KodaServerService.class);
-                                    intent.setAction("START");
-                                    intent.putExtra("extra_id", serverId);
-                                    startService(intent);
+                                    startServerWithFeedback(serverId);
                                     Toast.makeText(PraetorWarningActivity.this, "Override Accepted. Starting Server...", Toast.LENGTH_LONG).show();
                                 }
                                 finish();
@@ -177,6 +174,33 @@ public class PraetorWarningActivity extends Activity {
                 HapticUtil.forceVibrate(this, 80);
                 finish();
             });
+        }
+    }
+
+    /**
+     * Starts the server after an override.
+     *
+     * The intent has to use KodaServerService.EXTRA_ID ("srv_id") - sending "extra_id" looked
+     * right but the service ignored it, which is why the override button appeared to do nothing.
+     * Failures are reported instead of being swallowed.
+     */
+    private void startServerWithFeedback(String serverId) {
+        try {
+            Intent intent = new Intent(this, eu.kodanetwork.mchost.service.KodaServerService.class);
+            intent.setAction(eu.kodanetwork.mchost.service.KodaServerService.ACTION_START);
+            intent.putExtra(eu.kodanetwork.mchost.service.KodaServerService.EXTRA_ID, serverId);
+            if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(intent);
+            else startService(intent);
+        } catch (Exception e) {
+            try {
+                Intent fallback = new Intent(this, eu.kodanetwork.mchost.service.KodaServerService.class);
+                fallback.setAction(eu.kodanetwork.mchost.service.KodaServerService.ACTION_START);
+                fallback.putExtra(eu.kodanetwork.mchost.service.KodaServerService.EXTRA_ID, serverId);
+                startService(fallback);
+            } catch (Exception second) {
+                android.widget.Toast.makeText(this, "Could not start the service: " + second.getMessage(),
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
         }
     }
 

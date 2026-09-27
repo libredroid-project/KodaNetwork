@@ -1447,23 +1447,42 @@ public class CreateServerActivity extends AppCompatActivity {
     private void setupRam() {
         android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
         ((android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE)).getMemoryInfo(mi);
+        long totalMegs = mi.totalMem / 1048576L;
         long freeMegs = mi.availMem / 1048576L;
-        long maxSafeRam = freeMegs - 1024; // Keep 1.0GB buffer for Android OS
-        
+
+        // The ceiling comes from the device (total memory minus a reserve for Android), not from the
+        // momentary "available" value - that one is measured while the app, its JVM and every other
+        // app already hold memory, and it used to cap the slider at a few hundred MB on a 12 GB phone.
+        long androidReserve = Math.min(1024, Math.round(totalMegs * 0.25));
+        long runningOthers = 0;
+        for (ServerInstance other : eu.kodanetwork.mchost.model.ServerRepo.get(this).all()) {
+            if (other.state == ServerInstance.State.ONLINE || other.state == ServerInstance.State.STARTING
+                    || other.state == ServerInstance.State.SETTING_UP) {
+                runningOthers += other.getRamMB();
+            }
+        }
+        long deviceCeiling = totalMegs - androidReserve;              // absolute limit for one server
+        long safeNow = Math.max(512, deviceCeiling - runningOthers);   // what fits right now
+        safeRamNow = safeNow;
+
         int maxIndex = 0;
         for (int i = 0; i < RAM_STEPS.length; i++) {
-            if (RAM_STEPS[i] <= maxSafeRam) maxIndex = i;
+            if (RAM_STEPS[i] <= deviceCeiling) maxIndex = i;
         }
-        if (maxIndex == 0 && maxSafeRam < RAM_STEPS[0]) maxIndex = 0; // At least allow minimum
-        
-        long targetRam = Math.min((long) (freeMegs * 0.75), maxSafeRam);
+        if (maxIndex == 0 && deviceCeiling < RAM_STEPS[0]) maxIndex = 0; // At least allow minimum
+
+        long targetRam = Math.min(Math.max(1024, (long) (totalMegs * 0.25)), safeNow);
         int targetIndex = 0;
         for (int i = 0; i <= maxIndex; i++) {
             if (RAM_STEPS[i] <= targetRam) targetIndex = i;
         }
 
-        seekRam.setMax(maxIndex); 
-        seekRam.setProgress(targetIndex); 
+        seekRam.setMax(maxIndex);
+        seekRam.setProgress(targetIndex);
+        updateRam(RAM_STEPS[targetIndex]);
+
+        // Tell the user what the numbers mean instead of silently hiding options
+        ramBudgetText = getString(R.string.ram_budget_hint, totalMegs / 1024, runningOthers, safeNow);
         updateRam(RAM_STEPS[targetIndex]);
 
         seekRam.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -1473,7 +1492,22 @@ public class CreateServerActivity extends AppCompatActivity {
         });
     }
 
-    private void updateRam(int mb) { ramMB = mb; tvRamValue.setText(mb >= 1024 ? (mb / 1024) + "GB" : mb + "MB"); }
+    private String ramBudgetText = "";
+
+    private void updateRam(int mb) {
+        ramMB = mb;
+        String value = mb >= 1024 ? (mb / 1024) + "GB" : mb + "MB";
+        boolean aboveSafe = safeRamNow > 0 && mb > safeRamNow;
+        tvRamValue.setText(aboveSafe ? value + " (above the recommended " + (safeRamNow / 1024) + "GB)" : value);
+        tvRamValue.setTextColor(aboveSafe ? 0xFFFFCC00 : 0xFFFFFFFF);
+        android.widget.TextView tvBudget = findViewById(R.id.tv_ram_budget);
+        if (tvBudget != null) {
+            tvBudget.setText(ramBudgetText);
+            tvBudget.setVisibility(ramBudgetText.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
+        }
+    }
+
+    private long safeRamNow = 0;
 
     private void setupNameWatcher() {
         TextWatcher w = new TextWatcher() {

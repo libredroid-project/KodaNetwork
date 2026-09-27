@@ -221,6 +221,7 @@ public class KodaServerService extends Service {
         
         // Capacity Watchdog: Checks every 30s if we bypassed the queue while offline
         scheduler.scheduleAtFixedRate(this::checkCapacityWatchdog, 30, 30, java.util.concurrent.TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::checkSetupWatchdog, 30, 30, java.util.concurrent.TimeUnit.SECONDS);
         
         scheduler.scheduleAtFixedRate(this::pollNewRemoteServers, 15, 15, java.util.concurrent.TimeUnit.SECONDS);
         
@@ -2422,8 +2423,45 @@ public class KodaServerService extends Service {
         }
     }
 
+    /** When a server entered SETTING_UP - the setup watchdog uses this to time out. */
+    private final java.util.Map<String, Long> setupStartedAt = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long SETUP_TIMEOUT_MS = 5 * 60 * 1000L;
+
+    /**
+     * Auto-setup (plugin install, config writing) ends through log markers from the server. If one of
+     * its steps fails without those markers, the server used to stay in SETTING_UP forever and the
+     * only way out was the hidden "Check for Updates" button. This ends it after a timeout instead.
+     */
+    private void checkSetupWatchdog() {
+        long now = System.currentTimeMillis();
+        try {
+            for (ServerInstance srv : ServerRepo.get(this).all()) {
+                if (srv.state != ServerInstance.State.SETTING_UP) {
+                    setupStartedAt.remove(srv.getId());
+                    continue;
+                }
+                Long started = setupStartedAt.get(srv.getId());
+                if (started == null) {
+                    setupStartedAt.put(srv.getId(), now);
+                    continue;
+                }
+                if (now - started < SETUP_TIMEOUT_MS) continue;
+
+                setupStartedAt.remove(srv.getId());
+                boolean running = runtimes.containsKey(srv.getId());
+                log(srv.getId(), "⚠ Setup did not finish within 5 minutes - releasing the setup state "
+                        + (running ? "(server is running)" : "(server is stopped, you can start it)"));
+                setState(srv, running ? ServerInstance.State.ONLINE : ServerInstance.State.OFFLINE);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Setup watchdog failed", e);
+        }
+    }
+
     private void setState(ServerInstance s, ServerInstance.State st) {
         s.state = st;
+        if (st == ServerInstance.State.SETTING_UP) setupStartedAt.put(s.getId(), System.currentTimeMillis());
+        else if (st == ServerInstance.State.ONLINE) setupStartedAt.remove(s.getId());
         if (st == ServerInstance.State.ONLINE || st == ServerInstance.State.OFFLINE || st == ServerInstance.State.CRASHED) {
             reportSupabaseStatus(s, st == ServerInstance.State.ONLINE);
         }

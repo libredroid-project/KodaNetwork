@@ -246,7 +246,13 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:progressTint="#FF6B00" android:thumbTint="#FF8C38"
                 android:progressBackgroundTint="#1A1A24"
-                android:layout_marginBottom="6dp"/>
+                android:layout_marginBottom="2dp"/>
+            <TextView android:id="@+id/tv_ram_budget"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textColor="#888899" android:textSize="10sp"
+                android:fontFamily="@font/font_koda"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"/>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:layout_marginBottom="20dp">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"

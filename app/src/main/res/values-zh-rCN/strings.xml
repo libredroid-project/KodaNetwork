@@ -607,4 +607,5 @@
     <string name="pra_main_desc">此账号拥有完整权限</string>
     <string name="github_open_source">GitHub 上的开源项目</string>
     <string name="kodadash_dashboard">KODADASH 面板</string>
+    <string name="ram_budget_hint">设备 %1$d GB - 其他服务器占用 %2$d MB - 当前可用 %3$d MB</string>
 </resources>

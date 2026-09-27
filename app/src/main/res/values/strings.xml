@@ -630,4 +630,5 @@
     <string name="pra_main_desc">This account has full permissions</string>
     <string name="github_open_source">Open source on GitHub</string>
     <string name="kodadash_dashboard">KODADASH DASHBOARD</string>
+    <string name="ram_budget_hint">Device %1$d GB - other servers use %2$d MB - %3$d MB fit right now</string>
 </resources>

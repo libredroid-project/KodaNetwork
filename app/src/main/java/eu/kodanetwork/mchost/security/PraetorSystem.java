@@ -89,16 +89,16 @@ public class PraetorSystem {
         }
 
         long requiredRamMB = targetServer.getRamMB();
-        long androidBufferMB = 1024; // Keep 1.0GB buffer for Android OS
+        long androidBufferMB = Math.min(1024, Math.round(totalSystemRamMB * 0.25));
 
-        boolean isAvailExceeded = freeRamMB < requiredRamMB + androidBufferMB;
-        boolean isTotalExceeded = (runningServersRamMB + requiredRamMB + androidBufferMB) > totalSystemRamMB;
+        // Only the device budget decides. "availMem" is a momentary value that Android fills with
+        // caches and that the app itself already reduces with its own JVM, which produced plenty of
+        // false conflicts before. It stays in the text as a hint, it does not block.
+        long maxAllowedRam = Math.max(512, totalSystemRamMB - runningServersRamMB - androidBufferMB);
+        boolean isTotalExceeded = requiredRamMB > maxAllowedRam;
+        boolean isAvailExceeded = false;
 
-        if (isAvailExceeded || isTotalExceeded) {
-            long maxAllowedRam = Math.max(512, totalSystemRamMB - runningServersRamMB - androidBufferMB);
-            if (maxAllowedRam > freeRamMB - androidBufferMB) {
-                maxAllowedRam = Math.max(512, freeRamMB - androidBufferMB);
-            }
+        if (isTotalExceeded) {
 
             String reason = context.getString(R.string.praetor_reason_ram_conflict, totalSystemRamMB, runningServersRamMB, requiredRamMB);
             Intent intent = new Intent(context, PraetorWarningActivity.class);
