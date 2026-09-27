@@ -341,6 +341,7 @@ public class CreateServerActivity extends AppCompatActivity {
         
         setupNumberPicker();
         setupRam();
+        setupWorldType();
         
         setupNameWatcher();
 
@@ -1283,6 +1284,44 @@ public class CreateServerActivity extends AppCompatActivity {
 
     private List<String> listOf(String[] arr) { List<String> l = new ArrayList<>(); for (String s : arr) l.add(s); return l; }
 
+    /** World types offered in the wizard, values match server.properties */
+    private static final String[] WORLD_TYPES = {"normal", "flat", "large_biomes", "amplified"};
+
+    /**
+     * Fills the world type spinner when the screen is built. The items have to be there before the
+     * user taps the spinner, not when the server is created.
+     */
+    private void setupWorldType() {
+        android.widget.Spinner spinner = findViewById(R.id.spinner_world_type);
+        if (spinner == null) return;
+        final int textColor = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFF1B1613 : 0xFFF0F0F0;
+        final int rowColor = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFFF5F0EC : 0xFF241C18;
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<String>(
+                this, android.R.layout.simple_spinner_item, WORLD_TYPES) {
+            @Override
+            public android.view.View getView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                android.view.View view = super.getView(position, convertView, parent);
+                if (view instanceof android.widget.TextView) {
+                    ((android.widget.TextView) view).setTextColor(textColor);
+                }
+                return view;
+            }
+
+            @Override
+            public android.view.View getDropDownView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                android.view.View view = super.getDropDownView(position, convertView, parent);
+                if (view instanceof android.widget.TextView) {
+                    ((android.widget.TextView) view).setTextColor(textColor);
+                    view.setBackgroundColor(rowColor);
+                }
+                return view;
+            }
+        };
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(0);
+    }
+
     private void setupRam() {
         android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
         ((android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE)).getMemoryInfo(mi);
@@ -1677,16 +1716,11 @@ public class CreateServerActivity extends AppCompatActivity {
             s.setModpackName(selectedModpackTitle != null ? selectedModpackTitle : "");
         }
         s.setJavaRuntime(createJavaRuntime);
-        // World type and seed are written into server.properties before the first start
+        // World type and seed were chosen in the wizard (see setupWorldType)
         android.widget.Spinner spinnerWorldType = findViewById(R.id.spinner_world_type);
         android.widget.EditText etWorldSeed = findViewById(R.id.et_world_seed);
         if (spinnerWorldType != null) {
-            String[] types = {"normal", "flat", "large_biomes", "amplified"};
-            android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
-                    this, android.R.layout.simple_spinner_item, types);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinnerWorldType.setAdapter(adapter);
-            s.setLevelType(types[spinnerWorldType.getSelectedItemPosition()]);
+            s.setLevelType(WORLD_TYPES[spinnerWorldType.getSelectedItemPosition()]);
         }
         if (etWorldSeed != null) {
             s.setLevelSeed(etWorldSeed.getText().toString().trim());

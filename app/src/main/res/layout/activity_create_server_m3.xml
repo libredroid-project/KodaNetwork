@@ -196,6 +196,51 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- World type and seed (written into server.properties before the first start) -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginBottom="16dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/world_type_label"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:layout_marginBottom="4dp"/>
+                <Spinner android:id="@+id/spinner_world_type"
+                    android:layout_width="match_parent" android:layout_height="44dp"
+                    android:background="?attr/colorSurfaceContainerHighest"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/world_seed_label"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:layout_marginTop="12dp" android:layout_marginBottom="4dp"/>
+                <EditText android:id="@+id/et_world_seed"
+                    android:layout_width="match_parent" android:layout_height="44dp"
+                    android:background="?attr/colorSurfaceContainerHighest"
+                    android:textColor="?attr/colorOnSurface" android:textSize="13sp"
+                    android:paddingStart="10dp" android:paddingEnd="10dp"
+                    android:hint="@string/world_seed_hint" android:inputType="text"/>
+            </LinearLayout>
+
+            <!-- World pre-generation (Chunky) on the first start -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/extras_pregen" android:textColor="?attr/colorOnSurface"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/extras_pregen_summary"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textAppearance="?attr/textAppearanceBodySmall"/>
+                </LinearLayout>
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_pregenerate"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track" />
+            </LinearLayout>
+
+
             <!-- RAM CARD -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent" android:layout_height="wrap_content"
