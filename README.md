@@ -99,4 +99,4 @@ The public source contains no server addresses or keys. Everything instance spec
 
 ## Support
 
-Found a bug or a crash the analyzer does not recognize? Open an [issue](https://github.com/libredroid-project/KodaNetwork/issues) and include the console log (Files, logs/latest.log).
+Found a bug or a crash the analyzer does not recognize? Open an [issue](https://github.com/libredroid-project/KodaNetwork/issues) and include the console log (Files, logs/latest.log). 
