@@ -4806,9 +4806,19 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         String host = server.getJoinAddress();
         int port = server.getKodadashPort();
-        String shown = host + ":" + port;
         String token = readKodadashToken();
-        String url = "http://" + shown + (token.isEmpty() ? "" : "?token=" + token);
+
+        // With HTTPS enabled the dashboard is reachable without a port (nginx proxies to the tunnel);
+        // until then the plain tunnel address is used.
+        String shown;
+        String url;
+        if (requireHttpsDashboard()) {
+            shown = host;
+            url = "https://" + host + (token.isEmpty() ? "" : "/?token=" + token);
+        } else {
+            shown = host + ":" + port;
+            url = "http://" + shown + (token.isEmpty() ? "" : "?token=" + token);
+        }
 
         tvUrl.setText(shown);
         tvUrl.setOnClickListener(v -> {
@@ -4823,6 +4833,35 @@ public class ServerDetailActivity extends AppCompatActivity {
             copyToClipboard("KodaDash", url);
             return true;
         });
+    }
+
+    /**
+     * Reads app_settings.kodadash_https once per screen (cached) to know whether dashboards are
+     * served over HTTPS already. Fails closed to the plain address when the setting is unreadable.
+     */
+    private static Boolean httpsDashboardEnabled = null;
+
+    private boolean requireHttpsDashboard() {
+        if (httpsDashboardEnabled != null) return httpsDashboardEnabled;
+        httpsDashboardEnabled = false;
+        try {
+            String baseUrl = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl();
+            String apiKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url(baseUrl + "/rest/v1/app_settings?key=eq.kodadash_https&select=value")
+                    .addHeader("apikey", apiKey)
+                    .addHeader("Authorization", "Bearer " + apiKey)
+                    .build();
+            try (okhttp3.Response response = new okhttp3.OkHttpClient().newCall(request).execute()) {
+                if (response.isSuccessful() && response.body() != null) {
+                    org.json.JSONArray rows = new org.json.JSONArray(response.body().string());
+                    if (rows.length() > 0) {
+                        httpsDashboardEnabled = rows.getJSONObject(0).optJSONObject("value").optBoolean("enabled", false);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return httpsDashboardEnabled;
     }
 
     /** Reads the dashboard token from the plugin config of this server. */

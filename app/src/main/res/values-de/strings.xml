@@ -654,4 +654,14 @@
     <string name="vps_detail_measured">Gemessen</string>
     <string name="vps_cores">Kerne</string>
     <string name="vps_clients">Clients</string>
+    <string name="overload_title">NETZWERK-SCHUTZ</string>
+    <string name="overload_headline">Server gestoppt</string>
+    <string name="overload_reason_unknown">Der Tunnel-Server ist überlastet</string>
+    <string name="overload_values">Speicher %1$d%% - Last %2$s pro Kern - %3$d Verbindungen - %4$d Tunnel</string>
+    <string name="overload_explanation">Der gemeinsame Tunnel-Server hat seine Grenzen erreicht, deshalb wurden alle Server auf diesem Gerät gestoppt, um das Netzwerk und die Welten zu schützen. Es ist nichts verloren, deine Welten wurden gespeichert.</string>
+    <string name="overload_retry">Dieser Bildschirm schließt sich automatisch, sobald sich das Netzwerk erholt hat. Danach lassen sich Server wieder starten.</string>
+    <plurals name="overload_since">
+        <item quantity="one">Überlastet seit %d Minute</item>
+        <item quantity="other">Überlastet seit %d Minuten</item>
+    </plurals>
 </resources>

@@ -623,4 +623,14 @@
     <string name="vps_detail_measured">测量时间</string>
     <string name="vps_cores">核心</string>
     <string name="vps_clients">客户端</string>
+    <string name="overload_title">网络保护</string>
+    <string name="overload_headline">服务器已停止</string>
+    <string name="overload_reason_unknown">隧道服务器过载</string>
+    <string name="overload_values">内存 %1$d%% - 每核负载 %2$s - %3$d 连接 - %4$d 隧道</string>
+    <string name="overload_explanation">共享隧道服务器已达到上限，因此本设备上的所有服务器都已停止，以保护网络并保全世界数据。没有数据丢失，世界已保存。</string>
+    <string name="overload_retry">网络恢复后此界面会自动关闭，之后可以重新启动服务器。</string>
+    <plurals name="overload_since">
+        <item quantity="one">已过载 %d 分钟</item>
+        <item quantity="other">已过载 %d 分钟</item>
+    </plurals>
 </resources>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Blocking screen while the shared tunnel server is overloaded (see InfraOverloadActivity). -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="#141011" android:fillViewport="true">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:gravity="center_horizontal"
+        android:paddingStart="28dp" android:paddingEnd="28dp"
+        android:paddingTop="72dp" android:paddingBottom="48dp">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/overload_title" android:textColor="#FFB68C"
+            android:textSize="12sp" android:letterSpacing="0.18"
+            android:fontFamily="@font/font_koda" android:textStyle="bold"/>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="KODAHOSTING"
+            android:textColor="#5B4032" android:textSize="12sp" android:letterSpacing="0.35"
+            android:fontFamily="@font/font_koda" android:textStyle="bold"
+            android:layout_marginTop="10dp" android:layout_marginBottom="28dp"/>
+
+        <View android:layout_width="64dp" android:layout_height="3dp"
+            android:background="#FF6B00" android:layout_marginBottom="28dp"/>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/overload_headline" android:textColor="#FFFFFF"
+            android:textSize="24sp" android:fontFamily="@font/font_koda" android:textStyle="bold"
+            android:gravity="center" android:layout_marginBottom="14dp"/>
+
+        <TextView android:id="@+id/overloadReasonText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#F0F0F0" android:textSize="15sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:lineSpacingExtra="4dp" android:layout_marginBottom="18dp"/>
+
+        <TextView android:id="@+id/overloadValuesText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#888899" android:textSize="13sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:layout_marginBottom="26dp"/>
+
+        <TextView android:id="@+id/overloadSinceText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#888899" android:textSize="13sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:layout_marginBottom="26dp"/>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#2E241E" android:layout_marginBottom="22dp"/>
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/overload_explanation" android:textColor="#B5B5B8"
+            android:textSize="13sp" android:fontFamily="@font/font_koda"
+            android:lineSpacingExtra="4dp" android:layout_marginBottom="22dp"/>
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/overload_retry" android:textColor="#FFB68C"
+            android:textSize="13sp" android:fontFamily="@font/font_koda" android:gravity="center"/>
+    </LinearLayout>
+</ScrollView>

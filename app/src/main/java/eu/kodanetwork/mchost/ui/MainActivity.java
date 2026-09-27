@@ -583,13 +583,27 @@ public class MainActivity extends AppCompatActivity {
             String baseUrl = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl();
             String apiKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
             new Thread(() -> loadVpsStatus(baseUrl, apiKey)).start();
+            checkInfraOverloadScreen();
             vpsHandler.postDelayed(this, 60000);
         }
     };
 
+    /** Shows the blocking screen while the tunnel server is overloaded (see KodaServerService). */
+    private void checkInfraOverloadScreen() {
+        boolean overloaded = eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false);
+        if (!overloaded) return;
+        if (isFinishing() || isDestroyed()) return;
+        runOnUiThread(() -> {
+            try {
+                startActivity(new android.content.Intent(this, eu.kodanetwork.mchost.ui.InfraOverloadActivity.class));
+            } catch (Exception ignored) {}
+        });
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        checkInfraOverloadScreen();
         // keep the tunnel server line up to date while the screen is open
         vpsHandler.removeCallbacks(vpsTick);
         vpsHandler.post(vpsTick);
@@ -772,6 +786,14 @@ public class MainActivity extends AppCompatActivity {
      * Values come from rpc_get_vps_stats(), written every minute by the reporter on the VPS.
      */
     private void loadVpsStatus(String baseUrl, String apiKey) {
+        // The line is a developer tool: hidden unless developer mode is unlocked in the settings
+        if (!eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("dev_mode_unlocked", false)) {
+            runOnUiThread(() -> {
+                android.view.View bar = findViewById(R.id.vps_status_bar);
+                if (bar != null) bar.setVisibility(android.view.View.GONE);
+            });
+            return;
+        }
         try {
             okhttp3.RequestBody body = okhttp3.RequestBody.create("{}",
                     okhttp3.MediaType.parse("application/json; charset=utf-8"));

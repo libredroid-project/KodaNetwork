@@ -222,6 +222,7 @@ public class KodaServerService extends Service {
         // Capacity Watchdog: Checks every 30s if we bypassed the queue while offline
         scheduler.scheduleAtFixedRate(this::checkCapacityWatchdog, 30, 30, java.util.concurrent.TimeUnit.SECONDS);
         scheduler.scheduleAtFixedRate(this::checkSetupWatchdog, 30, 30, java.util.concurrent.TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::checkInfraLimits, 90, 60, java.util.concurrent.TimeUnit.SECONDS);
         
         scheduler.scheduleAtFixedRate(this::pollNewRemoteServers, 15, 15, java.util.concurrent.TimeUnit.SECONDS);
         
@@ -645,6 +646,11 @@ public class KodaServerService extends Service {
     }
 
     public void startServer(ServerInstance srv) {
+        // Safety net: while the tunnel server is overloaded nothing new may start
+        if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false)) {
+            log(srv.getId(), "⚠ Not starting: the tunnel server is overloaded");
+            return;
+        }
         startServerInternal(srv, true);
     }
 
@@ -2420,6 +2426,170 @@ public class KodaServerService extends Service {
             for (LogCallback cb : logCbs) {
                 cb.onLogLine(id, combined);
             }
+        }
+    }
+
+    // ------------------------------------------------------------------ infrastructure limits
+    //
+    // The tunnel server is shared: if it runs out of memory or connections, every hosted server
+    // suffers. This check runs in the service (so it also works while the app is closed), stops all
+    // servers gracefully when a limit is exceeded and hands the state to the blocking screen.
+    // Thresholds come from app_settings.vps_limits so they can be tuned without a new release:
+    //
+    //   {"ram_pct": 80, "connections": 300, "tunnels": 200, "load_per_core": 1.2, "enabled": true}
+
+    private org.json.JSONObject cachedLimits = null;
+    private long limitsFetchedAt = 0L;
+    private int infraOkStreak = 0;
+
+    private org.json.JSONObject loadLimits() {
+        long now = System.currentTimeMillis();
+        // short TTL: a changed threshold has to take effect on the next check, otherwise the app
+        // would keep enforcing an outdated value for minutes (that caused a flapping overload state)
+        if (cachedLimits != null && now - limitsFetchedAt < 60 * 1000L) return cachedLimits;
+        limitsFetchedAt = now;
+        try {
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url(SUPABASE_REST + "/app_settings?key=eq.vps_limits&select=value")
+                    .addHeader("apikey", SUPABASE_KEY)
+                    .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
+                    .build();
+            try (okhttp3.Response response = httpClient.newCall(request).execute()) {
+                if (response.isSuccessful() && response.body() != null) {
+                    org.json.JSONArray rows = new org.json.JSONArray(response.body().string());
+                    if (rows.length() > 0) {
+                        cachedLimits = rows.getJSONObject(0).optJSONObject("value");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return cachedLimits;
+    }
+
+    private void checkInfraLimits() {
+        try {
+            org.json.JSONObject limits = loadLimits();
+            if (limits == null) { Log.i("KodaInfra", "no limits configured (app_settings.vps_limits) - nothing to enforce"); return; }
+            if (!limits.optBoolean("enabled", true)) return;
+
+            okhttp3.RequestBody body = okhttp3.RequestBody.create("{}",
+                    okhttp3.MediaType.parse("application/json; charset=utf-8"));
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url(SUPABASE_REST + "/rpc/rpc_get_vps_stats")
+                    .post(body)
+                    .addHeader("apikey", SUPABASE_KEY)
+                    .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
+                    .build();
+
+            org.json.JSONObject stats = null;
+            try (okhttp3.Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) return;
+                org.json.JSONArray rows = new org.json.JSONArray(response.body().string());
+                if (rows.length() == 0) return;
+                stats = rows.getJSONObject(0);
+            }
+            if (stats == null) return;
+
+            // a stale measurement must not trigger anything
+            if (!measurementIsFresh(stats.optString("measured_at", ""), 5 * 60 * 1000L)) return;
+
+            int cores = Math.max(1, stats.optInt("cpu_cores", 1));
+            long ramTotal = stats.optLong("ram_total_mb", 0);
+            long ramUsed = stats.optLong("ram_used_mb", 0);
+            double ramPct = ramTotal > 0 ? ramUsed * 100.0 / ramTotal : 0;
+            double loadPerCore = stats.optDouble("load1", 0) / cores;
+            int connections = stats.optInt("players_connected", 0);
+            int tunnels = stats.optInt("open_tunnels", 0);
+
+            double maxRam = limits.optDouble("ram_pct", 80);
+            int maxConnections = limits.optInt("connections", 300);
+            int maxTunnels = limits.optInt("tunnels", 200);
+            double maxLoadPerCore = limits.optDouble("load_per_core", 1.2);
+
+            StringBuilder reason = new StringBuilder();
+            if (ramPct >= maxRam) reason.append("memory at ").append(Math.round(ramPct)).append("% (limit ").append((int) maxRam).append("%)");
+            if (loadPerCore >= maxLoadPerCore) {
+                if (reason.length() > 0) reason.append(", ");
+                reason.append("load ").append(String.format(java.util.Locale.US, "%.2f", loadPerCore)).append(" per core (limit ").append(maxLoadPerCore).append(")");
+            }
+            if (connections >= maxConnections) {
+                if (reason.length() > 0) reason.append(", ");
+                reason.append(connections).append(" connections (limit ").append(maxConnections).append(")");
+            }
+            if (tunnels >= maxTunnels) {
+                if (reason.length() > 0) reason.append(", ");
+                reason.append(tunnels).append(" open tunnels (limit ").append(maxTunnels).append(")");
+            }
+
+            boolean overloaded = reason.length() > 0;
+            boolean wasOverloaded = eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false);
+
+            // short, filterable diagnostics for the safety feature (adb logcat -s KodaInfra)
+            Log.i("KodaInfra", "ram " + Math.round(ramPct) + "% load/core " + String.format(java.util.Locale.US, "%.2f", loadPerCore)
+                    + " connections " + connections + " tunnels " + tunnels
+                    + " -> " + (overloaded ? "OVERLOADED (" + reason + ")" : "ok"));
+
+            if (overloaded) {
+                infraOkStreak = 0;
+                if (!wasOverloaded) {
+                    Log.i("KodaInfra", "stopping all servers: " + reason);
+                    log("infra", "⚠ Tunnel server overloaded (" + reason + ") - stopping all servers to protect the network");
+                    stopAllServersForOverload();
+                    eu.kodanetwork.mchost.App.getPrefs(this).edit()
+                            .putBoolean("infra_overload", true)
+                            .putString("infra_overload_reason", reason.toString())
+                            .putLong("infra_overload_since", System.currentTimeMillis())
+                            .apply();
+                    Intent overloadIntent = new Intent("eu.kodanetwork.mchost.INFRA_OVERLOAD");
+                    overloadIntent.setPackage(getPackageName());
+                    sendBroadcast(overloadIntent);
+                } else {
+                    eu.kodanetwork.mchost.App.getPrefs(this).edit()
+                            .putString("infra_overload_reason", reason.toString())
+                            .apply();
+                }
+            } else if (wasOverloaded) {
+                // release only after two clean readings in a row
+                infraOkStreak++;
+                if (infraOkStreak >= 2) {
+                    log("infra", "Tunnel server is back to normal - servers can be started again");
+                    eu.kodanetwork.mchost.App.getPrefs(this).edit()
+                            .putBoolean("infra_overload", false)
+                            .remove("infra_overload_reason")
+                            .apply();
+                    Intent okIntent = new Intent("eu.kodanetwork.mchost.INFRA_OK");
+                    okIntent.setPackage(getPackageName());
+                    sendBroadcast(okIntent);
+                }
+            }
+        } catch (Exception e) {
+            Log.w("KodaInfra", "check failed: " + e);
+        }
+    }
+
+    /** Graceful stop of every running server (worlds are saved by the server itself). */
+    private void stopAllServersForOverload() {
+        for (ServerInstance srv : ServerRepo.get(this).all()) {
+            try {
+                if (srv.isRunning() || srv.state == ServerInstance.State.STARTING || srv.state == ServerInstance.State.SETTING_UP) {
+                    log(srv.getId(), "⚠ Stopping: the tunnel server is overloaded and has to recover");
+                    stopServer(srv, false);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "could not stop " + srv.getId(), e);
+            }
+        }
+    }
+
+    /** True when a measurement timestamp (ISO, UTC) is not older than maxAgeMs. */
+    private boolean measurementIsFresh(String stamp, long maxAgeMs) {
+        try {
+            if (stamp == null || stamp.length() < 19) return false;
+            java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US);
+            format.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            return System.currentTimeMillis() - format.parse(stamp.substring(0, 19)).getTime() <= maxAgeMs;
+        } catch (Exception e) {
+            return false;
         }
     }
 

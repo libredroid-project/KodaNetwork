@@ -646,4 +646,14 @@
     <string name="vps_detail_measured">Measured</string>
     <string name="vps_cores">cores</string>
     <string name="vps_clients">clients</string>
+    <string name="overload_title">NETWORK PROTECTION</string>
+    <string name="overload_headline">Servers stopped</string>
+    <string name="overload_reason_unknown">The tunnel server is overloaded</string>
+    <string name="overload_values">Memory %1$d%% - load %2$s per core - %3$d connections - %4$d tunnels</string>
+    <string name="overload_explanation">The shared tunnel server reached its limits, so all servers on this device were stopped to protect the network and to keep the worlds intact. Nothing is lost - your worlds were saved.</string>
+    <string name="overload_retry">This screen closes automatically as soon as the network has recovered. Servers can be started again afterwards.</string>
+    <plurals name="overload_since">
+        <item quantity="one">Overloaded for %d minute</item>
+        <item quantity="other">Overloaded for %d minutes</item>
+    </plurals>
 </resources>
