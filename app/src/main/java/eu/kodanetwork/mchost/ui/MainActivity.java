@@ -577,9 +577,22 @@ public class MainActivity extends AppCompatActivity {
     private String lastM3ColorMode;
     private int lastM3CustomColor;
 
+    private final android.os.Handler vpsHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable vpsTick = new Runnable() {
+        @Override public void run() {
+            String baseUrl = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl();
+            String apiKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
+            new Thread(() -> loadVpsStatus(baseUrl, apiKey)).start();
+            vpsHandler.postDelayed(this, 60000);
+        }
+    };
+
     @Override
     protected void onResume() {
         super.onResume();
+        // keep the tunnel server line up to date while the screen is open
+        vpsHandler.removeCallbacks(vpsTick);
+        vpsHandler.post(vpsTick);
         // Coach phase 1 fires here — the tutorial may have finished while
         // MainActivity was paused behind it
         eu.kodanetwork.mchost.util.TutorialCoach.maybeShowNewServerHint(this, findViewById(R.id.fab_add));
@@ -811,7 +824,9 @@ public class MainActivity extends AppCompatActivity {
             String stamp = stats.optString("measured_at", "");
             if (stamp.length() >= 19) {
                 format.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-                ageMs = System.currentTimeMillis() - format.parse(stamp.substring(0, 19)).getTime() + java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis());
+                // SimpleDateFormat with an explicit UTC zone already yields the right instant -
+                // adding the local offset here counted the timezone twice (always "no data").
+                ageMs = System.currentTimeMillis() - format.parse(stamp.substring(0, 19)).getTime();
             }
         } catch (Exception ignored) {}
         boolean stale = ageMs > 3 * 60 * 1000L;
@@ -1058,6 +1073,13 @@ public class MainActivity extends AppCompatActivity {
     public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
         eu.kodanetwork.mchost.App.resetAfkTimer();
         return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // no polling while the screen is in the background
+        vpsHandler.removeCallbacks(vpsTick);
     }
 
     @Override

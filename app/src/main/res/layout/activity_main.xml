@@ -63,10 +63,6 @@
     <View android:layout_width="match_parent" android:layout_height="2dp"
         android:background="#FF6B00"/>
 
-    <!-- Server list -->
-    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1">
-
         <LinearLayout android:id="@+id/vps_status_bar"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:gravity="center_vertical"
@@ -86,6 +82,10 @@
                 android:textColor="#B5B5B8" android:textSize="11sp"
                 android:fontFamily="@font/font_koda"/>
         </LinearLayout>
+
+    <!-- Server list -->
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv"
