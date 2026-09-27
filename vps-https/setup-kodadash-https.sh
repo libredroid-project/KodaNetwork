@@ -6,29 +6,31 @@
 #
 # Puts HTTPS in front of the tunneled KodaDash dashboards.
 #
-# Today a dashboard is reached as http://<server>.kodaserv.eu:<port>?token=... - unencrypted and with
-# the token in the URL. This script issues a wildcard certificate for *.kodaserv.eu and writes one
-# nginx server block per server, so the same dashboard is reachable as
-# https://<server>.kodaserv.eu (nginx proxies to the local tunnel port, token stays in the query).
+# Without this, a dashboard is reached as http://<server>.kodaserv.eu:<port>?token=... - unencrypted
+# and with the token visible in the URL. This script issues one certificate per server host
+# (Let's Encrypt, HTTP-01 through the nginx that is already running) and writes:
 #
-# Prerequisites
-#   * an IONOS API key with DNS access (IONOS -> Developer -> API keys) for the DNS-01 challenge
-#   * the wildcard A/CNAME record *.kodaserv.eu -> this server (already the case)
-#   * nginx (already installed here)
+#   /etc/nginx/kodadash/<host>.conf      https://<host> -> 127.0.0.1:<tunnel port>   (SSE safe)
+#   /etc/nginx/kodadash-http/<host>.conf keeps the ACME challenge path and redirects to https
+#
+# The server list comes from Supabase, so running it again picks up new servers and removes the
+# configuration of deleted ones. nginx is only reloaded after `nginx -t` passed - a broken config is
+# reverted, the existing setup is never touched.
 #
 # Usage
-#   sudo IONOS_API_KEY=... ./setup-kodadash-https.sh --dry-run     # show what would happen
-#   sudo IONOS_API_KEY=... ./setup-kodadash-https.sh               # issue cert + write vhosts
+#   ./setup-kodadash-https.sh --dry-run     # show what would happen
+#   ./setup-kodadash-https.sh               # certificates + nginx configuration
 #
-# The server list (host + dashboard port) comes from Supabase, so new servers appear automatically
-# once this script runs again (add it to the monitor timer if you want it fully automatic).
+# A wildcard certificate (*.kodaserv.eu) would need the DNS-01 challenge and therefore an IONOS API
+# key with DNS rights; per-host certificates work without it because port 80 is open. If you ever add
+# IONOS_API_KEY to /etc/koda-monitor.env this script switches to the wildcard route automatically.
 set -euo pipefail
 
 DOMAIN="${DOMAIN:-kodaserv.eu}"
-SUPABASE_URL="${SUPABASE_URL:-}"
-SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}"
-CERT_DIR="/etc/nginx/certs"
-NGINX_SNIPPET_DIR="/etc/nginx/kodadash"
+CERT_EMAIL="${CERT_EMAIL:-licence@kodaserv.eu}"
+WEBROOT="${WEBROOT:-/var/www/html}"
+HTTPS_DIR="/etc/nginx/kodadash"
+HTTP_DIR="/etc/nginx/kodadash-http"
 DRY_RUN=0
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=1
 
@@ -39,85 +41,98 @@ fi
 
 log() { echo "[kodadash-https] $*"; }
 die() { echo "[kodadash-https] ERROR: $*" >&2; exit 1; }
+run() { if [ "$DRY_RUN" = "1" ]; then log "dry run: $*"; else "$@"; fi; }
 
 [ "$(id -u)" = "0" ] || die "please run as root"
-[ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || die "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY missing (see $ENV_FILE)"
+[ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ] || die "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing (see $ENV_FILE)"
+command -v certbot >/dev/null || die "certbot is not installed"
 
-# ---------------------------------------------------------------- 1. certificate
-if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
-    [ -n "${IONOS_API_KEY:-}" ] || die "IONOS_API_KEY is required to issue the wildcard certificate"
-    log "issuing wildcard certificate for *.${DOMAIN} (DNS-01 via IONOS)"
-    if [ "$DRY_RUN" = "1" ]; then
-        log "dry run: would install acme.sh and run --issue -d ${DOMAIN} -d *.${DOMAIN} --dns dns_ionos"
-    else
-        command -v acme.sh >/dev/null 2>&1 || curl -s https://get.acme.sh | sh -s email=licence@kodaserv.eu >/dev/null
-        export IONOS_API_KEY
-        ~/.acme.sh/acme.sh --issue --dns dns_ionos -d "$DOMAIN" -d "*.${DOMAIN}" --keylength ec-256
-        mkdir -p "$CERT_DIR"
-        ~/.acme.sh/acme.sh --install-cert -d "$DOMAIN" --ecc \
-            --fullchain-file "$CERT_DIR/fullchain.pem" \
-            --key-file "$CERT_DIR/privkey.pem" \
-            --reloadcmd "systemctl reload nginx"
-    fi
-else
-    log "certificate already present at $CERT_DIR/fullchain.pem"
-fi
-
-# ---------------------------------------------------------------- 2. server list
+# ---------------------------------------------------------------- server list
 log "reading servers from Supabase"
 servers=$(curl -sS "${SUPABASE_URL}/rest/v1/koda_servers?select=host,base_domain,kodadash_port&kodadash_port=gt.0&host=not.like.deleted_*" \
     -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
     -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
 count=$(echo "$servers" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
 log "found ${count} server(s) with KodaDash"
+[ "$count" -gt 0 ] || { log "nothing to do"; exit 0; }
 
-# ---------------------------------------------------------------- 3. nginx vhosts
-mkdir -p "$NGINX_SNIPPET_DIR" "$CERT_DIR"
+[ "$DRY_RUN" = "1" ] || mkdir -p "$HTTPS_DIR" "$HTTP_DIR"
+TEMPLATE_HTTPS="$(dirname "$0")/nginx-kodadash.conf.template"
+TEMPLATE_HTTP="$(dirname "$0")/nginx-kodadash-http.conf.template"
+
+# ---------------------------------------------------------------- per host
 echo "$servers" | python3 -c "
 import json, sys
-servers = json.load(sys.stdin)
-template = open('$(dirname "$0")/nginx-kodadash.conf.template').read()
-for s in servers:
-    host = s['host']
-    domain = s.get('base_domain') or '${DOMAIN}'
-    port = s['kodadash_port']
-    name = f'{host}.{domain}'
-    with open(f'${NGINX_SNIPPET_DIR}/{host}.conf', 'w') as fh:
-        fh.write(template.replace('{SERVER_NAME}', name).replace('{UPSTREAM_PORT}', str(port)))
-    print('  wrote', name, '->', port)
-"
+for s in json.load(sys.stdin):
+    print(s['host'], s.get('base_domain') or '$DOMAIN', s['kodadash_port'])
+" | while read -r host domain port; do
+    name="${host}.${domain}"
 
-# remove snippets for servers that no longer exist
-for file in "$NGINX_SNIPPET_DIR"/*.conf; do
-    [ -e "$file" ] || continue
-    host=$(basename "$file" .conf)
-    echo "$servers" | grep -q "\"$host\"" || { log "removing stale snippet for $host"; [ "$DRY_RUN" = "1" ] || rm -f "$file"; }
+    # 1. certificate (skipped when it already exists and is valid)
+    if [ -d "/etc/letsencrypt/live/${name}" ]; then
+        log "certificate for ${name} already present"
+    elif [ -n "${IONOS_API_KEY:-}" ]; then
+        log "wildcard route not implemented in this script - issuing ${name} via HTTP-01 as well"
+        run certbot certonly --webroot -w "$WEBROOT" -d "$name" --non-interactive --agree-tos -m "$CERT_EMAIL" --keep-until-expiring
+    else
+        log "issuing certificate for ${name}"
+        run certbot certonly --webroot -w "$WEBROOT" -d "$name" --non-interactive --agree-tos -m "$CERT_EMAIL" --keep-until-expiring
+    fi
+
+    if [ ! -d "/etc/letsencrypt/live/${name}" ] && [ "$DRY_RUN" = "0" ]; then
+        log "no certificate for ${name} - skipping its nginx configuration"
+        continue
+    fi
+
+    # 2. https server block for the dashboard
+    if [ "$DRY_RUN" = "1" ]; then
+        log "dry run: would write ${HTTPS_DIR}/${host}.conf (${name} -> 127.0.0.1:${port})"
+    else
+        sed -e "s/{SERVER_NAME}/${name}/g" \
+            -e "s/{UPSTREAM_PORT}/${port}/g" \
+            -e "s/{CERT_NAME}/${name}/g" \
+            "$TEMPLATE_HTTPS" > "${HTTPS_DIR}/${host}.conf"
+        log "wrote ${HTTPS_DIR}/${host}.conf (${name} -> 127.0.0.1:${port} + token)"
+    fi
+
+    # 3. port 80: keep the ACME challenge working and send browsers to https
+    if [ "$DRY_RUN" = "1" ]; then
+        log "dry run: would write ${HTTP_DIR}/${host}.conf"
+    else
+        sed -e "s|{SERVER_NAME}|${name}|g" -e "s|{WEBROOT}|${WEBROOT}|g" \
+            "$TEMPLATE_HTTP" > "${HTTP_DIR}/${host}.conf"
+    fi
 done
 
-# ---------------------------------------------------------------- 4. include + reload
+# ---------------------------------------------------------------- cleanup + reload
+known_hosts=$(echo "$servers" | python3 -c "import sys,json; print(' '.join(s['host'] for s in json.load(sys.stdin)))")
+for file in "$HTTPS_DIR"/*.conf "$HTTP_DIR"/*.conf; do
+    [ -e "$file" ] || continue
+    host=$(basename "$file" .conf)
+    if ! echo " $known_hosts " | grep -q " $host "; then
+        log "removing stale configuration for $host"
+        run rm -f "$file"
+    fi
+done
+
 CONF="/etc/nginx/conf.d/kodadash-https.conf"
-INCLUDE_BLOCK=$(cat <<'CONF'
-# Managed by vps-https/setup-kodadash-https.sh - one server block per KodaDash dashboard
-include /etc/nginx/kodadash/*.conf;
-CONF
-)
-
-if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
-    log "no certificate yet - leaving nginx untouched (HTTP keeps working)"
-    exit 0
-fi
-
 if [ "$DRY_RUN" = "1" ]; then
     log "dry run: would write $CONF and run nginx -t && systemctl reload nginx"
     exit 0
 fi
 
-echo "$INCLUDE_BLOCK" > "$CONF"
+cat > "$CONF" <<'CONF'
+# Managed by vps-https/setup-kodadash-https.sh
+# https://<server>.kodaserv.eu -> tunneled KodaDash dashboard of that server
+include /etc/nginx/kodadash-http/*.conf;
+include /etc/nginx/kodadash/*.conf;
+CONF
+
 if nginx -t; then
     systemctl reload nginx
-    log "nginx reloaded - dashboards are now reachable as https://<server>.${DOMAIN}"
-    log "flip app_settings.kodadash_https to {\"enabled\": true, \"domain\": \"${DOMAIN}\"} to use the new links"
+    log "nginx reloaded - dashboards are reachable as https://<server>.${DOMAIN}"
+    log "enable the links with: app_settings.kodadash_https = {\"enabled\": true, \"domain\": \"${DOMAIN}\"}"
 else
     rm -f "$CONF"
-    die "nginx configuration test failed - reverted, nothing changed"
+    die "nginx test failed - reverted, nothing was changed"
 fi

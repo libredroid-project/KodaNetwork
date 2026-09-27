@@ -65,3 +65,11 @@ $fn$;
 REVOKE ALL ON FUNCTION public.rpc_get_servers_for_auth() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rpc_get_servers_for_auth() TO authenticated;
 NOTIFY pgrst, 'reload schema';
+
+-- Die Website liest app_settings ebenfalls (z. B. kodadash_https, um HTTPS-Links zu bauen).
+-- Die bestehende Policy galt nur fuer anon, eingeloggte Nutzer liefen in eine leere Antwort,
+-- obwohl das SELECT-Recht vorhanden war. Die Werte (Version, Wartung, Schwellen, HTTPS-Flag)
+-- sind ohnehin oeffentlich, deshalb gilt die Policy jetzt fuer beide Rollen.
+DROP POLICY IF EXISTS "Public can read app_settings" ON public.app_settings;
+CREATE POLICY "Public can read app_settings" ON public.app_settings
+    FOR SELECT TO anon, authenticated USING (true);

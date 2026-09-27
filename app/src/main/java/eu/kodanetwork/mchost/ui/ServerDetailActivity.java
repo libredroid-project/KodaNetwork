@@ -4796,6 +4796,7 @@ public class ServerDetailActivity extends AppCompatActivity {
      * port) as a link that opens the dashboard. The token is appended so it signs in automatically.
      */
     private void updateKodadashLink() {
+        refreshHttpsDashboardFlag();
         android.view.View group = findViewById(R.id.layout_kodadash);
         android.widget.TextView tvUrl = findViewById(R.id.tv_kodadash_url);
         if (group == null || tvUrl == null) return;
@@ -4839,29 +4840,41 @@ public class ServerDetailActivity extends AppCompatActivity {
      * Reads app_settings.kodadash_https once per screen (cached) to know whether dashboards are
      * served over HTTPS already. Fails closed to the plain address when the setting is unreadable.
      */
-    private static Boolean httpsDashboardEnabled = null;
-
+    /**
+     * Whether dashboards are served over HTTPS (app_settings.kodadash_https).
+     *
+     * Read from the preferences and refreshed in the background: the first render after a fresh
+     * install may still use the plain address, the next refresh switches to https. Doing the HTTP
+     * call on the UI thread is not possible (NetworkOnMainThreadException) - that was the reason the
+     * link stayed on http.
+     */
     private boolean requireHttpsDashboard() {
-        if (httpsDashboardEnabled != null) return httpsDashboardEnabled;
-        httpsDashboardEnabled = false;
-        try {
-            String baseUrl = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl();
-            String apiKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
-            okhttp3.Request request = new okhttp3.Request.Builder()
-                    .url(baseUrl + "/rest/v1/app_settings?key=eq.kodadash_https&select=value")
-                    .addHeader("apikey", apiKey)
-                    .addHeader("Authorization", "Bearer " + apiKey)
-                    .build();
-            try (okhttp3.Response response = new okhttp3.OkHttpClient().newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
+        return eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("kodadash_https", false);
+    }
+
+    private void refreshHttpsDashboardFlag() {
+        new Thread(() -> {
+            try {
+                String baseUrl = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl();
+                String apiKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
+                okhttp3.Request request = new okhttp3.Request.Builder()
+                        .url(baseUrl + "/rest/v1/app_settings?key=eq.kodadash_https&select=value")
+                        .addHeader("apikey", apiKey)
+                        .addHeader("Authorization", "Bearer " + apiKey)
+                        .build();
+                try (okhttp3.Response response = new okhttp3.OkHttpClient().newCall(request).execute()) {
+                    if (!response.isSuccessful() || response.body() == null) return;
                     org.json.JSONArray rows = new org.json.JSONArray(response.body().string());
-                    if (rows.length() > 0) {
-                        httpsDashboardEnabled = rows.getJSONObject(0).optJSONObject("value").optBoolean("enabled", false);
+                    if (rows.length() == 0) return;
+                    boolean enabled = rows.getJSONObject(0).optJSONObject("value").optBoolean("enabled", false);
+                    boolean previous = eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("kodadash_https", false);
+                    eu.kodanetwork.mchost.App.getPrefs(this).edit().putBoolean("kodadash_https", enabled).apply();
+                    if (previous != enabled) {
+                        runOnUiThread(this::updateJoinAddressDisplay);
                     }
                 }
-            }
-        } catch (Exception ignored) {}
-        return httpsDashboardEnabled;
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     /** Reads the dashboard token from the plugin config of this server. */
