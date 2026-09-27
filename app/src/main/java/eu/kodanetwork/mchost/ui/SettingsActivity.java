@@ -149,8 +149,11 @@ public class SettingsActivity extends Activity {
 
         if (cardAppInfo == null || cardDevOptions == null || switchLiquidGlass == null) return;
 
-        // KodaCluster: launched by the USB accessory attach dialog → open the slave link
-        if (android.hardware.usb.UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(getIntent() != null ? getIntent().getAction() : null)) {
+        // KodaCluster: launched by the USB accessory attach dialog -> open the slave link.
+        // The activity is exported so the system can deliver that intent, which means any app could
+        // send the action as well - so the slave link only opens when an accessory is really attached.
+        if (android.hardware.usb.UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(getIntent() != null ? getIntent().getAction() : null)
+                && hasAttachedUsbAccessory()) {
             eu.kodanetwork.mchost.cluster.ClusterSlave.get(this).start();
         }
 
@@ -1552,6 +1555,17 @@ public class SettingsActivity extends Activity {
     public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
         App.resetAfkTimer();
         return super.dispatchTouchEvent(ev);
+    }
+
+    /** True only when the system really has a USB accessory attached - a forged intent cannot fake that. */
+    private boolean hasAttachedUsbAccessory() {
+        try {
+            android.hardware.usb.UsbManager usb = (android.hardware.usb.UsbManager) getSystemService(USB_SERVICE);
+            android.hardware.usb.UsbAccessory[] accessories = usb != null ? usb.getAccessoryList() : null;
+            return accessories != null && accessories.length > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void applyThemeModeToActivity() {

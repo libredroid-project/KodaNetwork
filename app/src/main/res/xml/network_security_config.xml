@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Plain HTTPS everywhere: cleartext traffic is refused and only the system trust anchors are used.
+
+    Certificate pinning was removed on purpose (2026-09-27). The pins pointed at the *leaf*
+    certificate of the shared Supabase endpoint (CN=supabase.co, issued by Google Trust Services),
+    which rotates regularly - every rotation would have locked every installed app out of the
+    backend until a new release shipped. The second pin matched no certificate in any of the
+    configured chains, and two of the listed domains (api.kodanetwork.eu, resend.com) are not
+    contacted by the app at all.
+
+    Endpoints operated by third parties must not be pinned to a leaf certificate. If pinning is
+    wanted later, pin the public key of a domain we control and always ship a backup pin.
+-->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">supabase.co</domain>
-        <domain includeSubdomains="true">api.kodanetwork.eu</domain>
-        <domain includeSubdomains="true">resend.com</domain>
-        <pin-set expiration="2027-01-01">
-            <!-- Cert-Pinning fuer die Supabase-Instanz (Hashes) -->
-            <pin digest="SHA-256">yyBDqvMo9Jc2CwnVJBDj8TE8u5xHielbUS/+h7VM2xs=</pin>
-            <!-- Pin for resend.com -->
-            <pin digest="SHA-256">TEkn6qDvfkQohSynIX2+ktH9lYUhByOu5hw15/ISVmI=</pin>
-        </pin-set>
-        <trust-anchors>
-            <certificates src="system" />
-        </trust-anchors>
-    </domain-config>
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />

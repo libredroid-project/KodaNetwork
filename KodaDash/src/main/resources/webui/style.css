@@ -126,10 +126,10 @@ body::after { bottom: -160px; right: -120px; animation: orbDrift 35s ease-in-out
 @keyframes loginIn { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
 .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .login-logo .brand-dot {
-    width: 40px; height: 40px; border-radius: var(--shape-md);
-    background: var(--brand); color: #fff;
-    display: grid; place-items: center; font-weight: 700; font-size: 1.125rem;
+    width: 44px; height: 44px; border-radius: var(--shape-md);
+    overflow: hidden;
 }
+.login-logo .brand-dot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .login-card h1 { font-size: 1.75rem; font-weight: 500; letter-spacing: -.02em; }
 .login-card .sub { color: var(--md-on-surface-variant); font-size: .875rem; margin-bottom: 28px; }
 
@@ -250,9 +250,9 @@ body::after { bottom: -160px; right: -120px; animation: orbDrift 35s ease-in-out
 .sidebar-header { display: flex; align-items: center; gap: 12px; padding: 8px 12px 20px; }
 .sidebar-header .brand-dot {
     width: 36px; height: 36px; border-radius: var(--shape-sm);
-    background: var(--brand); color: #fff;
-    display: grid; place-items: center; font-weight: 700;
+    overflow: hidden; flex: 0 0 auto;
 }
+.sidebar-header .brand-dot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sidebar-header .name { font-weight: 500; font-size: .9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-header .sub { font-size: .6875rem; color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: .08em; }
 #mobile-menu-close { display: none; margin-left: auto; }
@@ -566,6 +566,8 @@ a.nav-item { text-decoration: none; }
     gap: 24px;
 }
 .footer-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.footer-brand .brand-dot { width: 40px; height: 40px; border-radius: var(--shape-sm); overflow: hidden; flex: 0 0 auto; }
+.footer-brand .brand-dot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .footer-title { font-weight: 500; color: var(--md-on-surface); }
 .footer-note { font-size: .8125rem; line-height: 1.55; max-width: 62ch; margin: 0; }
 .footer-col h4 {
