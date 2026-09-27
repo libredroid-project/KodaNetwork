@@ -71,3 +71,10 @@ server-actions:
   countdown-seconds: 30
   # Allow "stop" (shuts the server down); restart is always available when enabled
   allow-stop: true
+
+# Live stats for the companion app (plugins/KodaDash/stats.json).
+# This is what the app reads for the server card, so it does not have to run the "tps"
+# command in the console every few seconds (which printed a line each time).
+stats-file:
+  enabled: true
+  interval-seconds: 10

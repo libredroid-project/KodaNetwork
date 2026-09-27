@@ -566,6 +566,16 @@ a.nav-item { text-decoration: none; }
     gap: 24px;
 }
 .footer-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.footer-github, .login-github {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--md-on-surface-variant); text-decoration: none;
+}
+.footer-github:hover, .login-github:hover { color: var(--brand); }
+.footer-github .icon, .login-github .icon, .nav-github .icon { width: 16px; height: 16px; }
+.nav-github { display: inline-flex; align-items: center; }
+.login-github {
+    margin-top: 18px; font-size: .8125rem; justify-content: center; width: 100%;
+}
 .footer-brand .brand-dot { width: 40px; height: 40px; border-radius: var(--shape-sm); overflow: hidden; flex: 0 0 auto; }
 .footer-brand .brand-dot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .footer-title { font-weight: 500; color: var(--md-on-surface); }

@@ -42,7 +42,11 @@
         android:allowNativeHeapPointerTagging="false"
         android:largeHeap="true">
 
-        <activity android:name=".ui.SettingsActivity" android:exported="true">
+        <!-- Launched by the system when a USB accessory is attached (KodaCluster slave link).
+             MANAGE_USB is held by the system (uid 1000, signature|privileged), so the legitimate
+             start still works while other apps can no longer trigger this screen. -->
+        <activity android:name=".ui.SettingsActivity" android:exported="true"
+            android:permission="android.permission.MANAGE_USB">
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"/>
             </intent-filter>

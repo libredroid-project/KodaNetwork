@@ -44,6 +44,8 @@ public class ServerInstance {
     public State      state      = State.OFFLINE;
     public long       startTime  = 0;
     public int        onlinePlayers = 0;
+    /** Timestamp of the last console "tps" command (runtime only, throttles the fallback). */
+    public transient long lastTpsCommand = 0L;
     public transient int ramUsageMB = 0;
     public transient float currentTps = 20.0f;
     public transient java.util.List<String> onlinePlayerNames = new java.util.ArrayList<>();

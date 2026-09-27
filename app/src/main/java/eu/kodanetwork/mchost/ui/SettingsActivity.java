@@ -157,6 +157,20 @@ public class SettingsActivity extends Activity {
             eu.kodanetwork.mchost.cluster.ClusterSlave.get(this).start();
         }
 
+        // Open source button in the app info card
+        android.view.View githubButton = findViewById(R.id.btn_github);
+        if (githubButton != null) {
+            githubButton.setOnClickListener(v -> {
+                try {
+                    startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://github.com/libredroid-project/KodaNetwork")));
+                } catch (Exception e) {
+                    android.widget.Toast.makeText(this, "https://github.com/libredroid-project/KodaNetwork",
+                            android.widget.Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
         boolean isDevModeUnlocked = prefs.getBoolean("dev_mode_unlocked", false);
         if (isDevModeUnlocked) {
             cardDevOptions.setVisibility(View.VISIBLE);

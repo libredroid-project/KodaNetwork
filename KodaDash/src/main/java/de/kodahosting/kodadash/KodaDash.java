@@ -48,7 +48,44 @@ public class KodaDash extends JavaPlugin {
         getCommand("kodadash").setExecutor(new DashCommand(this));
         
         dashServer.start();
+        startStatsFileTask();
         getLogger().info("KodaDash enabled.");
+    }
+
+    /**
+     * Writes the live stats into plugins/KodaDash/stats.json.
+     *
+     * The companion app reads this file for its server card (TPS, players, RAM). That keeps the
+     * values out of the console: asking for TPS with the "tps" command printed a line every ten
+     * seconds, which cluttered the log and the dashboard console.
+     */
+    private void startStatsFileTask() {
+        if (!getConfig().getBoolean("stats-file.enabled", true)) return;
+        long ticks = Math.max(20L, getConfig().getLong("stats-file.interval-seconds", 10) * 20L);
+
+        org.bukkit.Bukkit.getScheduler().runTaskTimer(this, new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    com.google.gson.JsonObject json = new com.google.gson.JsonObject();
+                    json.addProperty("tps", statsManager.getTps());
+                    json.addProperty("players", org.bukkit.Bukkit.getOnlinePlayers().size());
+                    json.addProperty("maxPlayers", org.bukkit.Bukkit.getMaxPlayers());
+                    json.addProperty("ramUsedMb", statsManager.getUsedRam());
+                    json.addProperty("ramMaxMb", statsManager.getMaxRam());
+                    json.addProperty("uptimeMs", statsManager.getUptime());
+                    json.addProperty("updatedAt", System.currentTimeMillis());
+
+                    java.io.File target = new java.io.File(getDataFolder(), "stats.json");
+                    if (!getDataFolder().exists()) getDataFolder().mkdirs();
+                    try (java.io.FileWriter writer = new java.io.FileWriter(target)) {
+                        writer.write(json.toString());
+                    }
+                } catch (Exception ignored) {
+                    // Stats are best effort - the dashboard falls back to its own API values
+                }
+            }
+        }, ticks, ticks);
     }
 
     @Override

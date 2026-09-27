@@ -1916,9 +1916,17 @@ public class KodaServerService extends Service {
             srv.ramUsageMB = Math.min(max, base + (Math.random() > 0.5 ? fluctuation : -fluctuation));
         }
         
-        // Fetch REAL TPS by silently asking the console
+        // TPS: KodaDash reports it in plugins/KodaDash/stats.json - reading that keeps the console
+        // clean. Only servers without KodaDash fall back to the "tps" command, and then rarely,
+        // because that command prints a line into the log every time it runs.
         if (srv.state == ServerInstance.State.ONLINE && (srv.getType() == ServerInstance.Type.PAPER || srv.getType() == ServerInstance.Type.PURPUR || srv.getType() == ServerInstance.Type.FOLIA)) {
-            sendCmd(id, "tps");
+            if (!readTpsFromKodadash(srv)) {
+                long now = System.currentTimeMillis();
+                if (now - srv.lastTpsCommand > 60000L) {
+                    srv.lastTpsCommand = now;
+                    sendCmd(id, "tps");
+                }
+            }
         }
         
         if (srv.ramUsageMB != oldRam) setState(srv, srv.state);
@@ -2001,6 +2009,36 @@ public class KodaServerService extends Service {
                     fos.close();
                 } catch (Exception ignored) {}
             }
+        }
+    }
+
+    /**
+     * Reads the TPS that KodaDash writes into plugins/KodaDash/stats.json.
+     *
+     * @return true when a fresh value was read (then no console command is needed)
+     */
+    private boolean readTpsFromKodadash(ServerInstance srv) {
+        if (!srv.isKodadashSupport()) return false;
+        try {
+            java.io.File file = new java.io.File(srv.getServerDir(), "plugins/KodaDash/stats.json");
+            if (!file.isFile() || System.currentTimeMillis() - file.lastModified() > 60000L) return false;
+
+            StringBuilder sb = new StringBuilder();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+            }
+            org.json.JSONObject json = new org.json.JSONObject(sb.toString());
+            double tps = json.optDouble("tps", -1);
+            if (tps <= 0) return false;
+
+            srv.currentTps = (float) Math.min(20.0, tps);
+            if (json.has("players")) srv.onlinePlayers = json.optInt("players", srv.onlinePlayers);
+            if (json.has("ramUsedMb")) srv.ramUsageMB = json.optInt("ramUsedMb", srv.ramUsageMB);
+            setState(srv, srv.state);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
