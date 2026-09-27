@@ -713,4 +713,37 @@
 
     <string name="extras_backups_subtitle">Welt, Konfigurationen und Plugins als eine ZIP, neben der App gespeichert.</string>
     <string name="extras_backup_hint">Beim Wiederherstellen wird der Serverordner durch den gewählten Stand ersetzt. Der Server muss gestoppt sein.</string>
+    <string name="extras_backup_keep_label">Kopien aufbewahren</string>
+
+    <!-- Automatik (Zeitpläne liegen in der App, KodaDash spiegelt sie nur) -->
+    <string name="schedule_title">AUTOMATIK</string>
+    <string name="schedule_hint">Läuft in der App: Neustarts, Befehle und Ankündigungen nach Zeitplan.</string>
+    <string name="schedule_add">Job anlegen</string>
+    <string name="schedule_empty">Noch keine Jobs. Ein nächtlicher Neustart und ein Speichern mittags sind der übliche Anfang.</string>
+    <string name="schedule_new">Neuer Job</string>
+    <string name="schedule_edit">Job bearbeiten</string>
+    <string name="schedule_subtitle">Geplante Aktionen laufen auch, wenn niemand in der App ist.</string>
+    <string name="schedule_what">Was soll passieren?</string>
+    <string name="schedule_when">Wann?</string>
+    <string name="schedule_command">Befehl</string>
+    <string name="schedule_command_hint">z. B. weather clear</string>
+    <string name="schedule_announce_hint">Text, den alle Spieler sehen</string>
+    <string name="schedule_time">Uhrzeit (HH:MM, Handyzeit)</string>
+    <string name="schedule_interval">Alle N Minuten</string>
+    <string name="schedule_only_empty">Nur wenn keine Spieler online sind</string>
+    <string name="schedule_save">Job speichern</string>
+    <string name="schedule_pause">Pause</string>
+    <string name="schedule_resume">Fortsetzen</string>
+    <string name="schedule_paused">pausiert</string>
+    <string name="schedule_next">nächste %1$s</string>
+    <string name="schedule_delete_title">Job löschen</string>
+    <string name="schedule_delete_text">Diesen geplanten Job entfernen?</string>
+    <string name="schedule_saved">Job gespeichert</string>
+    <string name="schedule_type_restart">Neustart</string>
+    <string name="schedule_type_stop">Stoppen</string>
+    <string name="schedule_type_announce">Ankündigung</string>
+    <string name="schedule_type_command">Befehl</string>
+    <string name="schedule_type_save">Welt speichern</string>
+    <string name="schedule_mode_interval">Alle N Minuten</string>
+    <string name="schedule_mode_daily">Täglich zu einer Uhrzeit</string>
 </resources>

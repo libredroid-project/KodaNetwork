@@ -243,7 +243,8 @@
                 </LinearLayout>
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switch_pregenerate"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track" />
             </LinearLayout>
 
             <!-- RAM -->

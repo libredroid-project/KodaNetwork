@@ -89,6 +89,9 @@ stats-history:
 # Jobs live in plugins/KodaDash/schedule.json.
 schedule:
   enabled: true
+  # Jobs are created and executed by the KodaHosting app (it mirrors them here for display).
+  # Set this to true only if the dashboard should run the jobs itself.
+  execute: false
   # How long before a scheduled restart/stop players are warned (seconds)
   warn-seconds: 300
   # Countdown used when a scheduled restart/stop fires

@@ -682,4 +682,37 @@
 
     <string name="extras_backups_subtitle">世界、配置与插件打包为一个 ZIP，保存在应用旁边。</string>
     <string name="extras_backup_hint">恢复会用所选状态替换服务器目录。服务器必须处于停止状态。</string>
+    <string name="extras_backup_keep_label">保留份数</string>
+
+    <!-- 自动化（计划保存在应用中，KodaDash 仅作镜像显示） -->
+    <string name="schedule_title">自动化</string>
+    <string name="schedule_hint">在应用内运行：按计划重启、执行命令与发布公告。</string>
+    <string name="schedule_add">新增计划</string>
+    <string name="schedule_empty">还没有计划。常见做法是夜间重启和中午保存世界。</string>
+    <string name="schedule_new">新计划</string>
+    <string name="schedule_edit">编辑计划</string>
+    <string name="schedule_subtitle">即使没有打开应用，计划也会执行。</string>
+    <string name="schedule_what">要执行什么？</string>
+    <string name="schedule_when">何时执行？</string>
+    <string name="schedule_command">命令</string>
+    <string name="schedule_command_hint">例如 weather clear</string>
+    <string name="schedule_announce_hint">所有玩家可见的文本</string>
+    <string name="schedule_time">时间（HH:MM，手机本地时间）</string>
+    <string name="schedule_interval">每 N 分钟</string>
+    <string name="schedule_only_empty">仅在无人在线时执行</string>
+    <string name="schedule_save">保存计划</string>
+    <string name="schedule_pause">暂停</string>
+    <string name="schedule_resume">继续</string>
+    <string name="schedule_paused">已暂停</string>
+    <string name="schedule_next">下次 %1$s</string>
+    <string name="schedule_delete_title">删除计划</string>
+    <string name="schedule_delete_text">确定删除这个计划？</string>
+    <string name="schedule_saved">计划已保存</string>
+    <string name="schedule_type_restart">重启</string>
+    <string name="schedule_type_stop">停机</string>
+    <string name="schedule_type_announce">公告</string>
+    <string name="schedule_type_command">命令</string>
+    <string name="schedule_type_save">保存世界</string>
+    <string name="schedule_mode_interval">每 N 分钟</string>
+    <string name="schedule_mode_daily">每天固定时间</string>
 </resources>

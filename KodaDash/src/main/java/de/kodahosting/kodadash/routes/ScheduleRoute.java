@@ -39,6 +39,12 @@ public class ScheduleRoute extends RouteHandler {
         ScheduleManager manager = plugin.getScheduleManager();
         JsonObject response = new JsonObject();
         response.addProperty("enabled", plugin.getConfig().getBoolean("schedule.enabled", true));
+        // The app owns the jobs and executes them; the dashboard only displays the list then
+        if (manager != null) manager.reloadFromDisk();
+        boolean managedByApp = manager != null && manager.isManagedByApp();
+        response.addProperty("executable", plugin.getConfig().getBoolean("schedule.execute", false));
+        response.addProperty("managedByApp", managedByApp);
+        response.addProperty("editable", !managedByApp);
         JsonArray jobs = new JsonArray();
         if (manager != null) {
             for (ScheduleManager.Entry entry : manager.getEntries()) {
@@ -61,6 +67,10 @@ public class ScheduleRoute extends RouteHandler {
         ScheduleManager manager = plugin.getScheduleManager();
         if (manager == null) {
             sendError(exchange, 500, "Scheduler not available");
+            return;
+        }
+        if (manager.isManagedByApp()) {
+            sendError(exchange, 403, "Jobs are managed in the KodaHosting app");
             return;
         }
 

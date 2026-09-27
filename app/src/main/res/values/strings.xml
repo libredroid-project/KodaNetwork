@@ -705,4 +705,37 @@
 
     <string name="extras_backups_subtitle">World, configs and plugins as one ZIP, stored next to the app.</string>
     <string name="extras_backup_hint">Restoring replaces the server folder with the chosen state. The server has to be stopped.</string>
+    <string name="extras_backup_keep_label">Copies to keep</string>
+
+    <!-- Automation (schedules live in the app, KodaDash only mirrors them) -->
+    <string name="schedule_title">AUTOMATION</string>
+    <string name="schedule_hint">Runs in the app: restarts, commands and announcements on a schedule.</string>
+    <string name="schedule_add">Add job</string>
+    <string name="schedule_empty">No jobs yet. A nightly restart and a save at midday are the usual start.</string>
+    <string name="schedule_new">New job</string>
+    <string name="schedule_edit">Edit job</string>
+    <string name="schedule_subtitle">Scheduled actions run even when nobody is in the app.</string>
+    <string name="schedule_what">What should happen?</string>
+    <string name="schedule_when">When?</string>
+    <string name="schedule_command">Command</string>
+    <string name="schedule_command_hint">e.g. weather clear</string>
+    <string name="schedule_announce_hint">Text shown to all players</string>
+    <string name="schedule_time">Time (HH:MM, phone time)</string>
+    <string name="schedule_interval">Every N minutes</string>
+    <string name="schedule_only_empty">Only while no players are online</string>
+    <string name="schedule_save">Save job</string>
+    <string name="schedule_pause">Pause</string>
+    <string name="schedule_resume">Resume</string>
+    <string name="schedule_paused">paused</string>
+    <string name="schedule_next">next %1$s</string>
+    <string name="schedule_delete_title">Delete job</string>
+    <string name="schedule_delete_text">Remove this scheduled job?</string>
+    <string name="schedule_saved">Job saved</string>
+    <string name="schedule_type_restart">Restart</string>
+    <string name="schedule_type_stop">Shutdown</string>
+    <string name="schedule_type_announce">Announcement</string>
+    <string name="schedule_type_command">Command</string>
+    <string name="schedule_type_save">Save world</string>
+    <string name="schedule_mode_interval">Every N minutes</string>
+    <string name="schedule_mode_daily">Daily at a time</string>
 </resources>

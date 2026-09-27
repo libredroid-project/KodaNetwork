@@ -1991,12 +1991,18 @@ function loadSchedule() {
     if (!list) return;
     api('/api/schedule').then(function (d) {
         var jobs = d.jobs || [];
+        state.scheduleEditable = d.editable !== false;
+        var addButton = $('schedule-add');
+        if (addButton) addButton.classList.toggle('hidden', !state.scheduleEditable);
         if (!jobs.length) {
             list.innerHTML = '<div class="muted small">No jobs yet. A nightly restart and a world save at '
                 + 'midday are the usual starting point.</div>';
             return;
         }
-        list.innerHTML = jobs.map(scheduleRow).join('');
+        list.innerHTML = (state.scheduleEditable ? '' :
+                '<div class="muted small" style="margin-bottom:8px">These jobs are created in the KodaHosting app '
+                + 'and executed on the phone. Edit them there - the list here is read-only.</div>')
+            + jobs.map(scheduleRow).join('');
         var rows = list.querySelectorAll('[data-schedule-action]');
         for (var i = 0; i < rows.length; i++) {
             rows[i].addEventListener('click', function (ev) {
@@ -2031,6 +2037,7 @@ function loadSchedule() {
 }
 
 function scheduleRow(job) {
+    var editable = state.scheduleEditable !== false;
     var typeLabel = (SCHEDULE_TYPES.filter(function (t) { return t.value === job.type; })[0] || {}).label || job.type;
     var detail = job.type === 'announce' || job.type === 'command' ? (job.value || '') : '';
     return '<div class="tools-row' + (job.enabled ? '' : ' muted') + '">'
@@ -2043,7 +2050,8 @@ function scheduleRow(job) {
         +   (detail ? '<div class="tools-meta mono">' + escapeHtml(detail) + '</div>' : '')
         + '</div>'
         + '<div class="tools-actions">'
-        +   '<button class="btn btn-text btn-sm" data-schedule-action="run" data-schedule-id="' + job.id + '">Run now</button>'
+        +   (editable ? '' : '')
+        +   '<button class="btn btn-text btn-sm' + (editable ? '' : ' hidden') + '" data-schedule-action="run" data-schedule-id="' + job.id + '">Run now</button>'
         +   '<button class="btn btn-text btn-sm" data-schedule-action="toggle" data-schedule-id="' + job.id + '">'
         +   (job.enabled ? 'Pause' : 'Resume') + '</button>'
         +   '<button class="btn btn-text btn-sm" data-schedule-action="edit" data-schedule-id="' + job.id + '">Edit</button>'

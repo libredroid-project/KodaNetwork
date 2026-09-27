@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One stored backup: when, how big, and what can be done with it. -->
+<!-- One scheduled job inside the automation card. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    android:paddingBottom="4dp">
 
     <View
         android:layout_width="match_parent"
@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingTop="10dp">
+        android:paddingTop="8dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -27,42 +27,39 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/tv_backup_date"
+                android:id="@+id/tv_schedule_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#F2E6E0"
+                android:textColor="#FFFFFF"
                 android:textSize="13sp" />
 
             <TextView
-                android:id="@+id/tv_backup_meta"
+                android:id="@+id/tv_schedule_meta"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:textColor="#8A8A9A"
-                android:textSize="11sp"
-                android:fontFamily="@font/font_koda_mono" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_backup_restore"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:minWidth="0dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:text="@string/extras_backup_restore"
-            android:textColor="#F2E6E0"
-            android:textSize="11sp"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_backup_delete"
+            android:id="@+id/btn_schedule_toggle"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
             android:minWidth="0dp"
-            android:layout_marginStart="4dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:text="@string/schedule_pause"
+            android:textColor="#F2E6E0"
+            android:textSize="11sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_schedule_delete"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:minWidth="0dp"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:text="@string/extras_backup_delete"

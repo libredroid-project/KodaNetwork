@@ -50,6 +50,8 @@ public class ScheduleManager {
     private final List<Entry> entries = new CopyOnWriteArrayList<>();
     private final File file;
     private BukkitTask tickTask;
+    /** True when the file came from the app (then the app executes, not this plugin). */
+    private boolean mirrorFromApp = false;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
 
     /** One scheduled job. */
@@ -105,22 +107,40 @@ public class ScheduleManager {
 
     // ------------------------------------------------------------------ persistence
 
+    /**
+     * Reads schedule.json. Two shapes are accepted: the plain array this manager writes and the
+     * object the KodaHosting app writes ({"executor":"app","jobs":[...]}), because the app is the
+     * normal executor and only mirrors its list here for display.
+     */
     private void load() {
         if (!file.exists()) return;
         try (FileReader reader = new FileReader(file)) {
             JsonElement root = new JsonParser().parse(reader);
-            if (root == null || !root.isJsonArray()) return;
-            JsonArray array = root.getAsJsonArray();
+            if (root == null) return;
+            JsonArray array;
+            if (root.isJsonArray()) {
+                array = root.getAsJsonArray();
+                mirrorFromApp = false;
+            } else if (root.isJsonObject() && root.getAsJsonObject().has("jobs")) {
+                JsonObject object = root.getAsJsonObject();
+                array = object.getAsJsonArray("jobs");
+                mirrorFromApp = "app".equals(object.has("executor") ? object.get("executor").getAsString() : "");
+            } else {
+                return;
+            }
+            entries.clear();
             for (JsonElement element : array) {
                 if (element.isJsonObject()) entries.add(Entry.fromJson(element.getAsJsonObject()));
             }
-            plugin.getLogger().info("Loaded " + entries.size() + " scheduled job(s).");
+            plugin.getLogger().info("Loaded " + entries.size() + " scheduled job(s)"
+                    + (mirrorFromApp ? " (managed by the app)" : "") + ".");
         } catch (Exception e) {
             plugin.getLogger().warning("Could not read schedule.json: " + e.getMessage());
         }
     }
 
     private void save() {
+        if (mirrorFromApp) return; // the app owns this file
         JsonArray array = new JsonArray();
         for (Entry entry : entries) array.add(entry.toJson());
         try {
@@ -134,6 +154,27 @@ public class ScheduleManager {
     }
 
     // ------------------------------------------------------------------ API for the route
+
+    /**
+     * True when the list shown here was written by the KodaHosting app. Re-reads the file first,
+     * because the app changes it while the server runs.
+     */
+    public boolean isManagedByApp() {
+        reloadFromDisk();
+        return mirrorFromApp;
+    }
+
+    /** Re-reads the file when the app changed it (called by the route). */
+    public boolean reloadFromDisk() {
+        if (!file.exists()) return mirrorFromApp;
+        long modified = file.lastModified();
+        if (modified <= lastLoad) return mirrorFromApp;
+        lastLoad = modified;
+        load();
+        return mirrorFromApp;
+    }
+
+    private long lastLoad = 0L;
 
     public List<Entry> getEntries() {
         return new ArrayList<>(entries);
@@ -188,6 +229,9 @@ public class ScheduleManager {
 
     private void startTicking() {
         if (!plugin.getConfig().getBoolean("schedule.enabled", true)) return;
+        // The KodaHosting app executes the jobs; the dashboard only shows them. Set
+        // schedule.execute to true when the dashboard should run them itself instead.
+        if (!plugin.getConfig().getBoolean("schedule.execute", false)) return;
         tickTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             @Override
             public void run() {

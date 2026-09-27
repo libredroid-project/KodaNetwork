@@ -87,6 +87,9 @@ public class KodaServerService extends Service {
     private static final String CARE_CHANNEL = "koda_server_care";
     private static final int CARE_NOTIF_ID = 4402;
     private long lastBatteryWarning = 0L;
+    /** "jobId@nextRun" of the jobs whose advance warning was already sent. */
+    private final java.util.Set<String> warnedJobs =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
     /** Servers whose pre-generation has already been kicked off (in memory, per run). */
     private final java.util.Map<String, Long> onlineSince = new java.util.concurrent.ConcurrentHashMap<>();
     private final java.util.Set<String> pregenerationStarted =
@@ -245,6 +248,9 @@ public class KodaServerService extends Service {
         // Backups: once an hour we check whether a server is due for its daily backup,
         // and while a server runs we watch battery and temperature of the phone.
         scheduler.scheduleAtFixedRate(this::backupMaintenanceTick, 120, 600, java.util.concurrent.TimeUnit.SECONDS);
+
+        // Automation: the app runs the schedules created in the app (KodaDash only displays them)
+        scheduler.scheduleAtFixedRate(this::automationTick, 60, 30, java.util.concurrent.TimeUnit.SECONDS);
 
         Log.d(TAG, "Service Created.");
     }
@@ -2163,6 +2169,111 @@ public class KodaServerService extends Service {
             eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
         } catch (Exception e) {
             android.util.Log.w("KodaChunky", "Pre-generation failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Runs the schedules the owner created in the app.
+     *
+     * Restarts and stops warn players five minutes and one minute ahead; "only when empty" jobs
+     * wait instead of interrupting. The list is mirrored into the server folder for the dashboard.
+     */
+    private void automationTick() {
+        try {
+            for (ServerInstance srv : eu.kodanetwork.mchost.model.ServerRepo.get(this).all()) {
+                if (srv.state != ServerInstance.State.ONLINE) continue;
+                java.util.List<eu.kodanetwork.mchost.util.ScheduleStore.Job> jobs =
+                        eu.kodanetwork.mchost.util.ScheduleStore.list(this, srv.getId());
+                if (jobs.isEmpty()) continue;
+
+                long now = System.currentTimeMillis();
+                boolean dirty = false;
+                for (eu.kodanetwork.mchost.util.ScheduleStore.Job job : jobs) {
+                    if (!job.enabled) continue;
+                    if (job.nextRun <= 0L) {
+                        job.nextRun = eu.kodanetwork.mchost.util.ScheduleStore.computeNextRun(job);
+                        dirty = true;
+                        continue;
+                    }
+                    long secondsLeft = (job.nextRun - now) / 1000L;
+
+                    // Advance warning for restarts and stops
+                    if (("restart".equals(job.type) || "stop".equals(job.type)) && secondsLeft > 0) {
+                        String key5 = job.id + "@" + job.nextRun + ":5";
+                        String key1 = job.id + "@" + job.nextRun + ":1";
+                        if (secondsLeft <= 300 && !warnedJobs.contains(key5)) {
+                            warnedJobs.add(key5);
+                            sendCmd(srv.getId(), "say [Koda] Planned " + job.type + " in 5 minutes");
+                            log(srv.getId(), "  \u2139 Planned " + job.type + " in 5 minutes");
+                        }
+                        if (secondsLeft <= 60 && !warnedJobs.contains(key1)) {
+                            warnedJobs.add(key1);
+                            sendCmd(srv.getId(), "say [Koda] Planned " + job.type + " in 1 minute");
+                        }
+                    }
+
+                    if (secondsLeft > 0) continue;
+
+                    if (job.onlyWhenEmpty && srv.onlinePlayers > 0) {
+                        job.nextRun = now + 5L * 60L * 1000L;
+                        dirty = true;
+                        log(srv.getId(), "  \u2139 Skipped " + job.type + ": players online - retry in 5 minutes");
+                        continue;
+                    }
+
+                    runScheduledJob(srv, job);
+                    job.lastRun = now;
+                    job.nextRun = eu.kodanetwork.mchost.util.ScheduleStore.computeNextRun(job);
+                    dirty = true;
+                    warnedJobs.remove(job.id + "@" + job.nextRun + ":5");
+                    warnedJobs.remove(job.id + "@" + job.nextRun + ":1");
+                }
+                if (dirty) {
+                    eu.kodanetwork.mchost.util.ScheduleStore.save(this, srv.getId(), jobs, srv);
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.w("KodaSchedule", "Automation tick failed: " + e.getMessage());
+        }
+    }
+
+    /** Executes one job. All types go through the existing console and server control paths. */
+    private void runScheduledJob(ServerInstance srv, eu.kodanetwork.mchost.util.ScheduleStore.Job job) {
+        String type = job.type == null ? "" : job.type.toLowerCase();
+        switch (type) {
+            case "restart":
+                log(srv.getId(), "  \u2139 Scheduled restart");
+                sendCmd(srv.getId(), "say [Koda] Scheduled restart - see you in a moment!");
+                exec.submit(() -> {
+                    stopServer(srv, false);
+                    setState(srv, ServerInstance.State.RESTARTING);
+                    mainHandler.postDelayed(() -> startServer(srv), 30000);
+                });
+                break;
+            case "stop":
+                log(srv.getId(), "  \u2139 Scheduled stop");
+                sendCmd(srv.getId(), "say [Koda] Scheduled shutdown - see you soon!");
+                exec.submit(() -> stopServer(srv, false));
+                break;
+            case "announce":
+                if (job.value != null && !job.value.trim().isEmpty()) {
+                    sendCmd(srv.getId(), "say " + job.value.replace("\n", " ").trim());
+                    log(srv.getId(), "  \u2139 Announcement: " + job.value);
+                }
+                break;
+            case "command":
+                if (job.value != null && !job.value.trim().isEmpty()) {
+                    String command = job.value.trim();
+                    while (command.startsWith("/")) command = command.substring(1).trim();
+                    sendCmd(srv.getId(), command);
+                    log(srv.getId(), "  \u2139 Scheduled command: " + command);
+                }
+                break;
+            case "save":
+            default:
+                sendCmd(srv.getId(), "save-all");
+                log(srv.getId(), "  \u2139 Scheduled save");
+                break;
         }
     }
 

@@ -1,12 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Backups: mode, how many copies, list. Same card/dialog language as the rest of the app. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/bg_dialog_custom"
-    android:padding="20dp">
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_dialog_custom"
+        android:padding="20dp">
 
     <TextView
         android:layout_width="match_parent"
@@ -41,47 +44,13 @@
         android:textColor="#FFFFFF"
         android:textSize="13sp" />
 
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/group_backup_mode"
+    <LinearLayout
+        android:id="@+id/ll_backup_mode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        app:singleSelection="true"
-        app:selectionRequired="true">
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_mode_off"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="@string/extras_backup_off"
-            android:textSize="11sp"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_mode_daily"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="@string/extras_backup_daily"
-            android:textSize="11sp"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_mode_stop"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="@string/extras_backup_stop"
-            android:textSize="11sp"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-    </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <!-- How many -->
     <TextView
@@ -89,68 +58,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="@string/extras_backup_keep"
+        android:text="@string/extras_backup_keep_label"
         android:textColor="#FFFFFF"
         android:textSize="13sp" />
 
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/group_backup_keep"
+    <LinearLayout
+        android:id="@+id/ll_backup_keep"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        app:singleSelection="true"
-        app:selectionRequired="true">
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_keep_1"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="1"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_keep_2"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="2"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_keep_3"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="3"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_keep_5"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="5"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_keep_10"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:text="10"
-            android:textColor="#F2E6E0"
-            app:cornerRadius="12dp" />
-    </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <!-- Stored copies -->
     <TextView
@@ -161,18 +79,12 @@
         android:textColor="#FFFFFF"
         android:textSize="13sp" />
 
-    <ScrollView
+    <LinearLayout
+        android:id="@+id/ll_backups"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxHeight="240dp"
-        android:layout_marginTop="6dp">
-
-        <LinearLayout
-            android:id="@+id/ll_backups"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+        android:layout_marginTop="6dp"
+        android:orientation="vertical" />
 
     <TextView
         android:id="@+id/tv_backup_empty"
@@ -201,7 +113,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_backup_close"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:text="@string/cancel"
@@ -221,3 +133,4 @@
             app:cornerRadius="12dp" />
     </LinearLayout>
 </LinearLayout>
+</ScrollView>

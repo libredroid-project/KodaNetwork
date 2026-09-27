@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Create or edit a scheduled job. Same building blocks as the other app dialogs. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_dialog_custom"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/tv_schedule_dialog_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/schedule_new"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/schedule_subtitle"
+            android:textColor="#8A8A9A"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="14dp"
+            android:background="#FF6B00" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/schedule_what"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:id="@+id/ll_schedule_type"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="6dp" />
+
+        <LinearLayout
+            android:id="@+id/layout_schedule_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_schedule_value_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/schedule_command"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/et_schedule_value"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="4dp"
+                android:background="#1B1613"
+                android:hint="@string/schedule_command_hint"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#666677"
+                android:textSize="13sp"
+                android:inputType="text" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/schedule_when"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:id="@+id/ll_schedule_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="6dp" />
+
+        <LinearLayout
+            android:id="@+id/layout_schedule_daily"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/schedule_time"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/et_schedule_time"
+                android:layout_width="140dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="4dp"
+                android:background="#1B1613"
+                android:hint="04:00"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="04:00"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#666677"
+                android:textSize="13sp"
+                android:inputType="time" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_schedule_interval"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/schedule_interval"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/et_schedule_interval"
+                android:layout_width="140dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="4dp"
+                android:background="#1B1613"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="180"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:inputType="number" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="14dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/schedule_only_empty"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_schedule_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="18dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_schedule_cancel"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/cancel"
+                android:textColor="#F2E6E0"
+                android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_schedule_save"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/schedule_save"
+                android:textColor="#1B1613"
+                android:textSize="12sp"
+                android:fontFamily="@font/font_koda"
+                app:backgroundTint="#FFB68C"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
