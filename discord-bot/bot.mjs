@@ -26,14 +26,43 @@ const {
     EMBED_COLOR = '#FF6B00'
 } = process.env;
 
-if (!DISCORD_TOKEN || !DISCORD_CHANNEL_ID || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Missing configuration - see .env.example');
+if (!DISCORD_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing configuration - see .env.example (token, Supabase url + service key)');
     process.exit(1);
 }
 
 const color = parseInt(EMBED_COLOR.replace('#', ''), 16);
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+/** Announcement channel: configured, or detected by name (changelog/announcements/...) once we are logged in. */
+let announceChannelId = (DISCORD_CHANNEL_ID || '').trim();
+const CHANNEL_NAMES = ['changelog', 'changelogs', 'releases', 'announcements', 'news', 'updates'];
+
+function resolveAnnounceChannel() {
+    const textChannels = () => client.guilds.cache.flatMap(guild =>
+        guild.channels.cache.filter(channel => channel.isTextBased && channel.isTextBased())
+            .map(channel => ({ guild: guild.name, name: channel.name, id: channel.id })));
+
+    if (!announceChannelId) {
+        const available = textChannels();
+        for (const wanted of CHANNEL_NAMES) {
+            const hit = available.find(channel => channel.name.toLowerCase().includes(wanted));
+            if (hit) {
+                announceChannelId = hit.id;
+                console.log(`announcing in #${hit.name} (${hit.id}) of ${hit.guild}`);
+                break;
+            }
+        }
+    }
+
+    if (!announceChannelId) {
+        console.log('No changelog channel found - pick one and put its id in DISCORD_CHANNEL_ID:');
+        for (const channel of textChannels()) {
+            console.log(`   #${channel.name}  ${channel.id}  (${channel.guild})`);
+        }
+    }
+}
 
 /** Small helper around the Supabase REST API (service role, so it may read and write). */
 async function supabase(path, options = {}) {
@@ -74,9 +103,13 @@ async function announcePendingReleases() {
         const pending = await supabase('releases?is_published=is.true&announced_at=is.null&order=version_code.asc');
         if (!pending || pending.length === 0) return;
 
-        const channel = await client.channels.fetch(DISCORD_CHANNEL_ID).catch(() => null);
+        if (!announceChannelId) {
+            console.log(`${pending.length} release(s) waiting, but no announcement channel is set.`);
+            return;
+        }
+        const channel = await client.channels.fetch(announceChannelId).catch(() => null);
         if (!channel) {
-            console.error('Channel not found:', DISCORD_CHANNEL_ID);
+            console.error('Channel not found:', announceChannelId);
             return;
         }
 
@@ -113,8 +146,10 @@ async function registerCommands() {
     ];
 
     const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
-    const route = DISCORD_GUILD_ID
-        ? Routes.applicationGuildCommands(client.user.id, DISCORD_GUILD_ID)
+    // Guild commands appear instantly; without a configured guild we use the first server the bot is in.
+    const guildId = (DISCORD_GUILD_ID || '').trim() || client.guilds.cache.first()?.id;
+    const route = guildId
+        ? Routes.applicationGuildCommands(client.user.id, guildId)
         : Routes.applicationCommands(client.user.id);
     await rest.put(route, { body: commands });
     console.log('slash commands registered');
@@ -122,6 +157,8 @@ async function registerCommands() {
 
 client.once('ready', async () => {
     console.log(`logged in as ${client.user.tag}`);
+    console.log(`servers: ${client.guilds.cache.map(guild => guild.name).join(', ') || 'none - invite the bot first'}`);
+    resolveAnnounceChannel();
     await registerCommands().catch(error => console.error('command registration failed:', error.message));
     await announcePendingReleases();
     setInterval(announcePendingReleases, Math.max(15, parseInt(POLL_SECONDS, 10)) * 1000);

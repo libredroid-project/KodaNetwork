@@ -11,10 +11,14 @@ and `/version`.
 4. Tab **OAuth2 -> URL Generator**: scopes `bot` + `applications.commands`,
    bot permissions `Send Messages`, `Embed Links`, `Read Message History`.
    Open the generated URL and add the bot to your server.
-5. In Discord enable **Settings -> Advanced -> Developer Mode**, then right click the channel that
-   should receive announcements -> **Copy Channel ID** (that is `DISCORD_CHANNEL_ID`).
-   Right click the server icon -> **Copy Server ID** (that is `DISCORD_GUILD_ID`, optional but
-   makes the slash commands appear immediately).
+5. Invite the bot with the generated URL. That is all you need to configure: the bot looks for a text
+   channel whose name contains `changelog`, `releases`, `announcements`, `news` or `updates`. If it
+   finds none it prints every channel with its id to the log - paste the wanted one into
+   `DISCORD_CHANNEL_ID`. `DISCORD_GUILD_ID` is optional too (it only makes the slash commands appear
+   instantly), the bot uses the first server it is in.
+
+Note: the **client secret** is not used here at all - a bot logs in with its **token**
+(Developer Portal -> your application -> Bot -> Reset Token).
 
 ## 2. Install on the VPS
 
