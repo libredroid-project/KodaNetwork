@@ -752,6 +752,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Replaces the update dialog's text with the changelog of the newest release.
+     * Falls back to the static string when there is no release entry yet.
+     */
+    private void loadReleaseNotes(android.widget.TextView target) {
+        if (target == null) return;
+        new Thread(() -> {
+            try {
+                String baseUrl = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl();
+                String apiKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
+                okhttp3.RequestBody body = okhttp3.RequestBody.create("{}",
+                        okhttp3.MediaType.parse("application/json; charset=utf-8"));
+                okhttp3.Request request = new okhttp3.Request.Builder()
+                        .url(baseUrl + "/rest/v1/rpc/rpc_get_latest_release")
+                        .post(body)
+                        .addHeader("apikey", apiKey)
+                        .addHeader("Authorization", "Bearer " + apiKey)
+                        .build();
+
+                try (okhttp3.Response response = new okhttp3.OkHttpClient().newCall(request).execute()) {
+                    if (!response.isSuccessful() || response.body() == null) return;
+                    org.json.JSONArray rows = new org.json.JSONArray(response.body().string());
+                    if (rows.length() == 0) return;
+
+                    org.json.JSONObject release = rows.getJSONObject(0);
+                    String title = release.optString("title", "");
+                    String changelog = release.optString("changelog", "");
+                    String version = release.optString("version_name", "");
+                    if (changelog.isEmpty()) return;
+
+                    StringBuilder text = new StringBuilder();
+                    if (!title.isEmpty()) text.append(title).append("\n\n");
+                    text.append(changelog);
+                    if (!version.isEmpty()) text.append("\n\n").append("Version ").append(version);
+
+                    final String shown = text.toString();
+                    runOnUiThread(() -> target.setText(shown));
+                }
+            } catch (Exception ignored) {
+                // keep the default text
+            }
+        }).start();
+    }
+
+    /**
      * app_settings stores its values as JSON objects, e.g. {"ts": 8510} or {"active": true}.
      * Reading them with Integer.parseInt("{\"ts\":8510}") always failed, which is why the
      * "update available" screen and the updated-terms prompt never appeared. This accepts the
@@ -790,6 +834,9 @@ public class MainActivity extends AppCompatActivity {
         android.widget.TextView tvTitle = view.findViewById(R.id.tvUpdateTitle);
         String praetorHtml = "<font color='#555555'>P.R.</font><font color='#AAAAAA'>A.E.T.</font><font color='#FFFFFF'>O.R.</font>";
         if (tvTitle != null) tvTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
+
+        // Show what actually changed - the changelog comes from the releases table
+        loadReleaseNotes(view.findViewById(R.id.tvUpdateMessage));
 
         com.google.android.material.button.MaterialButton btnUpdate = view.findViewById(R.id.btnUpdateNow);
         com.google.android.material.button.MaterialButton btnSkip = view.findViewById(R.id.btnUpdateSkip);

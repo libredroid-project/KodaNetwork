@@ -1,0 +1,16 @@
+[Unit]
+Description=KodaHosting release bot (Discord changelog)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/koda-release-bot
+EnvironmentFile=/opt/koda-release-bot/.env
+ExecStart=/usr/bin/node /opt/koda-release-bot/bot.mjs
+Restart=always
+RestartSec=10
+User=kodabot
+
+[Install]
+WantedBy=multi-user.target
