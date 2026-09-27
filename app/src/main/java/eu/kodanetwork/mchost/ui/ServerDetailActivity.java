@@ -87,6 +87,10 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     // Console
     private TextView tvLog;
+    /** Console follows the newest line while true; scrolling up turns it off. */
+    private boolean consoleAutoScroll = true;
+    /** True while the app scrolls the console itself, so it does not count as "the user scrolled". */
+    private boolean consoleScrollByApp = false;
     private ScrollView scrollLog;
     private EditText etCmd;
     private LinearLayout layoutChips;
@@ -398,6 +402,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (scrollLog == null) scrollLog = findViewById(R.id.sv_console);
         if (etCmd == null) etCmd = findViewById(R.id.et_console_input);
         layoutChips = null;
+        setupConsoleScroll();
 
         layoutFileList = findViewById(R.id.layout_files);
         tvFilesRoot    = findViewById(R.id.tv_files_root);
@@ -2052,6 +2057,40 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     // ── Console ───────────────────────────────────────────────────────────────
 
+    /**
+     * Console scrolling: the log follows the newest line by default. Scrolling up turns that off
+     * and shows the round button that jumps back to the newest line.
+     */
+    private void setupConsoleScroll() {
+        consoleAutoScroll = server == null || server.isConsoleAutoScroll();
+        if (scrollLog != null) {
+            scrollLog.setOnScrollChangeListener((view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+                if (consoleScrollByApp) return;
+                boolean atBottom = !view.canScrollVertically(1);
+                if (atBottom && !consoleAutoScroll) {
+                    consoleAutoScroll = true;
+                    updateScrollButton();
+                } else if (!atBottom && consoleAutoScroll) {
+                    consoleAutoScroll = false;
+                    updateScrollButton();
+                }
+            });
+        }
+        android.view.View scrollButton = findViewById(R.id.btn_console_scroll_bottom);
+        if (scrollButton != null) {
+            scrollButton.setOnClickListener(v -> {
+                consoleAutoScroll = true;
+                if (server != null) {
+                    server.setConsoleAutoScroll(true);
+                    eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+                }
+                updateScrollButton();
+                scrollConsoleToBottom();
+            });
+        }
+        updateScrollButton();
+    }
+
     private void setupConsole() {
         View btnSend  = findViewById(R.id.btn_send);
         View btnClear = findViewById(R.id.btn_clear);
@@ -2066,17 +2105,6 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
         }
         if (btnClear != null) btnClear.setOnClickListener(v -> { if (tvLog != null) tvLog.setText(""); });
-
-        // Follow the newest line - lives here in the console, where it belongs
-        com.google.android.material.switchmaterial.SwitchMaterial swFollow = findViewById(R.id.switch_console_follow);
-        if (swFollow != null) {
-            swFollow.setChecked(server == null || server.isConsoleAutoScroll());
-            swFollow.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (server == null) return;
-                server.setConsoleAutoScroll(isChecked);
-                eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
-            });
-        }
         if (btnCopy != null) btnCopy.setOnClickListener(v -> {
             if (tvLog == null) return;
                 android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
@@ -2248,8 +2276,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                     // Nur autoscroll wenn Console-Tab sichtbar und Fokus nicht in EditText
                     android.view.View focused = getCurrentFocus();
                     boolean typing = focused instanceof android.widget.EditText;
-                    boolean mayScroll = server == null || server.isConsoleAutoScroll();
-                    if (!typing && mayScroll) {
+                    if (!typing && consoleAutoScroll) {
                         scrollLog.smoothScrollTo(0, child.getHeight());
                     }
                 }
@@ -3854,6 +3881,25 @@ public class ServerDetailActivity extends AppCompatActivity {
         return false;
     }
 
+    /** Shows or hides the round button that jumps back to the newest console line. */
+    private void updateScrollButton() {
+        android.view.View button = findViewById(R.id.btn_console_scroll_bottom);
+        if (button != null) {
+            button.setVisibility(consoleAutoScroll ? android.view.View.GONE : android.view.View.VISIBLE);
+        }
+    }
+
+    /** Scrolls the console to the newest line without stealing the keyboard focus. */
+    private void scrollConsoleToBottom() {
+        if (scrollLog == null) return;
+        consoleScrollByApp = true;
+        scrollLog.post(() -> {
+            android.view.View child = scrollLog.getChildAt(scrollLog.getChildCount() - 1);
+            if (child != null) scrollLog.smoothScrollTo(0, child.getHeight());
+        });
+        scrollLog.postDelayed(() -> consoleScrollByApp = false, 600);
+    }
+
     /**
      * Automation card: the scheduled jobs of this server.
      *
@@ -3923,96 +3969,155 @@ public class ServerDetailActivity extends AppCompatActivity {
         return getString(R.string.schedule_type_save);
     }
 
-    /** Create or edit one job. */
+    /**
+     * Create or edit one job, as a bottom sheet with the same pill switches as the network rules.
+     */
     private void showScheduleEditor(final eu.kodanetwork.mchost.util.ScheduleStore.Job existing) {
         final eu.kodanetwork.mchost.util.ScheduleStore.Job job = existing != null
                 ? existing : new eu.kodanetwork.mchost.util.ScheduleStore.Job();
+        float d = getResources().getDisplayMetrics().density;
+        boolean de = getResources().getConfiguration().getLocales().get(0).getLanguage().equals("de");
 
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(R.layout.dialog_schedule_edit);
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-            dialog.getWindow().setLayout((int) (metrics.widthPixels * 0.94),
-                    (int) (metrics.heightPixels * 0.88));
-        }
+        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
 
-        android.widget.TextView dialogTitle = dialog.findViewById(R.id.tv_schedule_dialog_title);
-        dialogTitle.setText(existing != null ? R.string.schedule_edit : R.string.schedule_new);
+        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
+        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
+        root.setOrientation(android.widget.LinearLayout.VERTICAL);
+        root.setBackgroundColor(0xFF1D1714);
+        int pad = (int) (20 * d);
+        root.setPadding(pad, pad, pad, pad);
+        scroller.addView(root);
 
-        final android.widget.LinearLayout typeBox = dialog.findViewById(R.id.ll_schedule_type);
-        final android.widget.LinearLayout modeBox = dialog.findViewById(R.id.ll_schedule_mode);
-        final android.view.View valueLayout = dialog.findViewById(R.id.layout_schedule_value);
-        final android.view.View dailyLayout = dialog.findViewById(R.id.layout_schedule_daily);
-        final android.view.View intervalLayout = dialog.findViewById(R.id.layout_schedule_interval);
-        final android.widget.EditText etValue = dialog.findViewById(R.id.et_schedule_value);
-        final android.widget.EditText etTime = dialog.findViewById(R.id.et_schedule_time);
-        final android.widget.EditText etInterval = dialog.findViewById(R.id.et_schedule_interval);
-        final android.widget.CompoundButton switchEmpty = dialog.findViewById(R.id.switch_schedule_empty);
+        android.widget.TextView title = new android.widget.TextView(this);
+        title.setText(existing != null ? getString(R.string.schedule_edit) : getString(R.string.schedule_new));
+        title.setTextColor(0xFFF0F0F0);
+        title.setTextSize(18);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        root.addView(title);
+
+        android.widget.TextView whatLabel = new android.widget.TextView(this);
+        whatLabel.setText(getString(R.string.schedule_what));
+        whatLabel.setTextColor(0xFF8A8A9A);
+        whatLabel.setTextSize(11);
+        whatLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
+        root.addView(whatLabel);
+
+        // Value field (announcement text or command)
+        final android.widget.EditText etValue = new android.widget.EditText(this);
+        etValue.setText(job.value);
+        etValue.setTextColor(0xFFFFFFFF);
+        etValue.setHintTextColor(0xFF666677);
+        etValue.setTextSize(13);
+        etValue.setBackgroundColor(0xFF1B1613);
+        etValue.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
+        final android.widget.LinearLayout.LayoutParams valueLp = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
+        valueLp.topMargin = (int) (12 * d);
 
         final String[] chosenType = {job.type};
-        final String[] chosenMode = {job.mode};
+        final String[] typeKeys = {"restart", "stop", "save", "announce", "command"};
+        final String[] typeLabels = {getString(R.string.schedule_type_short_restart),
+                getString(R.string.schedule_type_short_stop), getString(R.string.schedule_type_short_save),
+                getString(R.string.schedule_type_short_announce), getString(R.string.schedule_type_short_command)};
+        int typeIndex = 2;
+        for (int i = 0; i < typeKeys.length; i++) {
+            if (typeKeys[i].equals(job.type)) typeIndex = i;
+        }
+        android.widget.FrameLayout typePill = makePillSwitch(typeLabels, typeIndex, sel -> {
+            chosenType[0] = typeKeys[sel];
+            boolean needsValueNow = "announce".equals(chosenType[0]) || "command".equals(chosenType[0]);
+            etValue.setVisibility(needsValueNow ? android.view.View.VISIBLE : android.view.View.GONE);
+            etValue.setHint("command".equals(chosenType[0])
+                    ? R.string.schedule_command_hint : R.string.schedule_announce_hint);
+        });
+        root.addView(typePill, new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
 
-        etValue.setText(job.value);
-        etTime.setText("04:00".equals(job.time) ? job.time : job.time);
+        boolean needsValue = "announce".equals(job.type) || "command".equals(job.type);
+        etValue.setVisibility(needsValue ? android.view.View.VISIBLE : android.view.View.GONE);
+        etValue.setHint("command".equals(job.type) ? R.string.schedule_command_hint : R.string.schedule_announce_hint);
+        root.addView(etValue, valueLp);
+
+        // When?
+        android.widget.TextView whenLabel = new android.widget.TextView(this);
+        whenLabel.setText(getString(R.string.schedule_when));
+        whenLabel.setTextColor(0xFF8A8A9A);
+        whenLabel.setTextSize(11);
+        whenLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
+        root.addView(whenLabel);
+
+        final android.widget.EditText etInterval = new android.widget.EditText(this);
         etInterval.setText(String.valueOf(job.intervalMinutes));
-        switchEmpty.setChecked(job.onlyWhenEmpty);
+        etInterval.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        etInterval.setTextColor(0xFFFFFFFF);
+        etInterval.setTextSize(13);
+        etInterval.setBackgroundColor(0xFF1B1613);
+        etInterval.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
 
-        final com.google.android.material.button.MaterialButton[] typeButtons =
-                new com.google.android.material.button.MaterialButton[eu.kodanetwork.mchost.util.ScheduleStore.TYPES.length];
-        android.widget.LinearLayout typeRow = new android.widget.LinearLayout(this);
-        typeRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        for (int i = 0; i < eu.kodanetwork.mchost.util.ScheduleStore.TYPES.length; i++) {
-            final String type = eu.kodanetwork.mchost.util.ScheduleStore.TYPES[i];
-            final com.google.android.material.button.MaterialButton button = optionButton(scheduleTypeLabel(type));
-            typeButtons[i] = button;
-            button.setOnClickListener(v -> {
-                chosenType[0] = type;
-                paintSelection(typeButtons, button);
-                boolean needsValue = "announce".equals(type) || "command".equals(type);
-                valueLayout.setVisibility(needsValue ? android.view.View.VISIBLE : android.view.View.GONE);
-                etValue.setHint("command".equals(type)
-                        ? R.string.schedule_command_hint : R.string.schedule_announce_hint);
-            });
-            typeRow.addView(button);
-            if (i == 2) {
-                typeBox.addView(typeRow);
-                typeRow = new android.widget.LinearLayout(this);
-                typeRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-                typeRow.setPadding(0, (int) (6 * getResources().getDisplayMetrics().density), 0, 0);
-            }
-        }
-        typeBox.addView(typeRow);
-        for (int i = 0; i < eu.kodanetwork.mchost.util.ScheduleStore.TYPES.length; i++) {
-            if (eu.kodanetwork.mchost.util.ScheduleStore.TYPES[i].equals(job.type)) {
-                paintSelection(typeButtons, typeButtons[i]);
-                valueLayout.setVisibility(("announce".equals(job.type) || "command".equals(job.type))
-                        ? android.view.View.VISIBLE : android.view.View.GONE);
-            }
-        }
+        final android.widget.EditText etTime = new android.widget.EditText(this);
+        etTime.setText(job.time);
+        etTime.setInputType(android.text.InputType.TYPE_CLASS_DATETIME);
+        etTime.setTextColor(0xFFFFFFFF);
+        etTime.setTextSize(13);
+        etTime.setBackgroundColor(0xFF1B1613);
+        etTime.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
 
-        final com.google.android.material.button.MaterialButton[] modeButtons = new com.google.android.material.button.MaterialButton[2];
-        modeButtons[0] = optionButton(getString(R.string.schedule_mode_interval));
-        modeButtons[1] = optionButton(getString(R.string.schedule_mode_daily));
-        for (int i = 0; i < modeButtons.length; i++) {
-            final String mode = i == 0 ? "interval" : "daily";
-            final com.google.android.material.button.MaterialButton button = modeButtons[i];
-            button.setOnClickListener(v -> {
-                chosenMode[0] = mode;
-                paintSelection(modeButtons, button);
-                dailyLayout.setVisibility("daily".equals(mode) ? android.view.View.VISIBLE : android.view.View.GONE);
-                intervalLayout.setVisibility("daily".equals(mode) ? android.view.View.GONE : android.view.View.VISIBLE);
-            });
-            modeBox.addView(button);
-        }
-        paintSelection(modeButtons, "daily".equals(job.mode) ? modeButtons[1] : modeButtons[0]);
-        dailyLayout.setVisibility("daily".equals(job.mode) ? android.view.View.VISIBLE : android.view.View.GONE);
-        intervalLayout.setVisibility("daily".equals(job.mode) ? android.view.View.GONE : android.view.View.VISIBLE);
+        final android.widget.LinearLayout.LayoutParams fieldLp = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
 
-        dialog.findViewById(R.id.btn_schedule_cancel).setOnClickListener(v -> dialog.dismiss());
-        dialog.findViewById(R.id.btn_schedule_save).setOnClickListener(v -> {
+        android.widget.FrameLayout modePill = makePillSwitch(
+                new String[]{getString(R.string.schedule_mode_interval), getString(R.string.schedule_mode_daily)},
+                "daily".equals(job.mode) ? 1 : 0, sel -> {
+                    job.mode = sel == 1 ? "daily" : "interval";
+                    boolean daily = sel == 1;
+                    etTime.setVisibility(daily ? android.view.View.VISIBLE : android.view.View.GONE);
+                    etInterval.setVisibility(daily ? android.view.View.GONE : android.view.View.VISIBLE);
+                });
+        root.addView(modePill, new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
+
+        boolean daily = "daily".equals(job.mode);
+        etTime.setVisibility(daily ? android.view.View.VISIBLE : android.view.View.GONE);
+        etInterval.setVisibility(daily ? android.view.View.GONE : android.view.View.VISIBLE);
+        android.widget.LinearLayout.LayoutParams fieldMargin = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
+        fieldMargin.topMargin = (int) (10 * d);
+        root.addView(etInterval, fieldMargin);
+        android.widget.LinearLayout.LayoutParams timeMargin = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
+        timeMargin.topMargin = (int) (10 * d);
+        root.addView(etTime, timeMargin);
+
+        // Only while empty
+        android.widget.LinearLayout emptyRow = new android.widget.LinearLayout(this);
+        emptyRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        emptyRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        emptyRow.setPadding(0, (int) (14 * d), 0, 0);
+        android.widget.TextView emptyLabel = new android.widget.TextView(this);
+        emptyLabel.setText(getString(R.string.schedule_only_empty));
+        emptyLabel.setTextColor(0xFFE8E2D6);
+        emptyLabel.setTextSize(13);
+        emptyLabel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        com.google.android.material.switchmaterial.SwitchMaterial emptySwitch =
+                new com.google.android.material.switchmaterial.SwitchMaterial(this);
+        emptySwitch.setChecked(job.onlyWhenEmpty);
+        emptySwitch.setUseMaterialThemeColors(false);
+        emptySwitch.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFFFF6B00));
+        emptySwitch.setTrackTintList(android.content.res.ColorStateList.valueOf(0xFF3A2E27));
+        emptyRow.addView(emptyLabel);
+        emptyRow.addView(emptySwitch);
+        root.addView(emptyRow);
+
+        com.google.android.material.button.MaterialButton saveButton =
+                eu.kodanetwork.mchost.util.KodaButtons.primary(this, getString(R.string.schedule_save));
+        android.widget.LinearLayout.LayoutParams saveLp = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (52 * d));
+        saveLp.topMargin = (int) (20 * d);
+        saveButton.setOnClickListener(v -> {
             job.type = chosenType[0];
-            job.mode = chosenMode[0];
             job.value = etValue.getText().toString().trim();
             String time = etTime.getText().toString().trim();
             if (time.matches("^([01]?[0-9]|2[0-3]):[0-5][0-9]$")) job.time = time;
@@ -4021,13 +4126,33 @@ public class ServerDetailActivity extends AppCompatActivity {
             } catch (Exception ignored) {
                 job.intervalMinutes = 180;
             }
-            job.onlyWhenEmpty = switchEmpty.isChecked();
+            job.onlyWhenEmpty = emptySwitch.isChecked();
             eu.kodanetwork.mchost.util.ScheduleStore.upsert(this, server.getId(), job, server);
-            dialog.dismiss();
+            sheet.dismiss();
             renderScheduleList();
             toast(getString(R.string.schedule_saved));
         });
-        dialog.show();
+        root.addView(saveButton, saveLp);
+
+        if (existing != null) {
+            com.google.android.material.button.MaterialButton deleteButton =
+                    eu.kodanetwork.mchost.util.KodaButtons.make(this, getString(R.string.extras_backup_delete),
+                            0xFF2A1010, 0xFFFF8A80);
+            android.widget.LinearLayout.LayoutParams deleteLp = new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (48 * d));
+            deleteLp.topMargin = (int) (10 * d);
+            deleteButton.setOnClickListener(v -> {
+                sheet.dismiss();
+                confirmDialog(getString(R.string.schedule_delete_title), getString(R.string.schedule_delete_text), () -> {
+                    eu.kodanetwork.mchost.util.ScheduleStore.remove(this, server.getId(), job.id, server);
+                    renderScheduleList();
+                });
+            });
+            root.addView(deleteButton, deleteLp);
+        }
+
+        sheet.setContentView(scroller);
+        sheet.show();
     }
 
     /**
@@ -4071,152 +4196,125 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
-    /** Backups as a proper dialog: schedule, copies to keep and the stored files. */
+    /**
+     * Backups as a bottom sheet in the same style as the network rules: pill switches for the
+     * schedule and the number of copies, one row per stored backup.
+     */
     private void showBackupsDialog() {
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(R.layout.dialog_server_backups);
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-            dialog.getWindow().setLayout((int) (metrics.widthPixels * 0.94),
-                    (int) (metrics.heightPixels * 0.88));
-        }
-        dialog.setCanceledOnTouchOutside(true);
+        float d = getResources().getDisplayMetrics().density;
+        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
 
-        android.widget.LinearLayout modeRow = dialog.findViewById(R.id.ll_backup_mode);
-        android.widget.LinearLayout keepRow = dialog.findViewById(R.id.ll_backup_keep);
-        if (modeRow == null || keepRow == null) return;
+        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
+        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
+        root.setOrientation(android.widget.LinearLayout.VERTICAL);
+        root.setBackgroundColor(0xFF1D1714);
+        int pad = (int) (20 * d);
+        root.setPadding(pad, pad, pad, pad);
+        scroller.addView(root);
 
-        // Mode: off / daily / on stop
-        final String[] modeValues = {"off", "daily", "on_stop"};
-        final String[] modeLabels = {getString(R.string.extras_backup_off),
-                getString(R.string.extras_backup_daily), getString(R.string.extras_backup_stop)};
-        final com.google.android.material.button.MaterialButton[] modeButtons =
-                new com.google.android.material.button.MaterialButton[modeValues.length];
-        for (int i = 0; i < modeValues.length; i++) {
-            final String value = modeValues[i];
-            com.google.android.material.button.MaterialButton button = optionButton(modeLabels[i]);
-            modeButtons[i] = button;
-            button.setOnClickListener(v -> {
-                server.setBackupMode(value);
-                eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
-                paintSelection(modeButtons, button);
-                updateBackupsSummary();
-            });
-            modeRow.addView(button);
-        }
+        android.widget.TextView title = new android.widget.TextView(this);
+        title.setText(getString(R.string.extras_backups));
+        title.setTextColor(0xFFF0F0F0);
+        title.setTextSize(18);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        root.addView(title);
 
-        // How many copies to keep
-        final int[] keepValues = {1, 2, 3, 5, 10};
-        final com.google.android.material.button.MaterialButton[] keepButtons =
-                new com.google.android.material.button.MaterialButton[keepValues.length];
+        android.widget.TextView whenLabel = new android.widget.TextView(this);
+        whenLabel.setText(getString(R.string.extras_backup_mode));
+        whenLabel.setTextColor(0xFF8A8A9A);
+        whenLabel.setTextSize(11);
+        whenLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
+        root.addView(whenLabel);
+
+        String[] modeValues = {"off", "daily", "on_stop"};
+        int modeIndex = "daily".equals(server.getBackupMode()) ? 1 : ("on_stop".equals(server.getBackupMode()) ? 2 : 0);
+        android.widget.FrameLayout modePill = makePillSwitch(
+                new String[]{getString(R.string.extras_backup_off), getString(R.string.extras_backup_daily),
+                        getString(R.string.extras_backup_stop)}, modeIndex, sel -> {
+                    server.setBackupMode(modeValues[sel]);
+                    eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+                    updateBackupsSummary();
+                });
+        root.addView(modePill, new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
+
+        android.widget.TextView keepLabel = new android.widget.TextView(this);
+        keepLabel.setText(getString(R.string.extras_backup_keep_label));
+        keepLabel.setTextColor(0xFF8A8A9A);
+        keepLabel.setTextSize(11);
+        keepLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
+        root.addView(keepLabel);
+
+        int[] keepValues = {1, 2, 3, 5, 10};
+        int keepIndex = 2;
         for (int i = 0; i < keepValues.length; i++) {
-            final int value = keepValues[i];
-            com.google.android.material.button.MaterialButton button = optionButton(String.valueOf(value));
-            keepButtons[i] = button;
-            button.setOnClickListener(v -> {
-                server.setBackupKeep(value);
-                eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
-                paintSelection(keepButtons, button);
-                updateBackupsSummary();
-            });
-            keepRow.addView(button);
+            if (keepValues[i] == server.getBackupKeep()) keepIndex = i;
         }
-
-        for (int i = 0; i < modeValues.length; i++) {
-            if (modeValues[i].equals(server.getBackupMode())) paintSelection(modeButtons, modeButtons[i]);
-        }
-        for (int i = 0; i < keepValues.length; i++) {
-            if (keepValues[i] == server.getBackupKeep()) paintSelection(keepButtons, keepButtons[i]);
-        }
-
-        dialog.findViewById(R.id.btn_backup_close).setOnClickListener(v -> dialog.dismiss());
-        dialog.findViewById(R.id.btn_backup_now).setOnClickListener(v -> {
-            dialog.dismiss();
-            createBackupNow();
-        });
-
-        fillBackupList(dialog);
-        dialog.show();
-    }
-
-    /** One option button: rounded, filled and tinted while selected. */
-    private com.google.android.material.button.MaterialButton optionButton(String label) {
-        com.google.android.material.button.MaterialButton button =
-                new com.google.android.material.button.MaterialButton(this);
-        button.setText(label);
-        button.setTextSize(11f);
-        button.setAllCaps(false);
-        button.setInsetTop(0);
-        button.setInsetBottom(0);
-        button.setCornerRadius((int) (12 * getResources().getDisplayMetrics().density));
-        android.widget.LinearLayout.LayoutParams params =
-                new android.widget.LinearLayout.LayoutParams(0, (int) (44 * getResources().getDisplayMetrics().density), 1f);
-        params.setMargins(4, 0, 4, 0);
-        button.setLayoutParams(params);
-        paintSelection(new com.google.android.material.button.MaterialButton[]{}, null);
-        return button;
-    }
-
-    private void paintSelection(com.google.android.material.button.MaterialButton[] all,
-                               com.google.android.material.button.MaterialButton selected) {
-        if (all == null || all.length == 0) {
-            if (selected == null) return;
-        }
-        int unselectedBg = 0xFF241C18;
-        int unselectedText = 0xFFF2E6E0;
-        int selectedBg = 0xFFFFB68C;
-        int selectedText = 0xFF1B1613;
-        for (com.google.android.material.button.MaterialButton button : all) {
-            boolean isSelected = button == selected;
-            button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(isSelected ? selectedBg : unselectedBg));
-            button.setTextColor(isSelected ? selectedText : unselectedText);
-            button.setStrokeColor(android.content.res.ColorStateList.valueOf(0xFF3A2E27));
-            button.setStrokeWidth((int) (1 * getResources().getDisplayMetrics().density));
-        }
-    }
-
-    /** Fills the list inside the backup dialog. */
-    private void fillBackupList(android.app.Dialog dialog) {
-        android.widget.LinearLayout list = dialog.findViewById(R.id.ll_backups);
-        android.widget.TextView empty = dialog.findViewById(R.id.tv_backup_empty);
-        android.widget.TextView count = dialog.findViewById(R.id.tv_backup_count);
-        if (list == null) return;
+        android.widget.FrameLayout keepPill = makePillSwitch(
+                new String[]{"1", "2", "3", "5", "10"}, keepIndex, sel -> {
+                    server.setBackupKeep(keepValues[sel]);
+                    eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+                    updateBackupsSummary();
+                });
+        root.addView(keepPill, new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
 
         java.util.List<eu.kodanetwork.mchost.util.BackupManager.Backup> backups =
                 eu.kodanetwork.mchost.util.BackupManager.list(this, server.getId());
-        list.removeAllViews();
+        android.widget.TextView countLabel = new android.widget.TextView(this);
+        countLabel.setText(backups.isEmpty()
+                ? getString(R.string.extras_backup_none)
+                : getString(R.string.extras_backup_list, backups.size(),
+                eu.kodanetwork.mchost.util.BackupManager.humanSize(
+                        eu.kodanetwork.mchost.util.BackupManager.totalSize(this, server.getId()))));
+        countLabel.setTextColor(0xFFE8E2D6);
+        countLabel.setTextSize(13);
+        countLabel.setPadding(0, (int) (20 * d), 0, (int) (6 * d));
+        root.addView(countLabel);
 
-        if (empty != null) empty.setVisibility(backups.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
-        if (count != null) {
-            count.setText(backups.isEmpty()
-                    ? getString(R.string.extras_backup_none)
-                    : getString(R.string.extras_backup_list, backups.size(),
-                    eu.kodanetwork.mchost.util.BackupManager.humanSize(
-                            eu.kodanetwork.mchost.util.BackupManager.totalSize(this, server.getId()))));
-        }
-
-        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
         for (eu.kodanetwork.mchost.util.BackupManager.Backup backup : backups) {
-            android.view.View row = inflater.inflate(R.layout.item_server_backup, list, false);
-            android.widget.TextView date = row.findViewById(R.id.tv_backup_date);
-            android.widget.TextView meta = row.findViewById(R.id.tv_backup_meta);
-            date.setText(eu.kodanetwork.mchost.util.BackupManager.humanDate(backup.time));
-            meta.setText(backup.name() + " · " + eu.kodanetwork.mchost.util.BackupManager.humanSize(backup.size));
-
+            android.widget.TextView row = new android.widget.TextView(this);
+            row.setText("\u2022 " + eu.kodanetwork.mchost.util.BackupManager.humanDate(backup.time) + "  \u00b7  "
+                    + eu.kodanetwork.mchost.util.BackupManager.humanSize(backup.size));
+            row.setTextColor(0xFFE8E2D6);
+            row.setTextSize(13);
+            row.setPadding(0, (int) (12 * d), 0, (int) (12 * d));
             final java.io.File file = backup.file;
-            row.findViewById(R.id.btn_backup_restore).setOnClickListener(v -> {
-                dialog.dismiss();
-                confirmRestore(file);
-            });
-            row.findViewById(R.id.btn_backup_delete).setOnClickListener(v -> {
-                eu.kodanetwork.mchost.util.BackupManager.delete(this, server.getId(), file.getName());
-                eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
-                updateBackupsSummary();
-                fillBackupList(dialog);
-            });
-            list.addView(row);
+            row.setOnClickListener(v -> showBackupActions(file));
+            root.addView(row);
         }
+
+        com.google.android.material.button.MaterialButton backupNow =
+                eu.kodanetwork.mchost.util.KodaButtons.primary(this, getString(R.string.extras_backup_now));
+        android.widget.LinearLayout.LayoutParams buttonLp = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (52 * d));
+        buttonLp.topMargin = (int) (20 * d);
+        backupNow.setOnClickListener(v -> {
+            sheet.dismiss();
+            createBackupNow();
+        });
+        root.addView(backupNow, buttonLp);
+
+        sheet.setContentView(scroller);
+        sheet.show();
+    }
+
+    /** Open, restore or delete one stored backup. */
+    private void showBackupActions(java.io.File file) {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(eu.kodanetwork.mchost.util.BackupManager.humanDate(file.lastModified()))
+                .setMessage(getString(R.string.extras_backup_hint))
+                .setPositiveButton(getString(R.string.extras_backup_restore), (dialog, which) -> confirmRestore(file))
+                .setNeutralButton(getString(R.string.extras_backup_delete), (dialog, which) -> {
+                    eu.kodanetwork.mchost.util.BackupManager.delete(this, server.getId(), file.getName());
+                    eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
+                    updateBackupsSummary();
+                    showBackupsDialog();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void createBackupNow() {

@@ -746,4 +746,10 @@
     <string name="schedule_type_save">Welt speichern</string>
     <string name="schedule_mode_interval">Alle N Minuten</string>
     <string name="schedule_mode_daily">Täglich zu einer Uhrzeit</string>
+    <string name="console_scroll_bottom">Zur neuesten Zeile springen</string>
+    <string name="schedule_type_short_restart">Neustart</string>
+    <string name="schedule_type_short_stop">Stopp</string>
+    <string name="schedule_type_short_save">Speichern</string>
+    <string name="schedule_type_short_announce">Ansage</string>
+    <string name="schedule_type_short_command">Befehl</string>
 </resources>

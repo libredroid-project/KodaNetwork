@@ -738,4 +738,10 @@
     <string name="schedule_type_save">Save world</string>
     <string name="schedule_mode_interval">Every N minutes</string>
     <string name="schedule_mode_daily">Daily at a time</string>
+    <string name="console_scroll_bottom">Jump to the newest line</string>
+    <string name="schedule_type_short_restart">Restart</string>
+    <string name="schedule_type_short_stop">Stop</string>
+    <string name="schedule_type_short_save">Save</string>
+    <string name="schedule_type_short_announce">Announce</string>
+    <string name="schedule_type_short_command">Command</string>
 </resources>

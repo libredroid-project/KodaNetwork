@@ -715,4 +715,10 @@
     <string name="schedule_type_save">保存世界</string>
     <string name="schedule_mode_interval">每 N 分钟</string>
     <string name="schedule_mode_daily">每天固定时间</string>
+    <string name="console_scroll_bottom">跳到最新一行</string>
+    <string name="schedule_type_short_restart">重启</string>
+    <string name="schedule_type_short_stop">停机</string>
+    <string name="schedule_type_short_save">保存</string>
+    <string name="schedule_type_short_announce">公告</string>
+    <string name="schedule_type_short_command">命令</string>
 </resources>
