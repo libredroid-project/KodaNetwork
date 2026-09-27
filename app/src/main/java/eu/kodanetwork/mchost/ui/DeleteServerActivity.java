@@ -215,9 +215,10 @@ public class DeleteServerActivity extends AppCompatActivity {
                 
                 String anonKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
                 android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
-                String token = prefs.getString("koda_session_token", null);
-                if (token != null && token.trim().isEmpty()) token = null;
-                String authHeader = token != null ? "Bearer " + token : "Bearer " + anonKey;
+                // The RPC authorises with the device token in the body (fn_verify_device_token).
+                // The user's session token can be expired, which returned 401 and blocked the
+                // whole deletion, so the anon key is used here exactly like everywhere else.
+                String authHeader = "Bearer " + anonKey;
                 
                 // 2. Delete DNS Link
                 if (server.getSubdomain() != null && !server.getSubdomain().isEmpty()) {
@@ -259,23 +260,6 @@ public class DeleteServerActivity extends AppCompatActivity {
                     patchConn.getOutputStream().write(jsonPatch.getBytes());
                     int responseCode = patchConn.getResponseCode();
 
-                    if (responseCode == 401) {
-                        // Token might be expired, try to refresh
-                        if (eu.kodanetwork.mchost.network.supabase.SupabaseAuth.refreshTokenSync(this)) {
-                            // Token refreshed successfully, try again
-                            token = prefs.getString("koda_session_token", null);
-                            authHeader = token != null ? "Bearer " + token : "Bearer " + anonKey;
-
-                            patchConn = (java.net.HttpURLConnection) new java.net.URL(eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl() + "/rest/v1/rpc/rpc_patch_server").openConnection();
-                            patchConn.setRequestMethod("POST");
-                            patchConn.setRequestProperty("apikey", anonKey);
-                            patchConn.setRequestProperty("Authorization", authHeader);
-                            patchConn.setRequestProperty("Content-Type", "application/json");
-                            patchConn.setDoOutput(true);
-                            patchConn.getOutputStream().write(jsonPatch.getBytes());
-                            responseCode = patchConn.getResponseCode();
-                        }
-                    }
 
                     if (responseCode >= 400) {
                         String errBody = "";
