@@ -997,7 +997,90 @@
                             android:id="@+id/switch_power_saving"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track" />
+                    <!-- Battery and temperature warning while a server runs -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="8dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/notify_device_title" android:textColor="#FFFFFF" android:textSize="13sp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp" android:text="@string/notify_device_summary"
+                                android:textColor="#8A8A9A" android:textSize="11sp"/>
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_device_warnings"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track" />
                     </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_settings_resourcepack"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#241C18"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/rp_title" android:textColor="#FF6B00"
+                        android:textSize="11sp" android:fontFamily="@font/font_koda"
+                        android:letterSpacing="0.1" android:layout_marginBottom="12dp"/>
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/rp_url" android:textColor="#FFFFFF" android:textSize="13sp" android:layout_marginBottom="4dp"/>
+                    <EditText android:id="@+id/et_rp_url" android:layout_width="match_parent" android:layout_height="40dp"
+                        android:background="#1B1613" android:textColor="#FFFFFF" android:textSize="13sp"
+                        android:paddingStart="8dp" android:paddingEnd="8dp" android:hint="@string/rp_url_hint"/>
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/rp_prompt" android:textColor="#FFFFFF" android:textSize="13sp"
+                        android:layout_marginTop="12dp" android:layout_marginBottom="4dp"/>
+                    <EditText android:id="@+id/et_rp_prompt" android:layout_width="match_parent" android:layout_height="40dp"
+                        android:background="#1B1613" android:textColor="#FFFFFF" android:textSize="13sp"
+                        android:paddingStart="8dp" android:paddingEnd="8dp" android:hint="@string/rp_prompt_hint"/>
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/rp_sha1" android:textColor="#FFFFFF" android:textSize="13sp"
+                        android:layout_marginTop="12dp" android:layout_marginBottom="4dp"/>
+                    <EditText android:id="@+id/et_rp_sha1" android:layout_width="match_parent" android:layout_height="40dp"
+                        android:background="#1B1613" android:textColor="#FFFFFF" android:textSize="13sp"
+                        android:paddingStart="8dp" android:paddingEnd="8dp" android:hint="@string/rp_sha1_hint"/>
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="12dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/rp_require" android:textColor="#FFFFFF" android:textSize="13sp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp" android:text="@string/rp_require_summary"
+                                android:textColor="#8A8A9A" android:textSize="11sp"/>
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_rp_require"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb"
+                            app:trackTint="@color/switch_track" />
+                    </LinearLayout>
+
+                    <LinearLayout android:id="@+id/ll_rp_files"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical" android:layout_marginTop="12dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_rp_save"
+                        style="@style/KodaButton"
+                        android:layout_width="match_parent" android:layout_height="52dp"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/rp_save"
+                        android:textSize="13sp" android:fontFamily="@font/font_koda"
+                        app:cornerRadius="12dp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -1016,10 +1099,18 @@
                         android:textSize="11sp" android:fontFamily="@font/font_koda"
                         android:letterSpacing="0.1" android:layout_marginBottom="16dp"/>
                         
-                    <!-- MOTD -->
+                    <!-- MOTD with a small colour builder -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="16dp">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="MOTD" android:textColor="#FFFFFF" android:textSize="13sp" android:layout_marginBottom="4dp"/>
                         <EditText android:id="@+id/et_motd" android:layout_width="match_parent" android:layout_height="40dp" android:background="#1B1613" android:textColor="#FFFFFF" android:textSize="13sp" android:paddingStart="8dp" android:paddingEnd="8dp" android:hint="A Kodanetwork server"/>
+                        <LinearLayout android:id="@+id/ll_motd_codes"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:layout_marginTop="8dp"/>
+                        <TextView android:id="@+id/tv_motd_preview"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp" android:background="#1B1613"
+                            android:padding="8dp" android:textSize="14sp" android:fontFamily="@font/font_koda_mono"
+                            android:minHeight="36dp"/>
                     </LinearLayout>
 
                     <!-- Level Name -->

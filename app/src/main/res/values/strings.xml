@@ -744,4 +744,24 @@
     <string name="schedule_type_short_save">Save</string>
     <string name="schedule_type_short_announce">Announce</string>
     <string name="schedule_type_short_command">Command</string>
+
+    <!-- Resource pack card and device warnings -->
+    <string name="rp_title">RESOURCE PACK</string>
+    <string name="rp_url">Pack URL or file name</string>
+    <string name="rp_url_hint">pack.zip or https://example.com/pack.zip</string>
+    <string name="rp_prompt">Prompt shown to players</string>
+    <string name="rp_prompt_hint">Optional text while the pack loads</string>
+    <string name="rp_sha1">SHA-1 checksum</string>
+    <string name="rp_sha1_hint">Only needed for external URLs</string>
+    <string name="rp_require">Require the pack</string>
+    <string name="rp_require_summary">Players are asked to accept it before joining</string>
+    <string name="rp_files">Packs in the resourcepacks folder</string>
+    <string name="rp_files_empty">Nothing uploaded yet. Add files in the Files tab.</string>
+    <string name="rp_use">Use</string>
+    <string name="rp_save">Save resource pack</string>
+    <string name="rp_saved">Resource pack saved</string>
+    <string name="notify_device_title">Battery and heat warnings</string>
+    <string name="notify_device_summary">Notify me when the phone gets hot or the battery runs low</string>
+    <string name="notify_device_on">Warnings enabled</string>
+    <string name="notify_device_off">Warnings disabled</string>
 </resources>

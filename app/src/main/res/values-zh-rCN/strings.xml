@@ -721,4 +721,24 @@
     <string name="schedule_type_short_save">保存</string>
     <string name="schedule_type_short_announce">公告</string>
     <string name="schedule_type_short_command">命令</string>
+
+    <!-- 资源包与设备告警 -->
+    <string name="rp_title">资源包</string>
+    <string name="rp_url">资源包链接或文件名</string>
+    <string name="rp_url_hint">pack.zip 或 https://example.com/pack.zip</string>
+    <string name="rp_prompt">玩家看到的提示</string>
+    <string name="rp_prompt_hint">资源包加载时显示的可选文本</string>
+    <string name="rp_sha1">SHA-1 校验值</string>
+    <string name="rp_sha1_hint">仅外部链接需要</string>
+    <string name="rp_require">强制使用资源包</string>
+    <string name="rp_require_summary">玩家加入前必须接受</string>
+    <string name="rp_files">resourcepacks 目录中的资源包</string>
+    <string name="rp_files_empty">尚未上传。请在文件页添加文件。</string>
+    <string name="rp_use">使用</string>
+    <string name="rp_save">保存资源包</string>
+    <string name="rp_saved">资源包已保存</string>
+    <string name="notify_device_title">电量与温度告警</string>
+    <string name="notify_device_summary">手机过热或电量过低时提醒我</string>
+    <string name="notify_device_on">告警已开启</string>
+    <string name="notify_device_off">告警已关闭</string>
 </resources>

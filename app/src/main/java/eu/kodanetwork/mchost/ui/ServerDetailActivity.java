@@ -4156,6 +4156,143 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     /**
+     * Small colour builder under the MOTD field: one chip per colour plus the format codes.
+     * Tapping a chip inserts the code at the cursor, the preview below shows the result.
+     */
+    private void setupMotdBuilder(final android.widget.EditText etMotd) {
+        android.widget.LinearLayout codeRow = findViewById(R.id.ll_motd_codes);
+        final android.widget.TextView preview = findViewById(R.id.tv_motd_preview);
+        if (codeRow == null || etMotd == null) return;
+
+        codeRow.removeAllViews();
+        String[] colorCodes = {"a", "b", "c", "e", "6", "d", "9", "f"};
+        for (String code : colorCodes) {
+            final String value = "&" + code;
+            int color = eu.kodanetwork.mchost.util.MinecraftColors.colorFor(code.charAt(0));
+            com.google.android.material.button.MaterialButton chip =
+                    eu.kodanetwork.mchost.util.KodaButtons.make(this, value, color, 0xFF1D1714);
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                    (int) (40 * getResources().getDisplayMetrics().density), (int) (36 * getResources().getDisplayMetrics().density));
+            lp.setMargins(0, 0, (int) (6 * getResources().getDisplayMetrics().density), 0);
+            chip.setTextSize(12);
+            chip.setOnClickListener(v -> insertIntoMotd(etMotd, value));
+            codeRow.addView(chip, lp);
+        }
+        String[][] formats = {{"&l", "L"}, {"&o", "O"}, {"&n", "N"}, {"&r", "R"}};
+        for (String[] format : formats) {
+            com.google.android.material.button.MaterialButton chip =
+                    eu.kodanetwork.mchost.util.KodaButtons.make(this, format[1], 0xFF241C18, 0xFFE8E2D6);
+            chip.setTextSize(11);
+            chip.setOnClickListener(v -> insertIntoMotd(etMotd, format[0]));
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                    (int) (36 * getResources().getDisplayMetrics().density), (int) (36 * getResources().getDisplayMetrics().density));
+            lp.setMargins(0, 0, (int) (6 * getResources().getDisplayMetrics().density), 0);
+            codeRow.addView(chip, lp);
+        }
+
+        final Runnable refresh = () -> {
+            if (preview != null) {
+                preview.setText(eu.kodanetwork.mchost.util.MinecraftColors.toSpannable(etMotd.getText().toString()));
+            }
+        };
+        etMotd.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void afterTextChanged(android.text.Editable s) { refresh.run(); }
+        });
+        refresh.run();
+    }
+
+    /** Inserts a colour code at the cursor of the MOTD field. */
+    private void insertIntoMotd(android.widget.EditText field, String code) {
+        int start = Math.max(0, field.getSelectionStart());
+        field.getText().insert(start, code);
+    }
+
+    /**
+     * Resource pack card: the pack the server sends to every player, plus the files that are
+     * already in the resourcepacks folder.
+     */
+    private void setupResourcePackCard(final java.io.File propsFile, final java.util.Properties props) {
+        final android.widget.EditText etUrl = findViewById(R.id.et_rp_url);
+        final android.widget.EditText etPrompt = findViewById(R.id.et_rp_prompt);
+        final android.widget.EditText etSha1 = findViewById(R.id.et_rp_sha1);
+        final android.widget.CompoundButton switchRequire = findViewById(R.id.switch_rp_require);
+        android.view.View saveButton = findViewById(R.id.btn_rp_save);
+        if (etUrl == null) return;
+
+        etUrl.setText(props.getProperty("resource-pack", ""));
+        etPrompt.setText(props.getProperty("resource-pack-prompt", ""));
+        etSha1.setText(props.getProperty("resource-pack-sha1", ""));
+        if (switchRequire != null) {
+            switchRequire.setChecked("true".equalsIgnoreCase(props.getProperty("require-resource-pack", "false")));
+        }
+
+        final android.widget.LinearLayout fileList = findViewById(R.id.ll_rp_files);
+        java.io.File packDir = new java.io.File(server.getServerDir(), "resourcepacks");
+        java.io.File[] files = packDir.listFiles();
+        if (fileList != null) {
+            fileList.removeAllViews();
+            android.widget.TextView label = new android.widget.TextView(this);
+            label.setTextColor(0xFF8A8A9A);
+            label.setTextSize(11);
+            fileList.addView(label);
+            if (files == null || files.length == 0) {
+                label.setText(getString(R.string.rp_files_empty));
+            } else {
+                label.setText(getString(R.string.rp_files));
+                for (java.io.File file : files) {
+                    if (!file.isFile()) continue;
+                    android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+                    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                    android.widget.TextView name = new android.widget.TextView(this);
+                    name.setText(file.getName() + "  ·  "
+                            + eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()));
+                    name.setTextColor(0xFFE8E2D6);
+                    name.setTextSize(12.5f);
+                    name.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                            0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                    row.addView(name);
+                    com.google.android.material.button.MaterialButton use =
+                            eu.kodanetwork.mchost.util.KodaButtons.make(this, getString(R.string.rp_use),
+                                    0xFF241C18, 0xFFFFB68C);
+                    use.setTextSize(11);
+                    final java.io.File chosen = file;
+                    use.setOnClickListener(v -> etUrl.setText(chosen.getName()));
+                    row.addView(use);
+                    fileList.addView(row);
+                }
+            }
+        }
+
+        if (saveButton != null) {
+            saveButton.setOnClickListener(v -> {
+                java.util.Map<String, String> updates = new java.util.HashMap<>();
+                updates.put("resource-pack", etUrl.getText().toString().trim());
+                updates.put("resource-pack-prompt", etPrompt.getText().toString().trim());
+                updates.put("resource-pack-sha1", etSha1.getText().toString().trim());
+                updates.put("require-resource-pack",
+                        String.valueOf(switchRequire != null && switchRequire.isChecked()));
+                writePropsEntries(propsFile, updates);
+                toast(getString(R.string.rp_saved));
+            });
+        }
+    }
+
+    /** Battery and temperature warnings while a server hosts (pref used by the service). */
+    private void setupDeviceWarningSwitch() {
+        com.google.android.material.switchmaterial.SwitchMaterial sw = findViewById(R.id.switch_device_warnings);
+        if (sw == null) return;
+        android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
+        sw.setChecked(prefs.getBoolean("notify_device_warnings", true));
+        sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean("notify_device_warnings", isChecked).apply();
+            toast(getString(isChecked ? R.string.notify_device_on : R.string.notify_device_off));
+        });
+    }
+
+    /**
      * Wires the "Automatik & Backups" card in the settings tab. The card itself lives in
      * activity_server_detail.xml so it uses the same colours, fonts and shapes as the rest.
      */
@@ -4653,6 +4790,10 @@ public class ServerDetailActivity extends AppCompatActivity {
         setupExtrasCard();
         // Automation: jobs are created here and executed by the app service
         setupScheduleCard();
+        // MOTD colour builder, resource pack card and the device warning switch
+        setupMotdBuilder(etMotd);
+        setupResourcePackCard(propsFile, props);
+        setupDeviceWarningSwitch();
 
         // Initialize values
         etMaxPlayers.setText(props.getProperty("max-players", "20"));
