@@ -1,0 +1,9 @@
+[Unit]
+Description=KodaHosting HTTPS sync (certificates + nginx vhosts for KodaDash dashboards)
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/koda-monitor.env
+ExecStart=/opt/koda-https/setup-kodadash-https.sh

@@ -76,7 +76,12 @@ for s in json.load(sys.stdin):
         run certbot certonly --webroot -w "$WEBROOT" -d "$name" --non-interactive --agree-tos -m "$CERT_EMAIL" --keep-until-expiring
     else
         log "issuing certificate for ${name}"
-        run certbot certonly --webroot -w "$WEBROOT" -d "$name" --non-interactive --agree-tos -m "$CERT_EMAIL" --keep-until-expiring
+        if ! run certbot certonly --webroot -w "$WEBROOT" -d "$name" --non-interactive --agree-tos -m "$CERT_EMAIL" --keep-until-expiring; then
+            # One host without a (propagated) DNS record must not stop the others - the next timer
+            # run picks it up again.
+            log "certificate for ${name} failed (DNS record live yet?) - skipping this host"
+            continue
+        fi
     fi
 
     if [ ! -d "/etc/letsencrypt/live/${name}" ] && [ "$DRY_RUN" = "0" ]; then
@@ -121,12 +126,22 @@ if [ "$DRY_RUN" = "1" ]; then
     exit 0
 fi
 
+# This script is meant to run from a timer, so it must not reload nginx on every run.
+BEFORE=$(cat "$CONF" 2>/dev/null; for f in "$HTTPS_DIR"/*.conf "$HTTP_DIR"/*.conf; do [ -e "$f" ] && cat "$f"; done | md5sum)
+
 cat > "$CONF" <<'CONF'
 # Managed by vps-https/setup-kodadash-https.sh
 # https://<server>.kodaserv.eu -> tunneled KodaDash dashboard of that server
 include /etc/nginx/kodadash-http/*.conf;
 include /etc/nginx/kodadash/*.conf;
 CONF
+
+AFTER=$(cat "$CONF"; for f in "$HTTPS_DIR"/*.conf "$HTTP_DIR"/*.conf; do [ -e "$f" ] && cat "$f"; done | md5sum)
+
+if [ "$BEFORE" = "$AFTER" ]; then
+    log "configuration unchanged - nothing to reload"
+    exit 0
+fi
 
 if nginx -t; then
     systemctl reload nginx

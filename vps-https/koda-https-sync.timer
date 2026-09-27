@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep the KodaDash HTTPS configuration in sync with the server list
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+AccuracySec=30s
+Unit=koda-https-sync.service
+
+[Install]
+WantedBy=timers.target
