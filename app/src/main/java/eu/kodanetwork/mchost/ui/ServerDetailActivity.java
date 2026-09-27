@@ -4196,9 +4196,8 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
         toast(getString(R.string.version_switch_loading));
         new Thread(() -> {
-            java.util.List<String> fetched = eu.kodanetwork.mchost.util.PaperMCDownloader.fetchPaperVersions();
-            final java.util.List<String> versions = fetched.size() > 40
-                    ? new java.util.ArrayList<>(fetched.subList(0, 40)) : fetched;
+            // Full list, newest first - identical to the one the setup wizard shows
+            final java.util.List<String> versions = eu.kodanetwork.mchost.util.PaperMCDownloader.fetchPaperVersions();
             runOnUiThread(() -> {
                 if (versions.isEmpty()) {
                     toast(getString(R.string.version_switch_failed));

@@ -166,16 +166,15 @@ public class PaperMCDownloader {
         String json = fetchJson(API_BASE_URL);
         if (json == null) return versions;
         try {
-            // Every entry in the order the API returns it - exactly the list the setup wizard
-            // shows, so both pickers offer the same versions in the same order
-            org.json.JSONObject root = new org.json.JSONObject(json);
-            org.json.JSONObject families = root.getJSONObject("versions");
-            java.util.Iterator<String> keys = families.keys();
-            while (keys.hasNext()) {
-                String family = keys.next();
-                org.json.JSONArray arr = families.getJSONArray(family);
-                for (int i = 0; i < arr.length(); i++) {
-                    String version = arr.getString(i).trim();
+            // Gson keeps the order of the response; org.json uses a HashMap and would return
+            // the version families in a random order, which mixed old and new versions.
+            com.google.gson.JsonObject root =
+                    com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+            com.google.gson.JsonObject families = root.getAsJsonObject("versions");
+            for (java.util.Map.Entry<String, com.google.gson.JsonElement> family : families.entrySet()) {
+                com.google.gson.JsonArray arr = family.getValue().getAsJsonArray();
+                for (int i = 0; i < arr.size(); i++) {
+                    String version = arr.get(i).getAsString().trim();
                     // Release versions only: pre-releases and RCs (1.21.11-rc3) are not what
                     // anybody hosts a world on, and they would land on the "stable" label
                     if (version.isEmpty() || version.contains("-")) continue;
@@ -185,6 +184,8 @@ public class PaperMCDownloader {
         } catch (Exception e) {
             return versions;
         }
+        // Newest first, independent of how the API ordered the families
+        versions.sort((a, b) -> MinecraftVersion.compare(b, a));
         return versions;
     }
 

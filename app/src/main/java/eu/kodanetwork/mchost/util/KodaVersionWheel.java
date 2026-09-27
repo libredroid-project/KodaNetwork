@@ -49,7 +49,7 @@ public final class KodaVersionWheel {
         final BottomSheetDialog sheet = new BottomSheetDialog(activity, R.style.KodaBottomSheetDialog);
         LinearLayout container = new LinearLayout(activity);
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(0, 0, 0, (int) (48 * density));
+        container.setPadding(0, 0, 0, 48); // px, exactly like the picker in the setup
 
         // Drag handle on the rounded top of the sheet
         View handle = new View(activity);
@@ -168,7 +168,9 @@ public final class KodaVersionWheel {
                 activity.getString(R.string.version_picker_confirm));
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (int) (56 * density));
-        btnLp.setMargins((int) (48 * density), (int) (20 * density), (int) (48 * density), (int) (24 * density));
+        // Side margins in px, exactly like the picker in the setup (dp here made the button
+        // much narrower than the one in the create-server flow)
+        btnLp.setMargins(48, (int) (20 * density), 48, (int) (24 * density));
         btnConfirm.setOnClickListener(v -> {
             String picked = versions.get(currentPos[0]);
             sheet.dismiss();
