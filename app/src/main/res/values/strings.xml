@@ -658,4 +658,51 @@
     </plurals>
     <string name="brand_kodahosting">KodaHosting</string>
     <string name="overload_limits">Limits: %1$d%% memory - %2$d connections - %3$d tunnels</string>
+
+    <!-- Settings tab: automation, backups, pre-generation, power saving -->
+    <string name="extras_title">Backups &amp; power saving</string>
+    <string name="extras_subtitle">Runs in the app: no command needed while you are away.</string>
+    <string name="extras_backups">Backups</string>
+    <string name="extras_backups_summary">World, configs and plugins as one ZIP</string>
+    <string name="extras_backup_mode">When should a backup be created?</string>
+    <string name="extras_backup_off">Off</string>
+    <string name="extras_backup_daily">Daily</string>
+    <string name="extras_backup_stop">On stop</string>
+    <string name="extras_backup_keep">Keep %1$d copies</string>
+    <string name="extras_backup_none">No backups yet.</string>
+    <string name="extras_backup_list">%1$d backups, %2$s in total</string>
+    <string name="extras_backup_now">Back up now</string>
+    <string name="extras_backup_restore">Restore</string>
+    <string name="extras_backup_restore_warning">The server folder is replaced with the state from %1$s. The current files are kept until the restore succeeds.</string>
+    <string name="extras_backup_delete">Delete</string>
+    <string name="extras_backup_started">Backup running…</string>
+    <string name="extras_backup_done">Backup saved (%1$s)</string>
+    <string name="extras_backup_failed">Backup failed</string>
+    <string name="extras_backup_restoring">Restoring…</string>
+    <string name="extras_backup_restored">Backup restored</string>
+    <string name="extras_backup_stop_first">Stop the server before restoring a backup.</string>
+    <string name="extras_pregen">Pre-generate the world</string>
+    <string name="extras_pregen_summary">Runs Chunky on the first start (removes lag from new terrain)</string>
+    <string name="extras_pregen_on">World will be pre-generated on the next start</string>
+    <string name="extras_pregen_off">Pre-generation disabled</string>
+    <string name="extras_autoscroll">Console follows the newest line</string>
+    <string name="extras_autoscroll_summary">Turn off to read the log while the server keeps writing</string>
+    <string name="extras_power">Power saving</string>
+    <string name="extras_power_summary">Lowers the view distance while nobody is online</string>
+    <string name="extras_power_on">Power saving enabled</string>
+    <string name="extras_power_off">Power saving disabled</string>
+    <string name="extras_power_needs_dash">Turn on KodaDash once so the setting can be stored.</string>
+
+    <!-- Sign out and deleting a server -->
+    <string name="logout_confirm_title">Sign out?</string>
+    <string name="logout_confirm_text">Your servers keep running on this phone. You only need to sign in again to manage them.</string>
+    <string name="logout_confirm_yes">Sign out</string>
+    <string name="delete_confirm_title">Delete %1$s?</string>
+    <string name="delete_confirm_text">This removes the world, configs and plugins for good. Type the server name to confirm.</string>
+    <string name="delete_confirm_hint">Server name</string>
+    <string name="delete_confirm_yes">Delete for good</string>
+    <string name="delete_confirm_wrong">The name does not match - nothing was deleted.</string>
+
+    <string name="extras_backups_subtitle">World, configs and plugins as one ZIP, stored next to the app.</string>
+    <string name="extras_backup_hint">Restoring replaces the server folder with the chosen state. The server has to be stopped.</string>
 </resources>

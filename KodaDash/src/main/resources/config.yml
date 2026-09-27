@@ -78,3 +78,25 @@ server-actions:
 stats-file:
   enabled: true
   interval-seconds: 10
+
+# Rolling history for the dashboard charts (kept in memory, one series per server run).
+stats-history:
+  enabled: true
+  interval-seconds: 10
+  minutes: 60
+
+# Scheduled automation (dashboard -> Settings -> Automation).
+# Jobs live in plugins/KodaDash/schedule.json.
+schedule:
+  enabled: true
+  # How long before a scheduled restart/stop players are warned (seconds)
+  warn-seconds: 300
+  # Countdown used when a scheduled restart/stop fires
+  restart-countdown-seconds: 15
+
+# Power saving: lower the view distance while nobody is online.
+efficiency:
+  enabled: false
+  idle-minutes: 10
+  view-distance: 4
+  simulation-distance: 4

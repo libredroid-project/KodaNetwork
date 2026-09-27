@@ -78,6 +78,14 @@ public class ServerInstance {
     
     public java.util.Map<String, String> pluginVersions = new java.util.HashMap<>();
     private String lastBackupTime;
+
+    // Backups, world pre-generation and console behaviour travel with the server
+    private String backupMode = "off";       // off | daily | on_stop
+    private int backupKeep = 3;              // how many ZIPs to keep
+    private boolean pregenerate = false;     // run Chunky on the first start
+    private boolean pregenerateDone = false; // pre-generation already started
+    private long lastBackupAt = 0L;
+    private boolean consoleAutoScroll = true;
     
     private String customDomain = "";
     private String baseDomain = "kodanetwork.eu";
@@ -121,6 +129,19 @@ public class ServerInstance {
     public void setType(Type t) { this.type = t; }
     public void setPort(int port) { this.port = port; }
 
+    public String getBackupMode() { return backupMode; }
+    public void setBackupMode(String mode) { this.backupMode = mode == null ? "off" : mode; }
+    public int getBackupKeep() { return backupKeep; }
+    public void setBackupKeep(int keep) { this.backupKeep = Math.max(1, Math.min(20, keep)); }
+    public boolean isPregenerate() { return pregenerate; }
+    public void setPregenerate(boolean value) { this.pregenerate = value; }
+    public boolean isPregenerateDone() { return pregenerateDone; }
+    public void setPregenerateDone(boolean value) { this.pregenerateDone = value; }
+    public long getLastBackupAt() { return lastBackupAt; }
+    public void setLastBackupAt(long value) { this.lastBackupAt = value; }
+    public boolean isConsoleAutoScroll() { return consoleAutoScroll; }
+    public void setConsoleAutoScroll(boolean value) { this.consoleAutoScroll = value; }
+
     public String getFormattedUptime() {
         if (startTime == 0 || !isRunning()) return "--:--:--";
         long s = (System.currentTimeMillis() - startTime) / 1000;
@@ -151,6 +172,12 @@ public class ServerInstance {
         j.put("lastActive", lastActive);
         j.put("customDomain", customDomain);
         j.put("baseDomain", baseDomain);
+        j.put("backupMode", backupMode);
+        j.put("backupKeep", backupKeep);
+        j.put("pregenerate", pregenerate);
+        j.put("pregenerateDone", pregenerateDone);
+        j.put("lastBackupAt", lastBackupAt);
+        j.put("consoleAutoScroll", consoleAutoScroll);
         if (state == State.HIBERNATED) {
             j.put("isHibernated", true);
         }
@@ -202,6 +229,12 @@ public class ServerInstance {
         s.lastActive     = j.optLong("lastActive", System.currentTimeMillis());
         s.customDomain   = j.optString("customDomain", "");
         s.baseDomain     = j.optString("baseDomain", "kodanetwork.eu");
+        s.backupMode        = j.optString("backupMode", "off");
+        s.backupKeep        = j.optInt("backupKeep", 3);
+        s.pregenerate       = j.optBoolean("pregenerate", false);
+        s.pregenerateDone   = j.optBoolean("pregenerateDone", false);
+        s.lastBackupAt      = j.optLong("lastBackupAt", 0L);
+        s.consoleAutoScroll = j.optBoolean("consoleAutoScroll", true);
         if (j.optBoolean("isHibernated", false)) {
             s.state = State.HIBERNATED;
         }

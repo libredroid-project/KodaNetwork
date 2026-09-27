@@ -104,6 +104,22 @@ public class ServerActionRoute extends RouteHandler {
         sendJson(exchange, 200, response);
     }
 
+    /**
+     * Queue a restart or stop with a player countdown. The scheduler uses this too, so a
+     * scheduled restart warns players exactly like one started from the dashboard.
+     *
+     * @return true when the action was queued, false when one is already pending or disabled
+     */
+    public boolean request(String action, int seconds) {
+        if (!plugin.getConfig().getBoolean("server-actions.enabled", true)) return false;
+        if (!"restart".equals(action) && !"stop".equals(action)) return false;
+        if ("stop".equals(action) && !plugin.getConfig().getBoolean("server-actions.allow-stop", true)) return false;
+        if (pendingAction != null) return false;
+        if (seconds < 5) seconds = 5;
+        startCountdown(action, seconds);
+        return true;
+    }
+
     private void startCountdown(final String action, final int seconds) {
         pendingAction = action;
         pendingSeconds = seconds;

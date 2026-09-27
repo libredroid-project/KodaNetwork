@@ -14,7 +14,9 @@ package de.kodahosting.kodadash;
 import de.kodahosting.kodadash.auth.AuthManager;
 import de.kodahosting.kodadash.commands.DashCommand;
 import de.kodahosting.kodadash.managers.ConsoleManager;
+import de.kodahosting.kodadash.managers.EfficiencyManager;
 import de.kodahosting.kodadash.managers.FileManager;
+import de.kodahosting.kodadash.managers.ScheduleManager;
 import de.kodahosting.kodadash.managers.StatsManager;
 import de.kodahosting.kodadash.server.DashServer;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -30,6 +32,8 @@ public class KodaDash extends JavaPlugin {
     private ConsoleManager consoleManager;
     private StatsManager statsManager;
     private FileManager fileManager;
+    private ScheduleManager scheduleManager;
+    private EfficiencyManager efficiencyManager;
     private DashServer dashServer;
 
     @Override
@@ -43,6 +47,8 @@ public class KodaDash extends JavaPlugin {
         consoleManager = new ConsoleManager(this);
         statsManager = new StatsManager(this);
         fileManager = new FileManager(this);
+        scheduleManager = new ScheduleManager(this);
+        efficiencyManager = new EfficiencyManager(this);
         dashServer = new DashServer(this);
         
         getCommand("kodadash").setExecutor(new DashCommand(this));
@@ -93,6 +99,15 @@ public class KodaDash extends JavaPlugin {
         if (dashServer != null) {
             dashServer.stop();
         }
+        if (scheduleManager != null) {
+            scheduleManager.shutdown();
+        }
+        if (efficiencyManager != null) {
+            efficiencyManager.shutdown();
+        }
+        if (statsManager != null) {
+            statsManager.shutdown();
+        }
         if (consoleManager != null) {
             consoleManager.cleanup();
         }
@@ -119,5 +134,7 @@ public class KodaDash extends JavaPlugin {
     public ConsoleManager getConsoleManager() { return consoleManager; }
     public StatsManager getStatsManager() { return statsManager; }
     public FileManager getFileManager() { return fileManager; }
+    public ScheduleManager getScheduleManager() { return scheduleManager; }
+    public EfficiencyManager getEfficiencyManager() { return efficiencyManager; }
     public DashServer getDashServer() { return dashServer; }
 }

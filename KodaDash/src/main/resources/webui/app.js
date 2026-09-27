@@ -315,6 +315,7 @@ function loadOverview() {
         renderOverviewPlayers();
 
         $('stat-uptime').textContent = formatUptime(d.uptime);
+        loadMetrics(false);
 
         $('info-version').textContent = d.version || '--';
         $('info-motd').innerHTML = parseMinecraftColors(d.motd || '--');
@@ -884,6 +885,11 @@ function playerActions(p) {
     return [
         { action: 'heal', label: 'Heal', tone: 'ok', icon: 'i-favorite', player: p.name },
         { action: 'feed', label: 'Feed', tone: 'ok', icon: 'i-restaurant', player: p.name },
+        { action: 'gamemode', label: 'Gamemode', tone: 'neutral', icon: 'i-tune', player: p.name },
+        { action: 'teleport', label: 'Teleport', tone: 'neutral', icon: 'i-open_in_new', player: p.name },
+        { action: 'xp', label: 'Experience', tone: 'neutral', icon: 'i-star', player: p.name },
+        { action: 'enderchest', label: 'Ender chest', tone: 'neutral', icon: 'i-label', player: p.name },
+        { action: 'advancements', label: 'Reset progress', tone: 'warn', icon: 'i-wipe', player: p.name },
         // One button per stateful action: while it is on, the button turns it off again.
         p.isOp
             ? { action: 'op', altAction: 'deop', state: 'on', label: 'Remove OP', tone: 'warn', icon: 'i-star', player: p.name }
@@ -1128,7 +1134,43 @@ var DANGEROUS_PLAYER_ACTIONS = { kick: 1, ban: 1, wipe: 1, kill: 1, starve: 1 };
 
 function runPlayerAction(action, playerName) {
     var chain;
-    if (DANGEROUS_PLAYER_ACTIONS[action]) {
+    if (action === 'gamemode') {
+        chain = choiceDialog('Gamemode for ' + playerName, 'Pick the mode this player should play in.', [
+            { value: 'survival', label: 'Survival' },
+            { value: 'creative', label: 'Creative' },
+            { value: 'adventure', label: 'Adventure' },
+            { value: 'spectator', label: 'Spectator' }
+        ]).then(function (mode) {
+            return mode ? { player: playerName, mode: mode } : null;
+        });
+    } else if (action === 'enderchest') {
+        openEnderChest(playerName);
+        return;
+    } else if (action === 'xp') {
+        chain = confirmDialog('Experience for ' + playerName,
+                'Positive numbers give experience, negative numbers take it away. Add "levels" for whole levels.',
+                true, 'e.g. 30 levels or 500 points', '10 levels')
+            .then(function (value) {
+                if (!value) return null;
+                var match = String(value).trim().match(/^(-?\d+)\s*(levels?|points?)?$/i);
+                if (!match) { showToast('Use a number, optionally followed by levels or points', 'err'); return null; }
+                var type = match[2] ? (/^l/i.test(match[2]) ? 'levels' : 'points') : 'points';
+                return { player: playerName, amount: parseInt(match[1], 10), type: type };
+            });
+    } else if (action === 'teleport') {
+        chain = confirmDialog('Teleport ' + playerName, 'Enter a player name or coordinates like 100 64 -240.', true, 'Target', '')
+            .then(function (value) {
+                if (!value) return null;
+                var coords = String(value).trim().match(/^(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)$/);
+                if (coords) {
+                    return { player: playerName, x: coords[1], y: coords[2], z: coords[3] };
+                }
+                return { player: playerName, target: String(value).trim() };
+            });
+    } else if (action === 'advancements') {
+        chain = confirmDialog('Reset progress', 'Revoke every advancement of ' + playerName + '?', false)
+            .then(function (ok) { return ok ? { player: playerName } : null; });
+    } else if (DANGEROUS_PLAYER_ACTIONS[action]) {
         chain = confirmDialog('Confirm ' + action, 'Really ' + action + ' ' + playerName + '?', true, 'Reason (optional)', '')
             .then(function (result) {
                 if (result === false) return null;
@@ -1481,6 +1523,7 @@ function loadSettings() {
         state.settings = d.properties || {};
         state.settingsDirty = {};
         renderSettings();
+        renderTools();
     }).catch(function (e) {
         container.innerHTML = '<div class="empty-state">' + escapeHtml(e.message) + '</div>';
     });
@@ -1787,6 +1830,556 @@ function init() {
         if (savedPassword) $('password-input').value = savedPassword;
         doLogin();
     }
+}
+
+/* ==========================================================================
+   Automation, power saving, MOTD builder, resource packs and metrics history
+   ========================================================================== */
+
+var SCHEDULE_TYPES = [
+    { value: 'restart', label: 'Restart' },
+    { value: 'stop', label: 'Shutdown' },
+    { value: 'announce', label: 'Announcement' },
+    { value: 'command', label: 'Command' },
+    { value: 'save', label: 'Save world' }
+];
+
+var MOTD_COLOURS = {
+    '0': '#000000', '1': '#0000AA', '2': '#00AA00', '3': '#00AAAA', '4': '#AA0000',
+    '5': '#AA00AA', '6': '#FFAA00', '7': '#AAAAAA', '8': '#555555', '9': '#5555FF',
+    'a': '#55FF55', 'b': '#55FFFF', 'c': '#FF5555', 'd': '#FF55FF', 'e': '#FFFF55', 'f': '#FFFFFF'
+};
+
+var scheduleDraft = { id: '', type: 'restart', mode: 'interval' };
+
+/** Copies text to the clipboard, falling back to a hidden textarea on plain HTTP. */
+function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve) {
+        var area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(area);
+        resolve();
+    });
+}
+
+/** Choice dialog: resolves with the picked value or false. */
+function choiceDialog(title, message, options) {
+    return new Promise(function (resolve) {
+        $('choice-title').textContent = title;
+        $('choice-message').textContent = message || '';
+        var box = $('choice-options');
+        box.innerHTML = '';
+        function cleanup() {
+            $('choice-cancel').onclick = null;
+            closeModal('choice-overlay');
+        }
+        options.forEach(function (opt) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chip';
+            btn.textContent = opt.label;
+            btn.addEventListener('click', function () { cleanup(); resolve(opt.value); });
+            box.appendChild(btn);
+        });
+        $('choice-cancel').onclick = function () { cleanup(); resolve(false); };
+        openModal('choice-overlay');
+    });
+}
+
+/** Renders everything on the settings tab that is not plain server.properties. */
+function renderTools() {
+    var container = $('settings-tools');
+    if (!container) return;
+    container.innerHTML = ''
+        + '<div class="card" style="margin-bottom:16px">'
+        +   '<div class="card-title-row"><h2 class="card-title">Automation</h2>'
+        +   '<button class="btn btn-tonal btn-sm" id="schedule-add">'
+        +   '<svg class="icon icon-sm"><use href="icons.svg#i-add"></use></svg> Add job</button></div>'
+        +   '<p class="card-sub">Scheduled restarts, commands and announcements, in the server time zone. '+'Restarts warn players in advance.</p>'
+        +   '<div id="schedule-list" class="tools-list"><div class="muted small">Loading…</div></div>'
+        + '</div>'
+        + '<div class="card" style="margin-bottom:16px">'
+        +   '<h2 class="card-title">Backups</h2>'
+        +   '<p class="card-sub">Created by the app: world, configs and plugins in one ZIP. '
+        +   'Restoring happens in the app, the list here shows what exists.</p>'
+        +   '<div id="backup-list" class="tools-list"><div class="muted small">Loading…</div></div>'
+        + '</div>'
+        + '<div class="card" style="margin-bottom:16px">'
+        +   '<div class="card-title-row"><h2 class="card-title">Power saving</h2>'
+        +   '<label class="switch-row"><input type="checkbox" id="eff-enabled"><span>Active</span></label></div>'
+        +   '<p class="card-sub">While nobody is online the view and simulation distance are lowered, which saves '
+        +   'battery and heat on the phone. They are restored as soon as a player joins.</p>'
+        +   '<div class="row" style="gap:12px;flex-wrap:wrap">'
+        +     '<div class="field" style="margin:0"><label for="eff-minutes">Idle minutes</label>'
+        +     '<input type="number" id="eff-minutes" class="input" min="1" max="240" style="max-width:120px"></div>'
+        +     '<div class="field" style="margin:0"><label for="eff-view">View distance</label>'
+        +     '<input type="number" id="eff-view" class="input" min="2" max="32" style="max-width:120px"></div>'
+        +     '<div class="field" style="margin:0"><label for="eff-sim">Simulation distance</label>'
+        +     '<input type="number" id="eff-sim" class="input" min="2" max="32" style="max-width:120px"></div>'
+        +   '</div>'
+        +   '<div class="row" style="margin-top:12px"><button class="btn btn-filled btn-sm" id="eff-save">Save</button>'
+        +   '<span class="muted small" id="eff-state"></span></div>'
+        + '</div>'
+        + '<div class="card" style="margin-bottom:16px">'
+        +   '<h2 class="card-title">Message of the day</h2>'
+        +   '<p class="card-sub">Colour codes: &amp;a-&amp;f colours, &amp;l bold, &amp;o italic, &amp;n underline, &amp;r reset.</p>'
+        +   '<input type="text" id="motd-input" class="input" maxlength="200" placeholder="Welcome to the server">'
+        +   '<div class="motd-preview" id="motd-preview"></div>'
+        +   '<div class="row" style="margin-top:10px"><button class="btn btn-filled btn-sm" id="motd-save">Save MOTD</button>'
+        +   '<button class="btn btn-text btn-sm" id="motd-clear">Reset codes</button></div>'
+        + '</div>'
+        + '<div class="card" style="margin-bottom:16px">'
+        +   '<h2 class="card-title">Resource pack</h2>'
+        +   '<p class="card-sub">Packs in <span class="mono">resourcepacks/</span> can be served to every player. '
+        +   'Use the file name for local packs or a full URL for external ones.</p>'
+        +   '<div class="field"><label for="rp-url">Pack URL or file name</label>'
+        +   '<input type="text" id="rp-url" class="input" placeholder="pack.zip"></div>'
+        +   '<div class="field"><label for="rp-prompt">Prompt shown to players (optional)</label>'
+        +   '<input type="text" id="rp-prompt" class="input" placeholder="This server uses a resource pack"></div>'
+        +   '<div class="field"><label for="rp-sha1">SHA-1 of the pack (optional, recommended for URLs)</label>'
+        +   '<input type="text" id="rp-sha1" class="input"></div>'
+        +   '<label class="switch-row"><input type="checkbox" id="rp-require">'
+        +   '<span>Require the pack to join (players are kicked while it loads)</span></label>'
+        +   '<div id="rp-files" class="tools-list"></div>'
+        +   '<div class="row" style="margin-top:12px"><button class="btn btn-filled btn-sm" id="rp-save">Save</button>'
+        +   '<button class="btn btn-outlined btn-sm" id="rp-copy">Copy URL</button>'
+        +   '<button class="btn btn-text btn-sm" id="rp-clear">Clear pack</button></div>'
+        + '</div>';
+
+    $('schedule-add').addEventListener('click', function () { openScheduleEditor(null); });
+    $('eff-save').addEventListener('click', saveEfficiency);
+    $('motd-input').addEventListener('input', updateMotdPreview);
+    $('motd-save').addEventListener('click', saveMotd);
+    $('motd-clear').addEventListener('click', function () {
+        $('motd-input').value = $('motd-input').value.replace(/&[0-9a-fklmnor]/gi, '');
+        updateMotdPreview();
+    });
+    $('rp-save').addEventListener('click', saveResourcePack);
+    $('rp-copy').addEventListener('click', function () {
+        var value = ($('rp-url').value || '').trim();
+        if (!value) { showToast('No pack configured', 'err'); return; }
+        copyText(value).then(function () { showToast('Pack URL copied', 'ok'); });
+    });
+    $('rp-clear').addEventListener('click', function () {
+        $('rp-url').value = '';
+        $('rp-sha1').value = '';
+        $('rp-prompt').value = '';
+        $('rp-require').checked = false;
+        saveResourcePack();
+    });
+
+    initScheduleEditor();
+    loadSchedule();
+    loadBackupList();
+    loadEfficiency();
+    loadMotd();
+    loadResourcePack();
+}
+
+/* ------------------------------------------------------------- automation */
+
+function loadSchedule() {
+    var list = $('schedule-list');
+    if (!list) return;
+    api('/api/schedule').then(function (d) {
+        var jobs = d.jobs || [];
+        if (!jobs.length) {
+            list.innerHTML = '<div class="muted small">No jobs yet. A nightly restart and a world save at '
+                + 'midday are the usual starting point.</div>';
+            return;
+        }
+        list.innerHTML = jobs.map(scheduleRow).join('');
+        var rows = list.querySelectorAll('[data-schedule-action]');
+        for (var i = 0; i < rows.length; i++) {
+            rows[i].addEventListener('click', function (ev) {
+                ev.stopPropagation();
+                var action = this.getAttribute('data-schedule-action');
+                var id = this.getAttribute('data-schedule-id');
+                if (action === 'edit') openScheduleEditor(id);
+                else if (action === 'remove') {
+                    confirmDialog('Delete job', 'Remove this scheduled job?', false).then(function (ok) {
+                        if (!ok) return;
+                        api('/api/schedule', { method: 'POST', body: { action: 'remove', id: id } })
+                            .then(function () { showToast('Job removed', 'ok'); loadSchedule(); })
+                            .catch(function (e) { showToast(e.message, 'err'); });
+                    });
+                } else if (action === 'run') {
+                    api('/api/schedule', { method: 'POST', body: { action: 'run', id: id } })
+                        .then(function (r) { showToast(r.result || 'Job started', 'ok'); loadSchedule(); })
+                        .catch(function (e) { showToast(e.message, 'err'); });
+                } else if (action === 'toggle') {
+                    var job = jobs.filter(function (j) { return j.id === id; })[0];
+                    if (!job) return;
+                    job.enabled = !job.enabled;
+                    api('/api/schedule', { method: 'POST', body: { action: 'save', entry: job } })
+                        .then(function () { loadSchedule(); })
+                        .catch(function (e) { showToast(e.message, 'err'); });
+                }
+            });
+        }
+    }).catch(function (e) {
+        list.innerHTML = '<div class="muted small">' + escapeHtml(e.message) + '</div>';
+    });
+}
+
+function scheduleRow(job) {
+    var typeLabel = (SCHEDULE_TYPES.filter(function (t) { return t.value === job.type; })[0] || {}).label || job.type;
+    var detail = job.type === 'announce' || job.type === 'command' ? (job.value || '') : '';
+    return '<div class="tools-row' + (job.enabled ? '' : ' muted') + '">'
+        + '<div class="tools-main">'
+        +   '<div class="tools-title">' + escapeHtml(typeLabel)
+        +   (job.onlyWhenEmpty ? ' <span class="badge badge-muted">only when empty</span>' : '')
+        +   (!job.enabled ? ' <span class="badge badge-muted">paused</span>' : '') + '</div>'
+        +   '<div class="tools-meta">' + escapeHtml(job.description || '')
+        +   (job.nextRunText ? ' · next ' + escapeHtml(job.nextRunText) : '') + '</div>'
+        +   (detail ? '<div class="tools-meta mono">' + escapeHtml(detail) + '</div>' : '')
+        + '</div>'
+        + '<div class="tools-actions">'
+        +   '<button class="btn btn-text btn-sm" data-schedule-action="run" data-schedule-id="' + job.id + '">Run now</button>'
+        +   '<button class="btn btn-text btn-sm" data-schedule-action="toggle" data-schedule-id="' + job.id + '">'
+        +   (job.enabled ? 'Pause' : 'Resume') + '</button>'
+        +   '<button class="btn btn-text btn-sm" data-schedule-action="edit" data-schedule-id="' + job.id + '">Edit</button>'
+        +   '<button class="btn btn-text btn-sm danger" data-schedule-action="remove" data-schedule-id="' + job.id + '">Delete</button>'
+        + '</div></div>';
+}
+
+function initScheduleEditor() {
+    var typeBox = $('schedule-type');
+    var modeBox = $('schedule-mode');
+    typeBox.innerHTML = SCHEDULE_TYPES.map(function (t) {
+        return '<button type="button" class="chip" data-schedule-type="' + t.value + '">' + t.label + '</button>';
+    }).join('');
+    modeBox.innerHTML = ''
+        + '<button type="button" class="chip" data-schedule-mode="interval">Every N minutes</button>'
+        + '<button type="button" class="chip" data-schedule-mode="daily">Daily at a time</button>';
+
+    typeBox.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('[data-schedule-type]');
+        if (!btn) return;
+        scheduleDraft.type = btn.getAttribute('data-schedule-type');
+        syncScheduleEditor();
+    });
+    modeBox.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('[data-schedule-mode]');
+        if (!btn) return;
+        scheduleDraft.mode = btn.getAttribute('data-schedule-mode');
+        syncScheduleEditor();
+    });
+    $('schedule-close').addEventListener('click', function () { closeModal('schedule-overlay'); });
+    $('schedule-cancel').addEventListener('click', function () { closeModal('schedule-overlay'); });
+    $('schedule-submit').addEventListener('click', saveScheduleJob);
+}
+
+function openScheduleEditor(id) {
+    if (!id) { fillScheduleEditor(null); return; }
+    api('/api/schedule').then(function (d) {
+        var job = (d.jobs || []).filter(function (j) { return j.id === id; })[0] || null;
+        fillScheduleEditor(job);
+    }).catch(function (e) { showToast(e.message, 'err'); });
+}
+
+function fillScheduleEditor(job) {
+    scheduleDraft.id = job ? job.id : '';
+    scheduleDraft.type = job ? job.type : 'restart';
+    scheduleDraft.mode = job ? job.mode : 'interval';
+    $('schedule-title').textContent = job ? 'Edit job' : 'New job';
+    $('schedule-value').value = job ? (job.value || '') : '';
+    $('schedule-time').value = job ? (job.time || '04:00') : '04:00';
+    $('schedule-interval').value = job ? (job.intervalMinutes || 180) : 180;
+    $('schedule-empty').checked = job ? !!job.onlyWhenEmpty : false;
+    syncScheduleEditor();
+    openModal('schedule-overlay');
+}
+
+function syncScheduleEditor() {
+    var chips = document.querySelectorAll('[data-schedule-type]');
+    for (var i = 0; i < chips.length; i++) {
+        chips[i].classList.toggle('selected', chips[i].getAttribute('data-schedule-type') === scheduleDraft.type);
+    }
+    var modes = document.querySelectorAll('[data-schedule-mode]');
+    for (var m = 0; m < modes.length; m++) {
+        modes[m].classList.toggle('selected', modes[m].getAttribute('data-schedule-mode') === scheduleDraft.mode);
+    }
+    var needsValue = scheduleDraft.type === 'announce' || scheduleDraft.type === 'command';
+    $('schedule-value-field').classList.toggle('hidden', !needsValue);
+    $('schedule-value').placeholder = scheduleDraft.type === 'command'
+        ? 'e.g. weather clear' : 'e.g. Restart in 5 minutes (&e for colour)';
+    $('schedule-time-field').classList.toggle('hidden', scheduleDraft.mode !== 'daily');
+    $('schedule-interval-field').classList.toggle('hidden', scheduleDraft.mode !== 'interval');
+}
+
+function saveScheduleJob() {
+    var entry = {
+        id: scheduleDraft.id,
+        type: scheduleDraft.type,
+        value: $('schedule-value').value,
+        mode: scheduleDraft.mode,
+        time: $('schedule-time').value || '04:00',
+        intervalMinutes: parseInt($('schedule-interval').value, 10) || 180,
+        onlyWhenEmpty: $('schedule-empty').checked,
+        enabled: true
+    };
+    api('/api/schedule', { method: 'POST', body: { action: 'save', entry: entry } })
+        .then(function () {
+            closeModal('schedule-overlay');
+            showToast('Job saved', 'ok');
+            loadSchedule();
+        })
+        .catch(function (e) { showToast(e.message, 'err'); });
+}
+
+/* ---------------------------------------------------------------- backups */
+
+/**
+ * Backups are created, restored and deleted in the app; the dashboard shows what exists so the
+ * owner can see at a glance whether the nightly job actually ran.
+ */
+function loadBackupList() {
+    var box = $('backup-list');
+    if (!box) return;
+    api('/api/backups').then(function (d) {
+        if (!d || !d.available) {
+            box.innerHTML = '<div class="muted small">No backup index yet - turn on backups in the app '
+                + '(server → settings → backups).</div>';
+            return;
+        }
+        var items = d.backups || [];
+        var mode = d.mode === 'daily' ? 'daily' : (d.mode === 'on_stop' ? 'when the server stops' : 'off');
+        var head = '<div class="tools-meta">' + items.length + ' backup(s), keeps ' + (d.keep || 3)
+            + ', schedule: ' + escapeHtml(mode) + '</div>';
+        if (!items.length) {
+            box.innerHTML = head + '<div class="muted small">No backups stored yet.</div>';
+            return;
+        }
+        box.innerHTML = head + items.map(function (item) {
+            var when = new Date(Number(item.time) || 0);
+            return '<div class="tools-row"><div class="tools-main">'
+                + '<div class="tools-title mono">' + escapeHtml(item.name) + '</div>'
+                + '<div class="tools-meta">' + escapeHtml(when.toLocaleString()) + ' · '
+                + (item.sizeMb || 0) + ' MB</div></div></div>';
+        }).join('');
+    }).catch(function () {
+        box.innerHTML = '<div class="muted small">Backup list unavailable.</div>';
+    });
+}
+
+/* ------------------------------------------------------------ power saving */
+
+function loadEfficiency() {
+    api('/api/efficiency').then(function (d) {
+        $('eff-enabled').checked = !!d.enabled;
+        $('eff-minutes').value = d.idleMinutes;
+        $('eff-view').value = d.viewDistance;
+        $('eff-sim').value = d.simulationDistance;
+        $('eff-state').textContent = d.throttled
+            ? 'Currently saving power (no players online).'
+            : (d.enabled ? 'Watching for idle time.' : 'Off.');
+    }).catch(function () {});
+}
+
+function saveEfficiency() {
+    api('/api/efficiency', {
+        method: 'POST',
+        body: {
+            enabled: $('eff-enabled').checked,
+            idleMinutes: parseInt($('eff-minutes').value, 10) || 10,
+            viewDistance: parseInt($('eff-view').value, 10) || 4,
+            simulationDistance: parseInt($('eff-sim').value, 10) || 4
+        }
+    }).then(function () {
+        showToast('Power saving saved', 'ok');
+        loadEfficiency();
+    }).catch(function (e) { showToast(e.message, 'err'); });
+}
+
+/* ----------------------------------------------------------- MOTD builder */
+
+function motdToHtml(text) {
+    var str = String(text || '').replace(/§/g, '&');
+    var tokens = str.split(/(&[0-9a-fklmnor])/i);
+    var colour = null, bold = false, italic = false, underline = false, strike = false;
+    var html = '';
+    tokens.forEach(function (token) {
+        if (/^&[0-9a-f]$/i.test(token)) {
+            colour = MOTD_COLOURS[token.charAt(1).toLowerCase()];
+            bold = italic = underline = strike = false;
+            return;
+        }
+        if (/^&l$/i.test(token)) { bold = true; return; }
+        if (/^&o$/i.test(token)) { italic = true; return; }
+        if (/^&n$/i.test(token)) { underline = true; return; }
+        if (/^&m$/i.test(token)) { strike = true; return; }
+        if (/^&r$/i.test(token)) { colour = null; bold = italic = underline = strike = false; return; }
+        if (!token) return;
+        var css = colour ? 'color:' + colour + ';' : '';
+        if (bold) css += 'font-weight:700;';
+        if (italic) css += 'font-style:italic;';
+        if (underline) css += 'text-decoration:underline;';
+        if (strike) css += 'text-decoration:line-through;';
+        html += '<span style="' + css + '">' + escapeHtml(token) + '</span>';
+    });
+    return html || '<span class="muted">(empty)</span>';
+}
+
+function updateMotdPreview() {
+    $('motd-preview').innerHTML = motdToHtml($('motd-input').value);
+}
+
+function loadMotd() {
+    var props = state.settings || {};
+    var raw = props.motd != null ? String(props.motd) : '';
+    // server.properties stores colours as \u00A7 escapes; show them as section signs again
+    $('motd-input').value = raw.replace(/\\u00a7/gi, '§');
+    updateMotdPreview();
+}
+
+function saveMotd() {
+    var value = $('motd-input').value.replace(/§/g, '\\u00A7');
+    api('/api/settings', { method: 'POST', body: { properties: { motd: value } } })
+        .then(function () {
+            state.settings.motd = value;
+            showToast('MOTD saved', 'ok');
+        })
+        .catch(function (e) { showToast(e.message, 'err'); });
+}
+
+/* -------------------------------------------------------- resource packs */
+
+function loadResourcePack() {
+    var props = state.settings || {};
+    $('rp-url').value = props['resource-pack'] != null ? String(props['resource-pack']) : '';
+    $('rp-prompt').value = props['resource-pack-prompt'] != null ? String(props['resource-pack-prompt']) : '';
+    $('rp-sha1').value = props['resource-pack-sha1'] != null ? String(props['resource-pack-sha1']) : '';
+    $('rp-require').checked = String(props['require-resource-pack']) === 'true';
+
+    var list = $('rp-files');
+    api('/api/files/resourcepacks').then(function (d) {
+        var entries = (d.entries || []).filter(function (e) { return e.type === 'file'; });
+        if (!entries.length) {
+            list.innerHTML = '<div class="muted small">No packs uploaded yet - add them in the Files tab.</div>';
+            return;
+        }
+        list.innerHTML = entries.map(function (e) {
+            return '<div class="tools-row"><div class="tools-main">'
+                + '<div class="tools-title mono">' + escapeHtml(e.name) + '</div>'
+                + '<div class="tools-meta">' + formatMegabytes(e.size || 0) + '</div></div>'
+                + '<div class="tools-actions"><button class="btn btn-text btn-sm" data-rp-use="' + escapeHtml(e.name) + '">Use</button></div>'
+                + '</div>';
+        }).join('');
+        var buttons = list.querySelectorAll('[data-rp-use]');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', function () {
+                $('rp-url').value = this.getAttribute('data-rp-use');
+                saveResourcePack();
+            });
+        }
+    }).catch(function () {
+        list.innerHTML = '<div class="muted small">No resourcepacks folder yet.</div>';
+    });
+}
+
+function saveResourcePack() {
+    var props = {
+        'resource-pack': $('rp-url').value.trim(),
+        'resource-pack-prompt': $('rp-prompt').value.trim(),
+        'resource-pack-sha1': $('rp-sha1').value.trim(),
+        'require-resource-pack': $('rp-require').checked ? 'true' : 'false'
+    };
+    api('/api/settings', { method: 'POST', body: { properties: props } })
+        .then(function () {
+            Object.keys(props).forEach(function (k) { state.settings[k] = props[k]; });
+            showToast('Resource pack saved', 'ok');
+        })
+        .catch(function (e) { showToast(e.message, 'err'); });
+}
+
+/* ------------------------------------------------------- metrics history */
+
+var metricsColours = { tps: '#FF6B00', ram: '#B39DDB', players: '#4DB6AC' };
+
+/**
+ * Draws one series into an SVG element (viewBox 0 0 300 70). Continuous line with a subtle
+ * fill; the y axis starts at 0 so the shape of the curve means something.
+ */
+function drawChart(svgId, values, options) {
+    var svg = $(svgId);
+    if (!svg) return;
+    var width = 300, height = 70;
+    if (!values || values.length < 2) {
+        svg.innerHTML = '<text x="150" y="38" text-anchor="middle" class="chart-empty">collecting data…</text>';
+        return;
+    }
+    var min = options.min != null ? options.min : Math.min.apply(null, values);
+    var max = options.max != null ? options.max : Math.max.apply(null, values);
+    if (max - min < 1) max = min + 1;
+    var stepX = width / (values.length - 1);
+    var points = values.map(function (value, index) {
+        var clamped = Math.max(min, Math.min(max, value));
+        var y = height - 4 - ((clamped - min) / (max - min)) * (height - 10);
+        return [index * stepX, y];
+    });
+    var line = points.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+    var area = line + ' L' + width + ' ' + height + ' L0 ' + height + ' Z';
+    svg.innerHTML = '<path d="' + area + '" fill="' + options.colour + '" opacity="0.14"></path>'
+        + '<path d="' + line + '" fill="none" stroke="' + options.colour + '" stroke-width="2" '
+        + 'vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></path>';
+}
+
+function loadMetrics(force) {
+    var now = Date.now();
+    if (!force && state.metricsLoadedAt && now - state.metricsLoadedAt < 20000) return;
+    state.metricsLoadedAt = now;
+    api('/api/stats/history').then(function (d) {
+        var history = d.history || [];
+        var tps = history.map(function (s) { return Number(s.tps) || 0; });
+        var ram = history.map(function (s) { return Number(s.ramUsedMb) || 0; });
+        var players = history.map(function (s) { return Number(s.players) || 0; });
+        drawChart('chart-tps', tps, { min: 0, max: 20, colour: metricsColours.tps });
+        drawChart('chart-ram', ram, { min: 0, colour: metricsColours.ram });
+        drawChart('chart-players', players, { min: 0, colour: metricsColours.players });
+
+        if (tps.length) {
+            $('metric-tps-now').textContent = tps[tps.length - 1].toFixed(1);
+            $('metric-ram-now').textContent = (ram[ram.length - 1] || 0) + ' MB';
+            $('metric-players-now').textContent = String(players[players.length - 1] || 0);
+        }
+        var note = $('metrics-note');
+        if (note) {
+            var minutes = Math.round((tps.length * (d.intervalSeconds || 10)) / 60);
+            note.textContent = tps.length
+                ? (tps.length + ' samples, about ' + Math.max(1, minutes) + ' min')
+                : 'recording…';
+        }
+    }).catch(function () {});
+}
+
+/** Read-only ender chest view (27 slots) in the player modal. */
+function openEnderChest(playerName) {
+    api('/api/players/enderchest?player=' + encodeURIComponent(playerName)).then(function (d) {
+        var slots = d.slots || [];
+        $('player-modal-title').textContent = playerName + ' · Ender chest';
+        var html = '<p class="muted small">Read-only view of the ender chest (27 slots).</p>'
+            + '<div class="inv-grid" style="margin-top:12px">'
+            + slots.map(function (item) {
+                if (!item) return '<div class="inv-slot"></div>';
+                var label = prettyItemName(item.type) + ' x' + item.amount;
+                return '<div class="inv-slot filled" title="' + escapeHtml(label) + '">'
+                    + itemIcon(item.type, item.amount) + '</div>';
+            }).join('')
+            + '</div>';
+        $('player-modal-body').innerHTML = html;
+        $('player-modal-actions').innerHTML = '<button class="btn btn-text" id="ender-chest-close">Close</button>';
+        $('ender-chest-close').addEventListener('click', function () { closeModal('player-overlay'); });
+        openModal('player-overlay');
+    }).catch(function (e) { showToast(e.message, 'err'); });
 }
 
 document.addEventListener('DOMContentLoaded', init);

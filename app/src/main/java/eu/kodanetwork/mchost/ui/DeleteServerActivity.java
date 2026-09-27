@@ -104,7 +104,7 @@ public class DeleteServerActivity extends AppCompatActivity {
         });
         
         btnExport.setOnClickListener(v -> exportAndDelete());
-        btnPermanent.setOnClickListener(v -> permanentlyDelete());
+        btnPermanent.setOnClickListener(v -> confirmPermanentDelete());
         
         startDeletionProcess();
     }
@@ -283,6 +283,34 @@ public class DeleteServerActivity extends AppCompatActivity {
         }).start();
     }
     
+    /**
+     * Deleting a server cannot be undone, so the owner has to type the server name first.
+     * This is what most accidental deletions in the competitor's community came from.
+     */
+    private void confirmPermanentDelete() {
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint(getString(R.string.delete_confirm_hint));
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout wrapper = new android.widget.FrameLayout(this);
+        wrapper.setPadding(pad, pad / 2, pad, 0);
+        wrapper.addView(input);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.delete_confirm_title, server.getName()))
+                .setMessage(getString(R.string.delete_confirm_text))
+                .setView(wrapper)
+                .setPositiveButton(getString(R.string.delete_confirm_yes), (dialog, which) -> {
+                    if (!server.getName().equalsIgnoreCase(input.getText().toString().trim())) {
+                        android.widget.Toast.makeText(this, getString(R.string.delete_confirm_wrong),
+                                android.widget.Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    permanentlyDelete();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     private void permanentlyDelete() {
         llActions.setVisibility(View.GONE);
         pbDelete.setVisibility(View.VISIBLE);

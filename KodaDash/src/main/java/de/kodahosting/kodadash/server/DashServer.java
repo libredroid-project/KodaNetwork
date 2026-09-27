@@ -28,9 +28,15 @@ public class DashServer {
     private final KodaDash plugin;
     private HttpServer server;
     private ExecutorService executor;
+    private ServerActionRoute serverActionRoute;
 
     public DashServer(KodaDash plugin) {
         this.plugin = plugin;
+    }
+
+    /** @return the route that owns restart/stop countdowns (also used by the scheduler). */
+    public ServerActionRoute getServerActionRoute() {
+        return serverActionRoute;
     }
 
     /**
@@ -51,7 +57,12 @@ public class DashServer {
             server.createContext("/api/plugins", new PluginsRoute(plugin));
             server.createContext("/api/device", new DeviceRoute(plugin));
             server.createContext("/api/logs", new LogsRoute(plugin));
-            server.createContext("/api/server-action", new ServerActionRoute(plugin));
+            server.createContext("/api/backups", new BackupsRoute(plugin));
+            serverActionRoute = new ServerActionRoute(plugin);
+            server.createContext("/api/server-action", serverActionRoute);
+            server.createContext("/api/schedule", new ScheduleRoute(plugin));
+            server.createContext("/api/stats", new StatsRoute(plugin));
+            server.createContext("/api/efficiency", new EfficiencyRoute(plugin));
 
             // Static web UI files (SPA fallback)
             server.createContext("/", new StaticHandler(plugin));

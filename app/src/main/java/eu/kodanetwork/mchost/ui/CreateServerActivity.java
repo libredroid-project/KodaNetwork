@@ -1838,6 +1838,9 @@ public class CreateServerActivity extends AppCompatActivity {
             s.setModpackName(selectedModpackTitle != null ? selectedModpackTitle : "");
         }
         s.setJavaRuntime(createJavaRuntime);
+        // World pre-generation is asked here, once, while the server is being created
+        android.widget.CompoundButton swPregen = findViewById(R.id.switch_pregenerate);
+        s.setPregenerate(swPregen != null && swPregen.isChecked());
         if (checkedId == R.id.rb_setup_ai) {
             s.setThemeColor(aiSelectedTheme);
             s.setAiPrompt(aiSelectedPlugins.toString());

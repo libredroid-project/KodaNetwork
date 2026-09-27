@@ -666,4 +666,51 @@
     </plurals>
     <string name="brand_kodahosting">KodaHosting</string>
     <string name="overload_limits">Grenzwerte: %1$d%% Speicher - %2$d Verbindungen - %3$d Tunnel</string>
+
+    <!-- Einstellungen: Automatik, Backups, Vorgenerierung, Stromsparmodus -->
+    <string name="extras_title">Backups &amp; Stromsparen</string>
+    <string name="extras_subtitle">Läuft in der App: kein Befehl nötig, wenn du weg bist.</string>
+    <string name="extras_backups">Backups</string>
+    <string name="extras_backups_summary">Welt, Konfigurationen und Plugins als eine ZIP</string>
+    <string name="extras_backup_mode">Wann soll ein Backup entstehen?</string>
+    <string name="extras_backup_off">Aus</string>
+    <string name="extras_backup_daily">Täglich</string>
+    <string name="extras_backup_stop">Beim Stoppen</string>
+    <string name="extras_backup_keep">%1$d Kopien behalten</string>
+    <string name="extras_backup_none">Noch keine Backups vorhanden.</string>
+    <string name="extras_backup_list">%1$d Backups, insgesamt %2$s</string>
+    <string name="extras_backup_now">Jetzt sichern</string>
+    <string name="extras_backup_restore">Wiederherstellen</string>
+    <string name="extras_backup_restore_warning">Der Serverordner wird durch den Stand vom %1$s ersetzt. Die aktuellen Dateien bleiben erhalten, bis das Wiederherstellen geklappt hat.</string>
+    <string name="extras_backup_delete">Löschen</string>
+    <string name="extras_backup_started">Backup läuft…</string>
+    <string name="extras_backup_done">Backup gespeichert (%1$s)</string>
+    <string name="extras_backup_failed">Backup fehlgeschlagen</string>
+    <string name="extras_backup_restoring">Wird wiederhergestellt…</string>
+    <string name="extras_backup_restored">Backup wiederhergestellt</string>
+    <string name="extras_backup_stop_first">Stoppe den Server, bevor du ein Backup wiederherstellst.</string>
+    <string name="extras_pregen">Welt vorab generieren</string>
+    <string name="extras_pregen_summary">Startet Chunky beim ersten Start (weniger Lag durch neue Gebiete)</string>
+    <string name="extras_pregen_on">Welt wird beim nächsten Start vorab generiert</string>
+    <string name="extras_pregen_off">Vorgenerierung aus</string>
+    <string name="extras_autoscroll">Konsole springt zur neuesten Zeile</string>
+    <string name="extras_autoscroll_summary">Ausschalten, um im Log zu lesen, während der Server weiterschreibt</string>
+    <string name="extras_power">Stromsparmodus</string>
+    <string name="extras_power_summary">Senkt die Sichtweite, solange niemand online ist</string>
+    <string name="extras_power_on">Stromsparmodus an</string>
+    <string name="extras_power_off">Stromsparmodus aus</string>
+    <string name="extras_power_needs_dash">Schalte KodaDash einmal ein, damit die Einstellung gespeichert werden kann.</string>
+
+    <!-- Abmelden und Server löschen -->
+    <string name="logout_confirm_title">Abmelden?</string>
+    <string name="logout_confirm_text">Deine Server laufen auf diesem Handy weiter. Du musst dich nur neu anmelden, um sie zu verwalten.</string>
+    <string name="logout_confirm_yes">Abmelden</string>
+    <string name="delete_confirm_title">%1$s wirklich löschen?</string>
+    <string name="delete_confirm_text">Welt, Konfigurationen und Plugins werden endgültig entfernt. Tippe den Servernamen ein, um zu bestätigen.</string>
+    <string name="delete_confirm_hint">Servername</string>
+    <string name="delete_confirm_yes">Endgültig löschen</string>
+    <string name="delete_confirm_wrong">Der Name stimmt nicht - es wurde nichts gelöscht.</string>
+
+    <string name="extras_backups_subtitle">Welt, Konfigurationen und Plugins als eine ZIP, neben der App gespeichert.</string>
+    <string name="extras_backup_hint">Beim Wiederherstellen wird der Serverordner durch den gewählten Stand ersetzt. Der Server muss gestoppt sein.</string>
 </resources>

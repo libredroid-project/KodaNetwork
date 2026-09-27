@@ -11,18 +11,38 @@ package de.kodahosting.kodadash.managers;
  * For commercial inquiries: licence@kodaserv.eu
  */
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import de.kodahosting.kodadash.KodaDash;
 import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitTask;
+
+import java.lang.reflect.Method;
 
 /**
- * Tracks server performance metrics: TPS, RAM, uptime.
+ * Tracks server performance metrics: TPS, RAM, CPU, threads, uptime.
+ *
+ * Besides the live values it keeps a rolling history (default one hour, one sample every ten
+ * seconds) so the dashboard can draw a real chart instead of a single sparkline. The history
+ * lives in memory only: a server restart starts a new series, which is what a chart should show.
  */
 public class StatsManager {
     private final KodaDash plugin;
     private final long[] tickHistory = new long[20];
     private int tickIndex = 0;
     private final long startTime;
+
+    private final int historySize;
+    private final int historyIntervalSeconds;
+    private final double[] histTps;
+    private final int[] histPlayers;
+    private final long[] histRamUsed;
+    private final long[] histRamMax;
+    private final double[] histCpu;
+    private final long[] histTime;
+    private int historyIndex = 0;
+    private int historyCount = 0;
+    private BukkitTask historyTask;
 
     public StatsManager(KodaDash plugin) {
         this.plugin = plugin;
@@ -33,6 +53,68 @@ public class StatsManager {
             tickHistory[tickIndex % 20] = System.currentTimeMillis();
             tickIndex++;
         }, 0, 20L);
+
+        this.historyIntervalSeconds = Math.max(5, plugin.getConfig().getInt("stats-history.interval-seconds", 10));
+        int minutes = Math.max(5, plugin.getConfig().getInt("stats-history.minutes", 60));
+        this.historySize = Math.max(12, (minutes * 60) / historyIntervalSeconds);
+        histTps = new double[historySize];
+        histPlayers = new int[historySize];
+        histRamUsed = new long[historySize];
+        histRamMax = new long[historySize];
+        histCpu = new double[historySize];
+        histTime = new long[historySize];
+        startHistoryTask();
+    }
+
+    private void startHistoryTask() {
+        if (!plugin.getConfig().getBoolean("stats-history.enabled", true)) return;
+        long ticks = historyIntervalSeconds * 20L;
+        historyTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    recordSample();
+                } catch (Exception ignored) {
+                    // Metrics are best effort
+                }
+            }
+        }, ticks, ticks);
+    }
+
+    public void shutdown() {
+        if (historyTask != null) {
+            try { historyTask.cancel(); } catch (Exception ignored) {}
+            historyTask = null;
+        }
+    }
+
+    private synchronized void recordSample() {
+        histTps[historyIndex] = getTps();
+        histPlayers[historyIndex] = Bukkit.getOnlinePlayers().size();
+        histRamUsed[historyIndex] = getUsedRam();
+        histRamMax[historyIndex] = getMaxRam();
+        histCpu[historyIndex] = getProcessCpuLoad();
+        histTime[historyIndex] = System.currentTimeMillis();
+        historyIndex = (historyIndex + 1) % historySize;
+        if (historyCount < historySize) historyCount++;
+    }
+
+    /** @return the recorded samples in chronological order. */
+    public synchronized JsonArray getHistory() {
+        JsonArray array = new JsonArray();
+        int start = historyCount < historySize ? 0 : historyIndex;
+        for (int i = 0; i < historyCount; i++) {
+            int slot = (start + i) % historySize;
+            JsonObject sample = new JsonObject();
+            sample.addProperty("t", histTime[slot]);
+            sample.addProperty("tps", Math.round(histTps[slot] * 100.0) / 100.0);
+            sample.addProperty("players", histPlayers[slot]);
+            sample.addProperty("ramUsedMb", histRamUsed[slot]);
+            sample.addProperty("ramMaxMb", histRamMax[slot]);
+            sample.addProperty("cpu", histCpu[slot]);
+            array.add(sample);
+        }
+        return array;
     }
 
     /**
@@ -46,6 +128,10 @@ public class StatsManager {
         stats.addProperty("usedRam", getUsedRam());
         stats.addProperty("maxRam", getMaxRam());
         stats.addProperty("uptime", getUptime());
+        stats.addProperty("cpu", getProcessCpuLoad());
+        stats.addProperty("threads", getThreadCount());
+        stats.addProperty("historySamples", historyCount);
+        stats.addProperty("historyIntervalSeconds", historyIntervalSeconds);
         return stats;
     }
 
@@ -81,6 +167,35 @@ public class StatsManager {
      */
     public long getMaxRam() {
         return Runtime.getRuntime().maxMemory() / (1024 * 1024);
+    }
+
+    /**
+     * CPU load of the server process in percent, or -1 when the runtime does not report it
+     * (Android's runtime usually does not, which is why the app writes its own device metrics).
+     */
+    public double getProcessCpuLoad() {
+        try {
+            Object bean = java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+            Method method = bean.getClass().getMethod("getProcessCpuLoad");
+            Object value = method.invoke(bean);
+            if (value instanceof Double) {
+                double load = (Double) value;
+                if (load < 0) return -1.0;
+                return Math.round(load * 1000.0) / 10.0;
+            }
+        } catch (Throwable ignored) {
+            // Not available on this runtime
+        }
+        return -1.0;
+    }
+
+    /** Number of live threads in the server JVM, or -1 when unavailable. */
+    public int getThreadCount() {
+        try {
+            return java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount();
+        } catch (Throwable ignored) {
+            return -1;
+        }
     }
 
     /**

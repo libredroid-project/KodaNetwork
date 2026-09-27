@@ -402,6 +402,18 @@
             android:paddingStart="12dp" android:paddingEnd="12dp"
             android:paddingTop="12dp" android:paddingBottom="8dp">
 
+            <!-- Follow the newest line: turn off to read the log while the server writes -->
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_console_follow"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="@string/extras_autoscroll"
+                android:textColor="#CCCCCC"
+                android:textSize="11sp"
+                android:fontFamily="@font/font_koda"/>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_copy_log"
                 android:layout_width="wrap_content" android:layout_height="40dp"
@@ -898,6 +910,58 @@
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+
+            <!-- Backups & power saving -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_settings_extras"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#241C18"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/extras_title" android:textColor="#FF6B00"
+                        android:textSize="11sp" android:fontFamily="@font/font_koda"
+                        android:letterSpacing="0.1" android:layout_marginBottom="12dp"/>
+
+                    <!-- Backups -->
+                    <LinearLayout android:id="@+id/row_backups"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:clickable="true" android:focusable="true"
+                        android:paddingTop="8dp" android:paddingBottom="8dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/extras_backups" android:textColor="#FFFFFF" android:textSize="13sp"/>
+                            <TextView android:id="@+id/tv_backups_info"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp" android:textColor="#8A8A9A" android:textSize="11sp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="\u203a" android:textColor="#8A8A9A" android:textSize="20sp"/>
+                    </LinearLayout>
+
+                    <!-- Power saving (dashboard plugin setting) -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="8dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/extras_power" android:textColor="#FFFFFF" android:textSize="13sp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp" android:text="@string/extras_power_summary"
+                                android:textColor="#8A8A9A" android:textSize="11sp"/>
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_power_saving"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Gameplay Settings Card -->
             <androidx.cardview.widget.CardView

@@ -226,6 +226,27 @@
                 </div>
             </div>
 
+            <div class="card" id="overview-metrics-card" style="margin-bottom:16px">
+                <div class="card-title-row">
+                    <h2 class="card-title">Last hour</h2>
+                    <span class="muted small" id="metrics-note">recording…</span>
+                </div>
+                <div class="metric-charts">
+                    <div class="metric-chart">
+                        <div class="metric-head"><span>TPS</span><span class="metric-now" id="metric-tps-now">--</span></div>
+                        <svg class="metric-svg" id="chart-tps" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+                    </div>
+                    <div class="metric-chart">
+                        <div class="metric-head"><span>Memory</span><span class="metric-now" id="metric-ram-now">--</span></div>
+                        <svg class="metric-svg" id="chart-ram" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+                    </div>
+                    <div class="metric-chart">
+                        <div class="metric-head"><span>Players</span><span class="metric-now" id="metric-players-now">--</span></div>
+                        <svg class="metric-svg" id="chart-players" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <h2 class="card-title">Server control</h2>
                 <p class="card-sub" id="action-status">Restart or shut down the server with a countdown for all players.</p>
@@ -395,6 +416,7 @@
                 </button>
             </div>
 
+            <div id="settings-tools"></div>
             <div id="settings-sections"></div>
         </section>
 
@@ -483,6 +505,66 @@
         </div>
         <div class="modal-body" id="player-modal-body"></div>
         <div class="modal-footer" id="player-modal-actions"></div>
+    </div>
+</div>
+
+<!-- ---------- Automation: add/edit a scheduled job ---------- -->
+<div class="modal-overlay" id="schedule-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-schedule"></use></svg>
+            <h2 id="schedule-title">Scheduled job</h2>
+            <button class="icon-btn" id="schedule-close" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>What should happen?</label>
+                <div class="chip-row" id="schedule-type"></div>
+            </div>
+            <div class="field hidden" id="schedule-value-field">
+                <label for="schedule-value">Message or command</label>
+                <input type="text" id="schedule-value" class="input" placeholder="e.g. Restart in 5 minutes (&amp;e for colour)">
+            </div>
+            <div class="field">
+                <label>When?</label>
+                <div class="chip-row" id="schedule-mode"></div>
+            </div>
+            <div class="field hidden" id="schedule-time-field">
+                <label for="schedule-time">Time of day (HH:MM, server time)</label>
+                <input type="text" id="schedule-time" class="input" value="04:00" style="max-width:140px">
+            </div>
+            <div class="field hidden" id="schedule-interval-field">
+                <label for="schedule-interval">Every N minutes</label>
+                <input type="number" id="schedule-interval" class="input" value="180" min="1" max="10080" style="max-width:140px">
+            </div>
+            <label class="switch-row">
+                <input type="checkbox" id="schedule-empty">
+                <span>Only run while no players are online</span>
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-text" id="schedule-cancel">Cancel</button>
+            <button class="btn btn-filled" id="schedule-submit">Save job</button>
+        </div>
+    </div>
+</div>
+
+<!-- ---------- Generic choice dialog ---------- -->
+<div class="modal-overlay" id="choice-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-tune"></use></svg>
+            <h2 id="choice-title">Choose</h2>
+        </div>
+        <div class="modal-body">
+            <p class="muted" id="choice-message" style="margin-bottom:12px"></p>
+            <div class="chip-row" id="choice-options"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-text" id="choice-cancel">Cancel</button>
+        </div>
     </div>
 </div>
 

@@ -2066,6 +2066,17 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
         }
         if (btnClear != null) btnClear.setOnClickListener(v -> { if (tvLog != null) tvLog.setText(""); });
+
+        // Follow the newest line - lives here in the console, where it belongs
+        com.google.android.material.switchmaterial.SwitchMaterial swFollow = findViewById(R.id.switch_console_follow);
+        if (swFollow != null) {
+            swFollow.setChecked(server == null || server.isConsoleAutoScroll());
+            swFollow.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (server == null) return;
+                server.setConsoleAutoScroll(isChecked);
+                eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+            });
+        }
         if (btnCopy != null) btnCopy.setOnClickListener(v -> {
             if (tvLog == null) return;
                 android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
@@ -2237,7 +2248,8 @@ public class ServerDetailActivity extends AppCompatActivity {
                     // Nur autoscroll wenn Console-Tab sichtbar und Fokus nicht in EditText
                     android.view.View focused = getCurrentFocus();
                     boolean typing = focused instanceof android.widget.EditText;
-                    if (!typing) {
+                    boolean mayScroll = server == null || server.isConsoleAutoScroll();
+                    if (!typing && mayScroll) {
                         scrollLog.smoothScrollTo(0, child.getHeight());
                     }
                 }
@@ -3842,6 +3854,255 @@ public class ServerDetailActivity extends AppCompatActivity {
         return false;
     }
 
+    /**
+     * Wires the "Automatik & Backups" card in the settings tab. The card itself lives in
+     * activity_server_detail.xml so it uses the same colours, fonts and shapes as the rest.
+     */
+    private void setupExtrasCard() {
+        try {
+            android.view.View rowBackups = findViewById(R.id.row_backups);
+            if (rowBackups != null) {
+                rowBackups.setOnClickListener(v -> showBackupsDialog());
+            }
+
+            com.google.android.material.switchmaterial.SwitchMaterial swPower = findViewById(R.id.switch_power_saving);
+            if (swPower != null) {
+                swPower.setChecked(readPluginEfficiencyFlag());
+                swPower.setOnCheckedChangeListener((buttonView, isChecked) -> writePluginEfficiencyFlag(isChecked));
+            }
+
+            updateBackupsSummary();
+        } catch (Exception e) {
+            android.util.Log.w("ServerDetail", "Extras card failed: " + e.getMessage());
+        }
+    }
+
+    /** Subtitle under "Backups": schedule, number of copies and the space they use. */
+    private void updateBackupsSummary() {
+        android.widget.TextView info = findViewById(R.id.tv_backups_info);
+        if (info == null) return;
+        java.util.List<eu.kodanetwork.mchost.util.BackupManager.Backup> backups =
+                eu.kodanetwork.mchost.util.BackupManager.list(this, server.getId());
+        String mode = "daily".equals(server.getBackupMode()) ? getString(R.string.extras_backup_daily)
+                : ("on_stop".equals(server.getBackupMode()) ? getString(R.string.extras_backup_stop)
+                : getString(R.string.extras_backup_off));
+        if (backups.isEmpty()) {
+            info.setText(mode + " · " + getString(R.string.extras_backup_none));
+        } else {
+            info.setText(mode + " · " + getString(R.string.extras_backup_list, backups.size(),
+                    eu.kodanetwork.mchost.util.BackupManager.humanSize(
+                            eu.kodanetwork.mchost.util.BackupManager.totalSize(this, server.getId()))));
+        }
+    }
+
+    /** Backups as a proper dialog: mode, copies to keep and the stored files. */
+    private void showBackupsDialog() {
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.setContentView(R.layout.dialog_server_backups);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        com.google.android.material.button.MaterialButtonToggleGroup modeGroup =
+                dialog.findViewById(R.id.group_backup_mode);
+        com.google.android.material.button.MaterialButtonToggleGroup keepGroup =
+                dialog.findViewById(R.id.group_backup_keep);
+
+        int modeButton = "daily".equals(server.getBackupMode()) ? R.id.btn_mode_daily
+                : ("on_stop".equals(server.getBackupMode()) ? R.id.btn_mode_stop : R.id.btn_mode_off);
+        modeGroup.check(modeButton);
+        modeGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            server.setBackupMode(checkedId == R.id.btn_mode_daily ? "daily"
+                    : (checkedId == R.id.btn_mode_stop ? "on_stop" : "off"));
+            eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+        });
+
+        int keepButton = R.id.btn_keep_3;
+        if (server.getBackupKeep() == 1) keepButton = R.id.btn_keep_1;
+        else if (server.getBackupKeep() == 2) keepButton = R.id.btn_keep_2;
+        else if (server.getBackupKeep() == 5) keepButton = R.id.btn_keep_5;
+        else if (server.getBackupKeep() >= 10) keepButton = R.id.btn_keep_10;
+        keepGroup.check(keepButton);
+        keepGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            int keep = checkedId == R.id.btn_keep_1 ? 1
+                    : (checkedId == R.id.btn_keep_2 ? 2
+                    : (checkedId == R.id.btn_keep_5 ? 5
+                    : (checkedId == R.id.btn_keep_10 ? 10 : 3)));
+            server.setBackupKeep(keep);
+            eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+        });
+
+        dialog.findViewById(R.id.btn_backup_close).setOnClickListener(v -> dialog.dismiss());
+        dialog.findViewById(R.id.btn_backup_now).setOnClickListener(v -> {
+            dialog.dismiss();
+            createBackupNow();
+        });
+
+        fillBackupList(dialog);
+        dialog.show();
+    }
+
+    /** Fills the list inside the backup dialog. */
+    private void fillBackupList(android.app.Dialog dialog) {
+        android.widget.LinearLayout list = dialog.findViewById(R.id.ll_backups);
+        android.widget.TextView empty = dialog.findViewById(R.id.tv_backup_empty);
+        android.widget.TextView count = dialog.findViewById(R.id.tv_backup_count);
+        if (list == null) return;
+
+        java.util.List<eu.kodanetwork.mchost.util.BackupManager.Backup> backups =
+                eu.kodanetwork.mchost.util.BackupManager.list(this, server.getId());
+        list.removeAllViews();
+
+        if (empty != null) empty.setVisibility(backups.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (count != null) {
+            count.setText(backups.isEmpty()
+                    ? getString(R.string.extras_backup_none)
+                    : getString(R.string.extras_backup_list, backups.size(),
+                    eu.kodanetwork.mchost.util.BackupManager.humanSize(
+                            eu.kodanetwork.mchost.util.BackupManager.totalSize(this, server.getId()))));
+        }
+
+        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
+        for (eu.kodanetwork.mchost.util.BackupManager.Backup backup : backups) {
+            android.view.View row = inflater.inflate(R.layout.item_server_backup, list, false);
+            android.widget.TextView date = row.findViewById(R.id.tv_backup_date);
+            android.widget.TextView meta = row.findViewById(R.id.tv_backup_meta);
+            date.setText(eu.kodanetwork.mchost.util.BackupManager.humanDate(backup.time));
+            meta.setText(backup.name() + " · " + eu.kodanetwork.mchost.util.BackupManager.humanSize(backup.size));
+
+            final java.io.File file = backup.file;
+            row.findViewById(R.id.btn_backup_restore).setOnClickListener(v -> {
+                dialog.dismiss();
+                confirmRestore(file);
+            });
+            row.findViewById(R.id.btn_backup_delete).setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.BackupManager.delete(this, server.getId(), file.getName());
+                eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
+                updateBackupsSummary();
+                fillBackupList(dialog);
+            });
+            list.addView(row);
+        }
+    }
+
+    private void createBackupNow() {
+        toast(getString(R.string.extras_backup_started));
+        new Thread(() -> {
+            java.io.File file = eu.kodanetwork.mchost.util.BackupManager.createBackup(this, server, "manual");
+            eu.kodanetwork.mchost.util.BackupManager.rotate(this, server.getId(), server.getBackupKeep());
+            runOnUiThread(() -> {
+                if (file == null) {
+                    toast(getString(R.string.extras_backup_failed));
+                    return;
+                }
+                server.setLastBackupAt(System.currentTimeMillis());
+                eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
+                toast(getString(R.string.extras_backup_done,
+                        eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length())));
+                updateBackupsSummary();
+                showBackupsDialog();
+            });
+        }, "KodaBackup").start();
+    }
+
+    private void confirmRestore(java.io.File file) {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.extras_backup_restore)
+                .setMessage(getString(R.string.extras_backup_restore_warning,
+                        eu.kodanetwork.mchost.util.BackupManager.humanDate(file.lastModified())))
+                .setPositiveButton(R.string.extras_backup_restore, (dialog, which) -> {
+                    boolean running = server.state == eu.kodanetwork.mchost.model.ServerInstance.State.ONLINE
+                            || server.state == eu.kodanetwork.mchost.model.ServerInstance.State.STARTING;
+                    if (running) {
+                        toast(getString(R.string.extras_backup_stop_first));
+                        return;
+                    }
+                    toast(getString(R.string.extras_backup_restoring));
+                    new Thread(() -> {
+                        boolean ok = eu.kodanetwork.mchost.util.BackupManager.restore(this, server, file);
+                        eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
+                        runOnUiThread(() -> {
+                            toast(getString(ok ? R.string.extras_backup_restored : R.string.extras_backup_failed));
+                            updateBackupsSummary();
+                        });
+                    }, "KodaBackupRestore").start();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void toast(String message) {
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    /** Reads {@code efficiency.enabled} from plugins/KodaDash/config.yml. */
+    private boolean readPluginEfficiencyFlag() {
+        try {
+            java.io.File config = new java.io.File(server.getServerDir() + "/plugins/KodaDash/config.yml");
+            if (!config.exists()) return false;
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(config))) {
+                String line;
+                boolean inEfficiency = false;
+                while ((line = reader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    if (trimmed.startsWith("efficiency:")) { inEfficiency = true; continue; }
+                    if (inEfficiency) {
+                        if (!line.startsWith(" ") && !line.startsWith("\t")) { inEfficiency = false; continue; }
+                        if (trimmed.startsWith("enabled:")) return trimmed.toLowerCase().contains("true");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /**
+     * Writes {@code efficiency.enabled} into plugins/KodaDash/config.yml. The dashboard plugin
+     * reads this value when it starts; a running server picks it up after a restart.
+     */
+    private void writePluginEfficiencyFlag(boolean enabled) {
+        try {
+            java.io.File config = new java.io.File(server.getServerDir() + "/plugins/KodaDash/config.yml");
+            if (!config.exists()) {
+                toast(getString(R.string.extras_power_needs_dash));
+                return;
+            }
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            boolean inEfficiency = false, replaced = false;
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(config))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    if (trimmed.startsWith("efficiency:")) { inEfficiency = true; lines.add(line); continue; }
+                    if (inEfficiency) {
+                        if (!line.startsWith(" ") && !line.startsWith("\t")) inEfficiency = false;
+                        else if (trimmed.startsWith("enabled:")) {
+                            lines.add("  enabled: " + enabled);
+                            replaced = true;
+                            continue;
+                        }
+                    }
+                    lines.add(line);
+                }
+            }
+            if (!replaced) {
+                lines.add("efficiency:");
+                lines.add("  enabled: " + enabled);
+            }
+            try (java.io.BufferedWriter writer = new java.io.BufferedWriter(new java.io.FileWriter(config))) {
+                for (String line : lines) {
+                    writer.write(line);
+                    writer.newLine();
+                }
+            }
+            toast(getString(enabled ? R.string.extras_power_on : R.string.extras_power_off));
+        } catch (Exception e) {
+            android.util.Log.w("ServerDetail", "Could not write the efficiency flag: " + e.getMessage());
+        }
+    }
+
     private void showAddonOptions(String addonType, android.widget.CompoundButton toggleSwitch) {
         android.app.Dialog dialog = new android.app.Dialog(this);
         dialog.setContentView(R.layout.dialog_praetor_addon);
@@ -4057,6 +4318,9 @@ public class ServerDetailActivity extends AppCompatActivity {
         android.widget.CompoundButton switchForceGamemode = findViewById(R.id.switch_force_gamemode);
 
         if (etMaxPlayers == null) return;
+
+        // Extra card: backups and power saving (world pre-generation is asked in the wizard)
+        setupExtrasCard();
 
         // Initialize values
         etMaxPlayers.setText(props.getProperty("max-players", "20"));

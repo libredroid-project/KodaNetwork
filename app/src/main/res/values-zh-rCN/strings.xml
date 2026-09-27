@@ -635,4 +635,51 @@
     </plurals>
     <string name="brand_kodahosting">KodaHosting</string>
     <string name="overload_limits">阈值：内存 %1$d%% - 连接 %2$d - 隧道 %3$d</string>
+
+    <!-- 设置页：自动化、备份、预生成、节能 -->
+    <string name="extras_title">备份与节能</string>
+    <string name="extras_subtitle">在应用内运行：你不在时也无需输入命令。</string>
+    <string name="extras_backups">备份</string>
+    <string name="extras_backups_summary">世界、配置与插件打包为一个 ZIP</string>
+    <string name="extras_backup_mode">何时创建备份？</string>
+    <string name="extras_backup_off">关闭</string>
+    <string name="extras_backup_daily">每天</string>
+    <string name="extras_backup_stop">停机时</string>
+    <string name="extras_backup_keep">保留 %1$d 份</string>
+    <string name="extras_backup_none">还没有备份。</string>
+    <string name="extras_backup_list">%1$d 份备份，共 %2$s</string>
+    <string name="extras_backup_now">立即备份</string>
+    <string name="extras_backup_restore">恢复</string>
+    <string name="extras_backup_restore_warning">服务器目录将被 %1$s 的状态替换。恢复成功前现有文件会保留。</string>
+    <string name="extras_backup_delete">删除</string>
+    <string name="extras_backup_started">备份进行中…</string>
+    <string name="extras_backup_done">备份已保存（%1$s）</string>
+    <string name="extras_backup_failed">备份失败</string>
+    <string name="extras_backup_restoring">正在恢复…</string>
+    <string name="extras_backup_restored">备份已恢复</string>
+    <string name="extras_backup_stop_first">请先停止服务器，再恢复备份。</string>
+    <string name="extras_pregen">预生成世界</string>
+    <string name="extras_pregen_summary">首次启动时运行 Chunky（减少新地形造成的卡顿）</string>
+    <string name="extras_pregen_on">下次启动时预生成世界</string>
+    <string name="extras_pregen_off">已关闭预生成</string>
+    <string name="extras_autoscroll">控制台自动滚动到最新行</string>
+    <string name="extras_autoscroll_summary">关闭后可在服务器持续输出时查看日志</string>
+    <string name="extras_power">节能模式</string>
+    <string name="extras_power_summary">无人在线时降低视距</string>
+    <string name="extras_power_on">节能模式已开启</string>
+    <string name="extras_power_off">节能模式已关闭</string>
+    <string name="extras_power_needs_dash">请先启用一次 KodaDash，以便保存该设置。</string>
+
+    <!-- 退出登录与删除服务器 -->
+    <string name="logout_confirm_title">退出登录？</string>
+    <string name="logout_confirm_text">服务器会继续在这台手机上运行。只需重新登录即可继续管理。</string>
+    <string name="logout_confirm_yes">退出登录</string>
+    <string name="delete_confirm_title">确定删除 %1$s？</string>
+    <string name="delete_confirm_text">世界、配置与插件将被永久删除。请输入服务器名称以确认。</string>
+    <string name="delete_confirm_hint">服务器名称</string>
+    <string name="delete_confirm_yes">永久删除</string>
+    <string name="delete_confirm_wrong">名称不匹配——未删除任何内容。</string>
+
+    <string name="extras_backups_subtitle">世界、配置与插件打包为一个 ZIP，保存在应用旁边。</string>
+    <string name="extras_backup_hint">恢复会用所选状态替换服务器目录。服务器必须处于停止状态。</string>
 </resources>

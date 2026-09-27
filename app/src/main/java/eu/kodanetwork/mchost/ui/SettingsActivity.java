@@ -1115,10 +1115,18 @@ public class SettingsActivity extends Activity {
             });
 
             dialog.findViewById(R.id.btn_dialog_logout).setOnClickListener(btn -> {
-                eu.kodanetwork.mchost.network.supabase.SupabaseAuth.logout(this);
-                Toast.makeText(this, "Erfolgreich abgemeldet", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-                recreate();
+                // Signing out only by accident was a common complaint, so ask once more
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                        .setTitle(getString(R.string.logout_confirm_title))
+                        .setMessage(getString(R.string.logout_confirm_text))
+                        .setPositiveButton(getString(R.string.logout_confirm_yes), (confirm, which) -> {
+                            eu.kodanetwork.mchost.network.supabase.SupabaseAuth.logout(this);
+                            Toast.makeText(this, "Erfolgreich abgemeldet", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                            recreate();
+                        })
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
             });
 
             dialog.findViewById(R.id.btn_dialog_cancel).setOnClickListener(btn -> dialog.dismiss());

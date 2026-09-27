@@ -84,6 +84,14 @@ public class KodaServerService extends Service {
     private final Map<String, Integer> setupPhase = new HashMap<>();
     private final ExecutorService exec = Executors.newCachedThreadPool();
     private final java.util.concurrent.ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final String CARE_CHANNEL = "koda_server_care";
+    private static final int CARE_NOTIF_ID = 4402;
+    private long lastBatteryWarning = 0L;
+    /** Servers whose pre-generation has already been kicked off (in memory, per run). */
+    private final java.util.Map<String, Long> onlineSince = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Set<String> pregenerationStarted =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
+    private long lastThermalWarning = 0L;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     // Endpunkt kommt aus der lokalen Build-Konfiguration (secrets_local.h),
     // damit im oeffentlichen Source keine Instanz-Daten stehen
@@ -215,6 +223,7 @@ public class KodaServerService extends Service {
                     reportSupabaseStatus(srv, true);
                 }
                 checkRemoteCommands(srv);
+                maybeStartPregeneration(srv);
             }
             selfHealPendingRows();
         }, 10, 10, java.util.concurrent.TimeUnit.SECONDS);
@@ -232,6 +241,10 @@ public class KodaServerService extends Service {
         // acted-rules reset automatically once the rule is no longer violated
         // (e.g. user switched from exhausted mobile data to wifi).
         scheduler.scheduleAtFixedRate(this::networkBudgetTick, 5, 5, java.util.concurrent.TimeUnit.SECONDS);
+
+        // Backups: once an hour we check whether a server is due for its daily backup,
+        // and while a server runs we watch battery and temperature of the phone.
+        scheduler.scheduleAtFixedRate(this::backupMaintenanceTick, 120, 600, java.util.concurrent.TimeUnit.SECONDS);
 
         Log.d(TAG, "Service Created.");
     }
@@ -1993,6 +2006,185 @@ public class KodaServerService extends Service {
         }
         
         setState(srv, ServerInstance.State.OFFLINE);
+
+        // Backup after a regular stop; force stops (overload, crash) skip it on purpose
+        if (!force) {
+            maybeBackupOnStop(srv);
+        }
+    }
+
+    /**
+     * Creates a backup after the server stopped, when the owner selected "when the server stops".
+     * Runs on the service thread, so it never blocks the UI.
+     */
+    private void maybeBackupOnStop(ServerInstance srv) {
+        try {
+            if (!"on_stop".equals(srv.getBackupMode())) return;
+            if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false)) return;
+            log(srv.getId(), "  \u2139 Creating a backup of the server folder...");
+            java.io.File file = eu.kodanetwork.mchost.util.BackupManager.createBackup(this, srv, "stop");
+            if (file == null) {
+                log(srv.getId(), "  \u26a0 Backup failed - see the app log");
+                return;
+            }
+            eu.kodanetwork.mchost.util.BackupManager.rotate(this, srv.getId(), srv.getBackupKeep());
+            srv.setLastBackupAt(System.currentTimeMillis());
+            eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
+            log(srv.getId(), "  \u2714 Backup saved: " + file.getName() + " ("
+                    + eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()) + ")");
+        } catch (Exception e) {
+            android.util.Log.w("KodaBackup", "Backup after stop failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Hourly maintenance: daily backups plus a warning when the phone gets hot or the battery
+     * runs low while a server is hosting.
+     */
+    private void backupMaintenanceTick() {
+        try {
+            for (ServerInstance srv : eu.kodanetwork.mchost.model.ServerRepo.get(this).all()) {
+                if (srv.state != ServerInstance.State.ONLINE) continue;
+                if ("daily".equals(srv.getBackupMode())) {
+                    long last = srv.getLastBackupAt();
+                    if (System.currentTimeMillis() - last >= 24L * 60L * 60L * 1000L) {
+                        log(srv.getId(), "  \u2139 Daily backup starting (world is saved first)...");
+                        sendCmd(srv.getId(), "save-all");
+                        sleep(8000);
+                        java.io.File file = eu.kodanetwork.mchost.util.BackupManager.createBackup(this, srv, "daily");
+                        if (file != null) {
+                            eu.kodanetwork.mchost.util.BackupManager.rotate(this, srv.getId(), srv.getBackupKeep());
+                            srv.setLastBackupAt(System.currentTimeMillis());
+                            eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
+                            log(srv.getId(), "  \u2714 Daily backup saved: " + file.getName());
+                        }
+                    }
+                }
+                notifyDeviceWarnings(srv);
+            }
+        } catch (Exception e) {
+            android.util.Log.w("KodaBackup", "Maintenance tick failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Warns the owner (and the players in chat) when the phone is hot or the battery is low.
+     * These were among the most common support cases on the competitor: servers dying because
+     * Android throttled a hot device.
+     */
+    private void notifyDeviceWarnings(ServerInstance srv) {
+        try {
+            android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
+            if (!prefs.getBoolean("notify_device_warnings", true)) return;
+
+            android.content.IntentFilter batteryFilter = new android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED);
+            android.content.Intent battery = registerReceiver(null, batteryFilter);
+            if (battery != null) {
+                int level = battery.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1);
+                int scale = battery.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100);
+                int status = battery.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1);
+                boolean charging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING
+                        || status == android.os.BatteryManager.BATTERY_STATUS_FULL;
+                int percent = scale > 0 ? (int) (level * 100f / scale) : -1;
+                if (!charging && percent >= 0 && percent <= 20) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastBatteryWarning > 60L * 60L * 1000L) {
+                        lastBatteryWarning = now;
+                        showCareNotification("Battery low (" + percent + "%)",
+                                srv.getName() + " is still hosting. Charge the phone or stop the server.");
+                        sendCmd(srv.getId(), "say [Koda] Phone battery at " + percent + "% - the server may shut down soon.");
+                    }
+                }
+            }
+
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && pm.getCurrentThermalStatus() >= android.os.PowerManager.THERMAL_STATUS_SEVERE) {
+                long now = System.currentTimeMillis();
+                if (now - lastThermalWarning > 60L * 60L * 1000L) {
+                    lastThermalWarning = now;
+                    showCareNotification("Phone is getting hot",
+                            srv.getName() + " is hosting while the device throttles. Reduce the load or take the phone out of its case.");
+                    sendCmd(srv.getId(), "say [Koda] Phone is getting hot - expect lag until it cools down.");
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * Runs Chunky once for servers where the owner asked for pre-generation.
+     *
+     * Pre-generating the spawn area removes the biggest cause of lag on a phone-hosted server:
+     * every player walking into ungenerated terrain forces the CPU to build chunks while playing.
+     * The job is started 60 seconds after the server came online and only once per server.
+     */
+    private void maybeStartPregeneration(ServerInstance srv) {
+        try {
+            if (!srv.isPregenerate() || srv.isPregenerateDone()) return;
+            String state = srv.state == ServerInstance.State.ONLINE ? "online" : "offline";
+            if (!"online".equals(state)) {
+                onlineSince.remove(srv.getId());
+                return;
+            }
+            long since = onlineSince.computeIfAbsent(srv.getId(), k -> System.currentTimeMillis());
+            if (System.currentTimeMillis() - since < 60000L) return;
+            if (!pregenerationStarted.add(srv.getId())) return;
+
+            int radius = eu.kodanetwork.mchost.App.getPrefs(this).getInt("pregenerate_radius", 1000);
+
+            // Chunky is a normal Paper plugin; download it only when it is not installed yet
+            java.io.File pluginsDir = new java.io.File(srv.getServerDir(), "plugins");
+            boolean installed = false;
+            java.io.File[] existing = pluginsDir.listFiles();
+            if (existing != null) {
+                for (java.io.File file : existing) {
+                    if (file.getName().toLowerCase().startsWith("chunky")) installed = true;
+                }
+            }
+            if (!installed) {
+                log(srv.getId(), "  \u2139 Pre-generation: installing Chunky...");
+                java.io.File downloaded = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync("chunky", srv);
+                if (downloaded == null) {
+                    log(srv.getId(), "  \u26a0 Chunky could not be installed - pre-generation skipped");
+                    srv.setPregenerateDone(true);
+                    eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
+                    return;
+                }
+                log(srv.getId(), "  \u2714 Chunky installed");
+            }
+
+            log(srv.getId(), "  \u2139 Pre-generation started (radius " + radius + " blocks). Progress: /chunky progress");
+            sendCmd(srv.getId(), "chunky radius " + radius);
+            sleep(1000);
+            sendCmd(srv.getId(), "chunky start");
+            sendCmd(srv.getId(), "say [Koda] Pre-generating the world in the background - small lag is normal.");
+
+            srv.setPregenerateDone(true);
+            eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
+        } catch (Exception e) {
+            android.util.Log.w("KodaChunky", "Pre-generation failed: " + e.getMessage());
+        }
+    }
+
+    /** Small heads-up notification that does not replace the running-server notification. */
+    private void showCareNotification(String title, String text) {
+        try {
+            android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                        CARE_CHANNEL, "Server warnings", android.app.NotificationManager.IMPORTANCE_DEFAULT);
+                nm.createNotificationChannel(channel);
+            }
+            android.app.Notification notification = new android.app.Notification.Builder(this, CARE_CHANNEL)
+                    .setContentTitle(title)
+                    .setContentText(text)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setAutoCancel(true)
+                    .build();
+            nm.notify(CARE_NOTIF_ID, notification);
+        } catch (Exception ignored) {
+        }
     }
 
     public void sendCmd(String id, String cmd) {

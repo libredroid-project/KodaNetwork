@@ -62,8 +62,13 @@ public class PlayersRoute extends RouteHandler {
             String path = exchange.getRequestURI().getPath();
             String method = exchange.getRequestMethod();
 
-            if ("GET".equalsIgnoreCase(method) && (path.equals("/api/players") || path.equals("/api/players/"))) {
-                handleGet(exchange);
+            if (("GET".equalsIgnoreCase(method) && (path.equals("/api/players") || path.equals("/api/players/")))
+                    || ("GET".equalsIgnoreCase(method) && path.endsWith("/enderchest"))) {
+                if (path.endsWith("/enderchest")) {
+                    handleEnderChest(exchange);
+                } else {
+                    handleGet(exchange);
+                }
             } else if ("POST".equalsIgnoreCase(method)) {
                 if (path.endsWith("/kick")) {
                     handleKick(exchange);
@@ -93,6 +98,14 @@ public class PlayersRoute extends RouteHandler {
                     handleSimpleAction(exchange, "whitelist");
                 } else if (path.endsWith("/unwhitelist")) {
                     handleSimpleAction(exchange, "unwhitelist");
+                } else if (path.endsWith("/gamemode")) {
+                    handleGamemode(exchange);
+                } else if (path.endsWith("/teleport")) {
+                    handleTeleport(exchange);
+                } else if (path.endsWith("/xp")) {
+                    handleXp(exchange);
+                } else if (path.endsWith("/advancements")) {
+                    handleAdvancements(exchange);
                 } else {
                     sendError(exchange, 404, "Unknown player action");
                 }
@@ -471,5 +484,177 @@ public class PlayersRoute extends RouteHandler {
         } catch (Exception e) {
             sendError(exchange, 400, "Invalid JSON format");
         }
+    }
+
+    /**
+     * Change a player's gamemode: {"player":"Name","mode":"creative"}.
+     * Uses the API instead of the command so an invalid mode is rejected with a 400.
+     */
+    private void handleGamemode(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player") || !json.has("mode")) {
+            sendError(exchange, 400, "Missing player or mode");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        String mode = json.get("mode").getAsString().trim().toUpperCase();
+        final org.bukkit.GameMode gameMode;
+        try {
+            gameMode = org.bukkit.GameMode.valueOf(mode);
+        } catch (Exception e) {
+            sendError(exchange, 400, "Unknown gamemode (use survival, creative, adventure or spectator)");
+            return;
+        }
+        boolean ok = runForPlayer(name, new PlayerTask() {
+            @Override
+            public void run(Player player) {
+                player.setGameMode(gameMode);
+            }
+        });
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /**
+     * Teleport a player: {"player":"Name","target":"Other"} or {"player":"Name","x":0,"y":64,"z":0}.
+     * Implemented as a console command so relative coordinates and cross-world targets work.
+     */
+    private void handleTeleport(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player")) {
+            sendError(exchange, 400, "Missing player name");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        final String command;
+        if (json.has("target") && !json.get("target").getAsString().trim().isEmpty()) {
+            command = "tp " + name + " " + json.get("target").getAsString().trim();
+        } else if (json.has("x") && json.has("y") && json.has("z")) {
+            command = "tp " + name + " " + json.get("x").getAsString() + " "
+                    + json.get("y").getAsString() + " " + json.get("z").getAsString();
+        } else {
+            sendError(exchange, 400, "Missing target or x/y/z");
+            return;
+        }
+        boolean ok = Bukkit.getPlayer(name) != null;
+        if (ok) dispatch(command);
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /**
+     * Give or take experience: {"player":"Name","amount":100,"type":"points"|"levels"}.
+     * Negative amounts take experience away.
+     */
+    private void handleXp(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player") || !json.has("amount")) {
+            sendError(exchange, 400, "Missing player or amount");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        int amount = json.get("amount").getAsInt();
+        String type = json.has("type") ? json.get("type").getAsString().toLowerCase() : "points";
+        if (!"points".equals(type) && !"levels".equals(type)) {
+            sendError(exchange, 400, "Unknown type (use points or levels)");
+            return;
+        }
+        boolean ok = Bukkit.getPlayer(name) != null;
+        if (ok) dispatch("xp add " + name + " " + amount + " " + type);
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /** Reset a player's advancements: {"player":"Name"}. */
+    private void handleAdvancements(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player")) {
+            sendError(exchange, 400, "Missing player name");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        boolean ok = Bukkit.getPlayer(name) != null;
+        if (ok) dispatch("advancement revoke " + name + " everything");
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /** Read a player's ender chest (27 slots) for the dashboard, offline players included. */
+    private void handleEnderChest(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String name = null;
+        if (query != null) {
+            for (String param : query.split("&")) {
+                String[] pair = param.split("=", 2);
+                if (pair.length > 1 && "player".equals(pair[0])) {
+                    name = pair[1];
+                }
+            }
+        }
+        if (name == null || name.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing 'player' parameter");
+            return;
+        }
+        final String target = name.trim();
+        try {
+            Future<JsonObject> future = Bukkit.getScheduler().callSyncMethod(plugin, new Callable<JsonObject>() {
+                @Override
+                public JsonObject call() {
+                    JsonObject result = new JsonObject();
+                    Player player = Bukkit.getPlayer(target);
+                    if (player == null) {
+                        result.addProperty("online", false);
+                        return result;
+                    }
+                    result.addProperty("online", true);
+                    result.addProperty("player", player.getName());
+                    ItemStack[] contents = player.getEnderChest().getContents();
+                    result.add("slots", serializeItems(contents));
+                    result.addProperty("size", contents.length);
+                    return result;
+                }
+            });
+            JsonObject result = future.get(5, java.util.concurrent.TimeUnit.SECONDS);
+            if (!result.get("online").getAsBoolean()) {
+                sendError(exchange, 404, "Player is not online");
+                return;
+            }
+            sendJson(exchange, 200, result);
+        } catch (Exception e) {
+            sendError(exchange, 500, "Could not read the ender chest: " + e.getMessage());
+        }
+    }
+
+    /** Small helper for actions that need the main thread and a single online player. */
+    private interface PlayerTask {
+        void run(Player player);
+    }
+
+    private boolean runForPlayer(final String name, final PlayerTask task) {
+        if (Bukkit.getPlayer(name) == null) return false;
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                Player player = Bukkit.getPlayer(name);
+                if (player != null) task.run(player);
+            }
+        });
+        return true;
+    }
+
+    /** Run a console command on the main thread (used for teleport, XP and advancements). */
+    private void dispatch(final String command) {
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            }
+        });
+    }
+
+    private void respondAction(HttpExchange exchange, boolean ok, String errorMessage) throws IOException {
+        if (!ok) {
+            sendError(exchange, 404, errorMessage);
+            return;
+        }
+        JsonObject response = new JsonObject();
+        response.addProperty("success", true);
+        sendJson(exchange, 200, response);
     }
 }
