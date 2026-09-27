@@ -166,15 +166,17 @@ public class PaperMCDownloader {
         String json = fetchJson(API_BASE_URL);
         if (json == null) return versions;
         try {
+            // Every entry in the order the API returns it - exactly the list the setup wizard
+            // shows, so both pickers offer the same versions in the same order
             org.json.JSONObject root = new org.json.JSONObject(json);
             org.json.JSONObject families = root.getJSONObject("versions");
             java.util.Iterator<String> keys = families.keys();
             while (keys.hasNext()) {
                 String family = keys.next();
                 org.json.JSONArray arr = families.getJSONArray(family);
-                if (arr.length() > 0) {
-                    String newest = arr.getString(0).trim();
-                    if (!newest.isEmpty()) versions.add(newest);
+                for (int i = 0; i < arr.length(); i++) {
+                    String version = arr.getString(i).trim();
+                    if (!version.isEmpty()) versions.add(version);
                 }
             }
         } catch (Exception e) {

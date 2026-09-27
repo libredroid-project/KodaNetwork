@@ -1118,6 +1118,10 @@ public class CreateServerActivity extends AppCompatActivity {
     }
 
     private List<String> fetchPaperMcVersions(String project) {
+        // Shared implementation, so the switch on an existing server shows the same list
+        List<String> versions = eu.kodanetwork.mchost.util.PaperMCDownloader.fetchPaperVersions();
+        if (!versions.isEmpty()) return versions;
+        // Fallback for other Paper projects (folia) that the helper does not cover
         try {
             String json = get("https://fill.papermc.io/v3/projects/" + project);
             com.google.gson.JsonObject obj = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
