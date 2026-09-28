@@ -3275,14 +3275,14 @@ public class ServerDetailActivity extends AppCompatActivity {
         final android.widget.FrameLayout modeHost = findViewById(R.id.fl_plugins_mode);
         if (modeHost != null && installPane != null && installedPane != null) {
             modeHost.removeAllViews();
-            final android.widget.FrameLayout pill = makePillSwitch(
+            android.view.View tabs = makeTextTabs(
                     new String[]{getString(R.string.plugins_mode_install), getString(R.string.plugins_mode_installed)},
                     0, sel -> {
                         installPane.setVisibility(sel == 0 ? View.VISIBLE : View.GONE);
                         installedPane.setVisibility(sel == 1 ? View.VISIBLE : View.GONE);
                         if (sel == 1) renderJarList();
                     });
-            modeHost.addView(pill, new android.widget.FrameLayout.LayoutParams(
+            modeHost.addView(tabs, new android.widget.FrameLayout.LayoutParams(
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT));
         }
@@ -4226,6 +4226,83 @@ public class ServerDetailActivity extends AppCompatActivity {
      * Disabling renames "x.jar" to "x.jar.disabled" (every server software ignores that), the
      * trash lives outside the plugins/mods folder so no loader picks it up.
      */
+    /**
+     * Two plain text tabs with an orange line that slides under the active one (like the
+     * navigation in the app, not a pill switch).
+     */
+    private android.view.View makeTextTabs(final String[] labels, int selected, final java.util.function.IntConsumer onPick) {
+        float d = getResources().getDisplayMetrics().density;
+        android.widget.FrameLayout wrap = new android.widget.FrameLayout(this);
+        wrap.setBackgroundColor(0xFF1D1714);
+
+        final android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+
+        final android.view.View indicator = new android.view.View(this);
+        android.graphics.drawable.GradientDrawable indicatorBg = new android.graphics.drawable.GradientDrawable();
+        indicatorBg.setColor(0xFFFF6B00);
+        indicatorBg.setCornerRadius(1.5f * d);
+        indicator.setBackground(indicatorBg);
+
+        final android.widget.TextView[] items = new android.widget.TextView[labels.length];
+        for (int i = 0; i < labels.length; i++) {
+            final int index = i;
+            android.widget.TextView tv = new android.widget.TextView(this);
+            tv.setText(labels[i]);
+            tv.setTextSize(13);
+            tv.setLetterSpacing(0.08f);
+            tv.setGravity(android.view.Gravity.CENTER);
+            tv.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda),
+                    android.graphics.Typeface.BOLD);
+            tv.setPadding(0, (int) (10 * d), 0, (int) (10 * d));
+            tv.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+            tv.setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
+                onPick.accept(index);
+                moveTabIndicator(items, indicator, index, d);
+            });
+            items[i] = tv;
+            row.addView(tv);
+        }
+
+        android.widget.FrameLayout.LayoutParams rowLp = new android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT);
+        wrap.addView(row, rowLp);
+
+        android.widget.FrameLayout.LayoutParams indicatorLp = new android.widget.FrameLayout.LayoutParams(0, (int) (2 * d));
+        indicatorLp.gravity = android.view.Gravity.BOTTOM;
+        wrap.addView(indicator, indicatorLp);
+
+        // Place the line under the active label once the layout is measured
+        final int[] tries = {0};
+        Runnable[] place = new Runnable[1];
+        place[0] = () -> {
+            android.widget.TextView active = items[Math.max(0, Math.min(selected, items.length - 1))];
+            if (active.getWidth() == 0 && tries[0]++ < 10) {
+                wrap.post(place[0]);
+                return;
+            }
+            moveTabIndicator(items, indicator, Math.max(0, Math.min(selected, items.length - 1)), d);
+        };
+        wrap.post(place[0]);
+        return wrap;
+    }
+
+    /** Slides the orange line under the given tab and colours the labels. */
+    private void moveTabIndicator(android.widget.TextView[] items, android.view.View indicator, int index, float d) {
+        android.view.View target = items[index];
+        android.view.ViewGroup.LayoutParams lp = indicator.getLayoutParams();
+        lp.width = target.getWidth();
+        indicator.setLayoutParams(lp);
+        indicator.animate().translationX(target.getLeft()).setDuration(180)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        for (int i = 0; i < items.length; i++) {
+            items[i].setTextColor(i == index ? 0xFFFF6B00 : 0xFF9A8B80);
+        }
+    }
+
     /** Folder that holds the loadable files of this server type. */
     private java.io.File jarDir() {
         boolean modded = server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.FABRIC
@@ -4261,14 +4338,33 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (empty != null) empty.setVisibility(entries.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
 
         android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
-        for (java.io.File file : entries) {
-            android.view.View row = inflater.inflate(R.layout.item_jar_entry, list, false);
-            boolean enabled = file.getName().toLowerCase().endsWith(".jar");
-            String display = file.getName().replace(".disabled", "").replace(".jar", "");
-            ((android.widget.TextView) row.findViewById(R.id.tv_jar_name)).setText(display);
-            ((android.widget.TextView) row.findViewById(R.id.tv_jar_meta)).setText(
-                    eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length())
-                            + (enabled ? "" : "  \u00b7  " + getString(R.string.jars_disabled)));
+        for (final java.io.File file : entries) {
+            final boolean enabled = file.getName().toLowerCase().endsWith(".jar");
+            android.view.View row = inflater.inflate(R.layout.item_installed_jar, list, false);
+
+            final android.widget.TextView name = row.findViewById(R.id.tv_jar_name);
+            final android.widget.TextView desc = row.findViewById(R.id.tv_jar_desc);
+            final android.widget.TextView version = row.findViewById(R.id.tv_jar_version);
+            final android.widget.ImageView icon = row.findViewById(R.id.iv_jar_icon);
+            name.setText(file.getName().replace(".disabled", "").replace(".jar", ""));
+            desc.setText(eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()));
+            version.setText(enabled ? getString(R.string.jars_enabled) : getString(R.string.jars_disabled));
+
+            // Read name, description, version and icon out of the jar in the background
+            new Thread(() -> {
+                final eu.kodanetwork.mchost.util.JarInfo info = eu.kodanetwork.mchost.util.JarInfo.read(file);
+                runOnUiThread(() -> {
+                    if (info.name != null && !info.name.isEmpty()) name.setText(info.name + "  \u00b7  " + info.fileName);
+                    if (info.description != null && !info.description.isEmpty()) desc.setText(info.description);
+                    StringBuilder meta = new StringBuilder();
+                    if (info.version != null && !info.version.isEmpty()) meta.append(info.version).append("  \u00b7  ");
+                    meta.append(eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()));
+                    if (!enabled) meta.append("  \u00b7  ").append(getString(R.string.jars_disabled));
+                    version.setText(meta.toString());
+                    if (info.icon != null) icon.setImageBitmap(info.icon);
+                });
+            }, "KodaJarInfo").start();
+
             android.widget.CompoundButton toggle = row.findViewById(R.id.switch_jar_enabled);
             toggle.setChecked(enabled);
             toggle.setOnCheckedChangeListener((buttonView, isChecked) -> setJarEnabled(file, isChecked));
