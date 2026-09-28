@@ -4233,7 +4233,6 @@ public class ServerDetailActivity extends AppCompatActivity {
     private android.view.View makeTextTabs(final String[] labels, int selected, final java.util.function.IntConsumer onPick) {
         float d = getResources().getDisplayMetrics().density;
         android.widget.FrameLayout wrap = new android.widget.FrameLayout(this);
-        wrap.setBackgroundColor(0xFF1D1714);
 
         final android.widget.LinearLayout row = new android.widget.LinearLayout(this);
         row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
@@ -4303,6 +4302,46 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
+    /** Icon urls already looked up, so switching tabs does not search again. */
+    private static final java.util.Map<String, String> jarIconCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Most Bukkit plugins ship no image inside the jar, so the icon is looked up on Modrinth
+     * with the file name (cached per name; "none" marks a file with no project).
+     */
+    private void loadModrinthIconFor(final String fileName, final android.widget.ImageView target) {
+        final String key = fileName.toLowerCase().replace(".disabled", "").replace(".jar", "");
+        String cached = jarIconCache.get(key);
+        if (cached != null) {
+            if (!"none".equals(cached)) eu.kodanetwork.mchost.util.ModrinthHelper.loadIcon(cached, target);
+            return;
+        }
+        String query = key.replaceAll("[-_].*$", "").replaceAll("[0-9.]+$", "").trim();
+        if (query.length() < 2) query = key;
+        eu.kodanetwork.mchost.util.ModrinthHelper.search(query, server.getType(),
+                new eu.kodanetwork.mchost.util.ModrinthHelper.SearchCallback() {
+                    @Override
+                    public void onResult(java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> results) {
+                        if (results == null || results.isEmpty()) {
+                            jarIconCache.put(key, "none");
+                            return;
+                        }
+                        String url = results.get(0).iconUrl;
+                        if (url == null || url.isEmpty()) {
+                            jarIconCache.put(key, "none");
+                            return;
+                        }
+                        jarIconCache.put(key, url);
+                        eu.kodanetwork.mchost.util.ModrinthHelper.loadIcon(url, target);
+                    }
+
+                    @Override
+                    public void onError(String err) {
+                        jarIconCache.put(key, "none");
+                    }
+                });
+    }
+
     /** Folder that holds the loadable files of this server type. */
     private java.io.File jarDir() {
         boolean modded = server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.FABRIC
@@ -4361,7 +4400,11 @@ public class ServerDetailActivity extends AppCompatActivity {
                     meta.append(eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()));
                     if (!enabled) meta.append("  \u00b7  ").append(getString(R.string.jars_disabled));
                     version.setText(meta.toString());
-                    if (info.icon != null) icon.setImageBitmap(info.icon);
+                    if (info.icon != null) {
+                        icon.setImageBitmap(info.icon);
+                    } else {
+                        loadModrinthIconFor(info.fileName, icon);
+                    }
                 });
             }, "KodaJarInfo").start();
 
