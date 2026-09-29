@@ -69,7 +69,7 @@ Soweit gesetzlich zulässig, haften der Entwickler, dessen gesetzliche Vertreter
 - Handlungen oder Inhalten Dritter, einschließlich Plugins, Mods oder Software, die über den Dienst oder für dessen Nutzung heruntergeladen wurden;
 - Jeder Unterbrechung oder Einstellung von Übertragungen zum oder vom Dienst.
 
-Diese Haftungsbeschränkung gilt unabhängig von dem geltend gemachten Rechtsgrund und unabhängig davon, ob der Entwickler auf die Möglichkeit solcher Schäden hingewiesen wurde. Sie gilt im weitestgehend zulässigen Umfang, einschließlich der Grenzen der §§ 7 BDSG und des deutschen Digitale-Dienste-Gesetzes (DDG).
+Diese Haftungsbeschränkung gilt unabhängig von dem geltend gemachten Rechtsgrund und unabhängig davon, ob der Entwickler auf die Möglichkeit solcher Schäden hingewiesen wurde. Sie gilt im weitestgehend zulässigen Umfang, einschließlich der Grenzen der der §§ 276, 309 BGB und des deutschen Digitale-Dienste-Gesetzes (DDG).
 
 Nichts in diesen Bedingungen schließt die Haftung für Tod oder Personenschäden durch Fahrlässigkeit, Betrug, arglistige Täuschung oder jede andere Haftung aus, die nach anwendbarem Recht nicht ausgeschlossen oder beschränkt werden kann.
 

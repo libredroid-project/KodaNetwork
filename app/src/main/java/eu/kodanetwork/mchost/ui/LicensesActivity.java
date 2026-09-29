@@ -38,6 +38,12 @@ public class LicensesActivity extends AppCompatActivity {
         addLicense(topContainer, "Terms of Service", "tos.txt");
         addLicense(topContainer, "Privacy Policy", "privacy.txt");
         addLicense(topContainer, "AI Crash Analysis (Google Gemma via OpenRouter)", "gemma_ai.txt");
+        addLicense(topContainer, "jBCrypt (ISC)", "jbcrypt.txt");
+        addLicense(topContainer, "Monaco Editor (MIT)", "monaco.txt");
+        addLicense(topContainer, "Bundled Fonts (SIL OFL 1.1)", "fonts_ofl.txt");
+        addLicense(topContainer, "Pumpkin (MIT)", "pumpkin.txt");
+        addLicense(topContainer, "Kotlin Coroutines (Apache-2.0)", "coroutines.txt");
+        addLicense(topContainer, "Okio (Apache-2.0)", "okio.txt");
 
         LinearLayout container = findViewById(R.id.ll_licenses_container);
         addLicense(container, "OpenJDK", "openjdk.txt");

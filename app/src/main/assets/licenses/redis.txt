@@ -1,10 +1,12 @@
-Copyright (c) 2006-2020, Salvatore Sanfilippo
-All rights reserved.
+Redis
 
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+Redis is licensed under the GNU Affero General Public License v3 (AGPL-3.0).
 
-    * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-    * Neither the name of Redis nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+Redis changed its licence in 7.4 from BSD-3-Clause to RSALv2/SSPL and switched to
+AGPL-3.0 with Redis 8.0. The build bundled with this app is covered by the AGPL-3.0.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+The full licence text is included as agpl_v3.txt. AGPL-3.0 section 13 requires that users
+who interact with the software over a network are offered the corresponding source code;
+the sources are available from https://github.com/redis/redis.
+
+Copyright (c) 2006-2024, Salvatore Sanfilippo and Redis contributors.

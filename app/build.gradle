@@ -77,9 +77,6 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
-        resources {
-            excludes += ['META-INF/LICENSE*', 'META-INF/NOTICE*']
-        }
     }
 
     lint {
