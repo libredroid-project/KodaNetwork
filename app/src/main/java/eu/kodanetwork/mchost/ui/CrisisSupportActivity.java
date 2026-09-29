@@ -34,7 +34,6 @@ public class CrisisSupportActivity extends AppCompatActivity {
     /** Seconds until the continue button unlocks. */
     private static final long UNLOCK_SECONDS = 40;
 
-    private ObjectAnimator breatheAnimator;
     private CountDownTimer unlockTimer;
 
     @Override
