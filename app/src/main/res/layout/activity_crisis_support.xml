@@ -129,6 +129,19 @@
             android:fontFamily="@font/font_koda"
             app:cornerRadius="12dp" />
 
+<com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_crisis_support"
+            style="@style/KodaButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/crisis_support"
+            android:textColor="#1B1613"
+            android:textSize="13sp"
+            app:strokeColor="#FFB68C"
+            app:strokeWidth="2dp"
+            app:cornerRadius="12dp" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_crisis_krisenchat"
             style="@style/KodaButton.Outline"
@@ -162,19 +175,7 @@
             android:textSize="12sp"
             app:cornerRadius="12dp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_crisis_support"
-            style="@style/KodaButton"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:layout_marginTop="16dp"
-            android:text="@string/crisis_support"
-            android:textColor="#1B1613"
-            android:textSize="13sp"
-            app:strokeColor="#FFB68C"
-            app:strokeWidth="2dp"
-            app:cornerRadius="12dp" />
-
+        
         <TextView
             android:id="@+id/crisis_countdown"
             android:layout_width="wrap_content"
