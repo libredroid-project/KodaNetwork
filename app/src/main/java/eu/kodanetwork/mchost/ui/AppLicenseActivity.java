@@ -11,12 +11,7 @@ import eu.kodanetwork.mchost.R;
 /*
  * Copyright (c) 2026 KodaHosting
  *
- * Triple-Licensed under:
- *   - GNU General Public License v3 (GPL-3.0) — see LICENSE
- *   - Libre Open Project License v1.0 PREVIEW — see LOPL_v1.0_PREVIEW.md
- *   - Commercial License — see COMMERCIAL-LICENSE.md
- *
- * For commercial inquiries: licence@kodaserv.eu
+ * Licensed under the GNU General Public License v3 (GPL-3.0) — see LICENSE
  */
 public class AppLicenseActivity extends AppCompatActivity {
 
@@ -30,31 +25,6 @@ public class AppLicenseActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> finish());
         }
 
-        Button btnLoplPreview = findViewById(R.id.btn_lopl_preview);
-        Button btnLoplDownload = findViewById(R.id.btn_lopl_download);
-        Button btnCommPreview = findViewById(R.id.btn_comm_preview);
-        Button btnCommDownload = findViewById(R.id.btn_comm_download);
-        Button btnCommInfoPreview = findViewById(R.id.btn_comm_info_preview);
-        Button btnCommInfoDownload = findViewById(R.id.btn_comm_info_download);
-
-        if (btnLoplPreview != null) {
-            btnLoplPreview.setOnClickListener(v -> previewPdf("lopl_preview.pdf"));
-        }
-        if (btnLoplDownload != null) {
-            btnLoplDownload.setOnClickListener(v -> downloadPdf("lopl_preview.pdf", "LOPL_v1.0_PREVIEW.pdf"));
-        }
-        if (btnCommPreview != null) {
-            btnCommPreview.setOnClickListener(v -> previewPdf("commercial_license.pdf"));
-        }
-        if (btnCommDownload != null) {
-            btnCommDownload.setOnClickListener(v -> downloadPdf("commercial_license.pdf", "COMMERCIAL-LICENSE.pdf"));
-        }
-        if (btnCommInfoPreview != null) {
-            btnCommInfoPreview.setOnClickListener(v -> previewPdf("commercial_license_info.pdf"));
-        }
-        if (btnCommInfoDownload != null) {
-            btnCommInfoDownload.setOnClickListener(v -> downloadPdf("commercial_license_info.pdf", "COMMERCIAL-LICENSE-INFO.pdf"));
-        }
     }
 
     private void previewPdf(String filename) {

@@ -26,7 +26,6 @@ Think of it as a full server control panel in your pocket: create a server, pres
 
 ## Features
 
-- **100% open source** (GPL-3.0), code and licenses fully visible in the app
 - **All major server software**: Paper, Purpur, Folia, Vanilla, Forge, Fabric, NeoForge, plus PumpkinMC (native Rust server that boots in under a second with built-in Bedrock support)
 - **Bedrock crossplay**: Geyser/Floodgate auto-installed for Java servers, built into Pumpkin
 - **Modpacks made easy**: search Modrinth in-app and install Fabric modpacks with dependency and checksum handling
@@ -92,7 +91,7 @@ The public source contains no server addresses or keys. Everything instance spec
 
 ## Legal
 
-- **License:** [GNU GPL v3](LICENSE), dual-licensed under LOPL v1.0 Preview and a Commercial License
+- **License:** [GNU GPL v3](LICENSE)
 - Privacy Policy, Terms of Service and Imprint are bundled in the app (Licenses tab) and available at [host.kodanetwork.eu](https://host.kodanetwork.eu)
 - KodaHosting is not an official Minecraft product and is not approved by or associated with Mojang or Microsoft.
 - The optional "Ask AI" feature sends log excerpts to OpenRouter (rotating free models) only when explicitly tapped and consented; see the in-app Privacy Policy.

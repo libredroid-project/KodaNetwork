@@ -3,12 +3,7 @@ package eu.kodanetwork.mchost.ui;
 /*
  * Copyright (c) 2026 KodaHosting
  *
- * Triple-Licensed under:
- *   - GNU General Public License v3 (GPL-3.0) — see LICENSE
- *   - Libre Open Project License v1.0 PREVIEW — see LOPL_v1.0_PREVIEW.md
- *   - Commercial License — see COMMERCIAL-LICENSE.md
- *
- * For commercial inquiries: licence@kodaserv.eu
+ * Licensed under the GNU General Public License v3 (GPL-3.0) — see LICENSE
  */
 
 
@@ -39,8 +34,6 @@ public class LicensesActivity extends AppCompatActivity {
 
         LinearLayout topContainer = findViewById(R.id.ll_legal_top_container);
         addLicense(topContainer, "App License (GPL v3)", "gpl_v3.txt");
-        addPdfLicense(topContainer, "LOPL v1.0 PREVIEW", "lopl_preview.pdf");
-        addPdfLicense(topContainer, "Commercial License", "commercial_license.pdf");
         addLicense(topContainer, "Imprint (Impressum)", "impressum.txt");
         addLicense(topContainer, "Terms of Service", "tos.txt");
         addLicense(topContainer, "Privacy Policy", "privacy.txt");
