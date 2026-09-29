@@ -373,6 +373,9 @@ public class SupportChatActivity extends AppCompatActivity {
                 boolean isAdmin = msg.optBoolean("is_admin", false) || "admin".equals(senderUuid);
 
                 boolean isLight = ThemeHelper.isLightMode(SupportChatActivity.this);
+                // maxWidth on the LinearLayout in XML is ignored, which stretched every bubble
+                // across the full row - constrain the text instead
+                holder.tvMessage.setMaxWidth((int) (260 * getResources().getDisplayMetrics().density));
                 LinearLayout.LayoutParams containerParams = (LinearLayout.LayoutParams) holder.llMessageContainer.getLayoutParams();
                 if (isMe) {
                     containerParams.gravity = android.view.Gravity.END;

@@ -778,8 +778,8 @@
     <!-- 危机支持页面（服务器名 / 重命名 / MOTD 含危机词汇时显示） -->
     <string name="crisis_title">你不是一个人</string>
     <string name="crisis_subtitle">你正在被爱着 &lt;3</string>
-    <string name="crisis_love_headline">我是 libredroid。这个应用是我写的。我希望你一切都好。</string>
-    <string name="crisis_love_text">我不认识你，但我知道你正在这里创造一些东西，你很重要。你现在的感受真实而沉重，但它不会永远如此。你不必独自承受。拨打下面任何一个号码都是一小步，而这一步有意义。服务器可以等，你无可取代。</string>
+    <string name="crisis_love_headline">嗨 :) 我是 libredroid。这个应用是我写的——我希望你一切都好。</string>
+    <string name="crisis_love_text">你现在的感受真实而沉重。但它不会永远如此，真的。你不必独自撑过去。服务器可以等——你无可取代 ❤️</string>
     <string name="crisis_help_title">帮助就在这里</string>
     <string name="crisis_hotlines">德国生命热线（24小时，免费）：0800 111 0 111 或 0800 111 0 222\n德国青少年热线：116 111\n香港撒玛利亚防止自杀会：2389 2222\n台湾安心专线：1925\n全球热线目录：findahelpline.com\n紧急情况请拨打当地紧急电话</string>
     <string name="crisis_call">拨打 0800 111 0 111（免费，24小时）</string>
@@ -796,5 +796,5 @@
     <string name="ticket_personal_title">写给 libredroid</string>
     <string name="ticket_personal_hint">你在想什么？</string>
     <string name="ticket_personal_created">已发送。你不是一个人。</string>
-        <string name="crisis_safe_text">什么都不会发生。不会封号，不会限制，你的服务器还在。没有人会知道这个页面。你不需要解释任何事，也不必点开任何链接。</string>
+        <string name="crisis_safe_text">什么都不会发生，我保证 :) 不封号、不限制、服务器还在。没有人会知道这个页面。你不需要解释任何事 &lt;3</string>
 </resources>

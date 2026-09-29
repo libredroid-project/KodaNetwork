@@ -77,35 +77,23 @@
             android:textSize="13.5sp"
             android:lineSpacingMultiplier="1.35" />
 
-        <!-- The heart pulses slowly with the breath rhythm, label follows along -->
-        <FrameLayout
-            android:layout_width="220dp"
-            android:layout_height="220dp"
-            android:layout_marginTop="26dp">
-
-            <ImageView
-                android:id="@+id/crisis_heart"
-                android:layout_width="170dp"
-                android:layout_height="170dp"
-                android:layout_gravity="center"
-                android:src="@drawable/heart_koda"
-                android:contentDescription="@string/crisis_love_headline" />
-
-        </FrameLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="❤️"
+            android:textSize="72sp" />
 
         <TextView
-            android:id="@+id/crisis_safe"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:background="@drawable/crisis_safe_box"
-            android:padding="14dp"
             android:gravity="center"
             android:fontFamily="@font/font_koda"
             android:text="@string/crisis_safe_text"
-            android:textColor="#C9BFB8"
-            android:textSize="13sp"
-            android:lineSpacingMultiplier="1.35" />
+            android:textColor="#FF9EC6"
+            android:textSize="14sp"
+            android:lineSpacingMultiplier="1.4" />
 
         <TextView
             android:layout_width="match_parent"

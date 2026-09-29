@@ -40,10 +40,8 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
         EditText etReference = findViewById(R.id.et_reference);
         // PERSONAL comes from the crisis support screen: a private message, no diagnostics
         if ("PERSONAL".equals(ticketType)) {
-            tvTitle.setText(getString(R.string.ticket_personal_title));
-            etReference.setHint(getString(R.string.ticket_personal_hint));
-        }
-        if (ticketType.equals("SERVER_REPORT")) {
+            // already set above; must not fall through to the bug default
+        } else if (ticketType.equals("SERVER_REPORT")) {
             tvTitle.setText("Report Server");
             etReference.setHint("Name of the server");
         } else {

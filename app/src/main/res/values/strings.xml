@@ -798,8 +798,8 @@
     <!-- Crisis support screen (server name / rename / MOTD contain crisis phrases) -->
     <string name="crisis_title">YOU ARE NOT ALONE</string>
     <string name="crisis_subtitle">You are BEING LOVED &lt;3</string>
-    <string name="crisis_love_headline">I am libredroid. I built this app. And I want you to be okay.</string>
-    <string name="crisis_love_text">I do not know you, but I know you are building something here, and that you matter. What you feel right now is real and heavy, and it is not forever. You do not have to carry it alone. Calling one of the numbers below is a tiny step, and it counts. Your server can wait. You cannot be replaced.</string>
+    <string name="crisis_love_headline">Hey :) I\u2019m libredroid. I built this app \u2013 and I want you to be okay.</string>
+    <string name="crisis_love_text">What you feel right now is real and heavy. But it is not forever, truly. You don\u2019t have to go through this alone. Your server can wait \u2013 you cannot be replaced \u2764\ufe0f</string>
     <string name="crisis_help_title">HELP IS HERE FOR YOU</string>
     <string name="crisis_hotlines">Germany (24/7, free): 0800 111 0 111 or 0800 111 0 222\nYouth hotline (Germany): 116 111\nChat counselling (under 25): krisenchat.de\nHelplines in your country: findahelpline.com\nAcute danger: call your local emergency number (112 in the EU)</string>
     <string name="crisis_call">Call 0800 111 0 111 (free, 24/7)</string>
@@ -816,5 +816,5 @@
     <string name="ticket_personal_title">Write to libredroid</string>
     <string name="ticket_personal_hint">What is on your mind?</string>
     <string name="ticket_personal_created">Sent. You are not alone.</string>
-        <string name="crisis_safe_text">Nothing happens. No ban, no block, your server stays. Nobody is told about this screen. You do not have to explain anything, and you do not have to tap anything.</string>
+        <string name="crisis_safe_text">Nothing happens, promise :) No ban, no block, your server stays. Nobody finds out about this screen. You don\u2019t have to explain anything &lt;3</string>
 </resources>

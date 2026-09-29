@@ -1,15 +1,10 @@
 package eu.kodanetwork.mchost.ui;
 
-import android.animation.Animator;
-import android.animation.AnimatorSet;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.view.View;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -48,49 +43,8 @@ public class CrisisSupportActivity extends AppCompatActivity {
         Material3ThemeHelper.applyTheme(this);
         setContentView(R.layout.activity_crisis_support);
 
-        startBreathing();
         wireHelpButtons();
         startUnlockCountdown();
-    }
-
-    /**
-     * The heart beats in a real heartbeat rhythm: two quick beats (lub-dub), then rest.
-     * A calm pace - not a panic pulse - so it steadies instead of alarms.
-     */
-    private void startBreathing() {
-        final android.widget.ImageView heart = findViewById(R.id.crisis_heart);
-        if (heart == null) return;
-
-        final Runnable[] beat = new Runnable[1];
-        beat[0] = new Runnable() {
-            @Override
-            public void run() {
-                // lub (quick, strong), short dip, dub (slightly softer), then rest
-                AnimatorSet set = new AnimatorSet();
-                set.playSequentially(
-                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1f, 1.22f),
-                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.22f, 1.08f),
-                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.08f, 1.26f),
-                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.26f, 1f));
-                ObjectAnimator y = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1f, 1f);
-                // Scale both axes together
-                android.animation.ObjectAnimator sx1 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1f, 1.22f);
-                android.animation.ObjectAnimator sx2 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.22f, 1.08f);
-                android.animation.ObjectAnimator sx3 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.08f, 1.26f);
-                android.animation.ObjectAnimator sx4 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.26f, 1f);
-                sx1.setDuration(140); sx2.setDuration(110); sx3.setDuration(150); sx4.setDuration(420);
-                android.animation.AnimatorSet ys = new AnimatorSet();
-                ys.playSequentially(sx1, sx2, sx3, sx4);
-                ys.addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        heart.postDelayed(beat[0], 900);
-                    }
-                });
-                ys.start();
-            }
-        };
-        beat[0].run();
     }
 
     private void wireHelpButtons() {
@@ -159,8 +113,6 @@ public class CrisisSupportActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         if (unlockTimer != null) unlockTimer.cancel();
-        android.widget.ImageView heart = findViewById(R.id.crisis_heart);
-        if (heart != null) heart.getHandler().removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 }
