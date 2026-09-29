@@ -61,6 +61,7 @@ Die App nutzt bestimmte Drittanbieter-Dienste, die Informationen erfassen könne
 - Ko-fi: Für freiwillige finanzielle Unterstützung des Entwicklers. Ko-fi ist ein externer Dienst; der Besuch ihrer Website oder eine Spende unterliegt deren Bedingungen und Datenschutzerklärung. Spenden sind freiwillige Geschenke und schalten keine Funktionen frei.
 
 Jeder Drittanbieter-Dienst ist eigener Verantwortlicher für die von ihm verarbeiteten Daten. Wir empfehlen, die jeweiligen Datenschutzerklärungen zu lesen.
+Soweit ein Anbieter Daten in unserem Auftrag verarbeitet (zum Beispiel Supabase fuer Speicherung und Anmeldung oder die KI-Anbieter fuer die Crash-Analyse), handelt er als unser Auftragsverarbeiter nach Art. 28 DSGVO und ist vertraglich gebunden. Entscheidet ein Anbieter selbst ueber die Verarbeitung (etwa wenn eine Zahlungs- oder Spendenseite geoeffnet wird), ist er fuer diesen Teil eigener Verantwortlicher und es gilt seine eigene Datenschutzerklaerung.
 
 5. Datensicherheit
 

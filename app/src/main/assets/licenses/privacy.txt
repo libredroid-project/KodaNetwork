@@ -60,7 +60,7 @@ The App utilizes certain third-party services that may collect information used 
 - Bore / FRP (Fast Reverse Proxy): Used exclusively to create the secure network tunnels between your device and our VPS infrastructure.
 - Ko-fi: Used for voluntary financial support of the developer. Ko-fi is an external service; visiting their site or making a donation is subject to their terms and privacy policy. Donations are voluntary gifts and do not unlock any features.
 
-Each third-party service is a separate data controller for the data it processes. We recommend reviewing their respective privacy policies.
+Where a provider processes data on our behalf (for example Supabase for storage and authentication, or the AI providers for crash analysis), it acts as our processor under Art. 28 GDPR and is bound by a data processing agreement. Where a provider decides on its own about the processing (for example when a payment or donation page is opened), it is a separate controller for that part and its own privacy policy applies. We recommend reviewing their respective privacy policies.
 
 5. Data Security
 
