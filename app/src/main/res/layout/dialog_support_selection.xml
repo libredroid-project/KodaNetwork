@@ -69,6 +69,21 @@
 
         <!-- Report Bug Button -->
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_mental_support"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/mental_support"
+            android:textColor="#1B1613"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda"
+            app:backgroundTint="#FF9EC6"
+            app:strokeColor="#FF7EB9"
+            app:strokeWidth="2dp"
+            app:cornerRadius="12dp"
+            android:layout_marginBottom="12dp"/>
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_report_bug"
             android:layout_width="match_parent"
             android:layout_height="56dp"

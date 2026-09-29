@@ -83,8 +83,12 @@ public class PersonalChatActivity extends AppCompatActivity {
 
         EditText input = findViewById(R.id.et_personal_message);
         ImageButton send = findViewById(R.id.btn_personal_send);
-        send.setOnClickListener(v -> send(input.getText().toString().trim(), input));
+        send.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
+            send(input.getText().toString().trim(), input);
+        });
         input.setOnEditorActionListener((v, actionId, event) -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
             send(input.getText().toString().trim(), input);
             return true;
         });

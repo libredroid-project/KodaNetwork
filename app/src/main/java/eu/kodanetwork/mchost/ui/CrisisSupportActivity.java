@@ -60,40 +60,25 @@ public class CrisisSupportActivity extends AppCompatActivity {
         findViewById(R.id.btn_crisis_krisenchat).setOnClickListener(v -> open("https://krisenchat.de"));
         findViewById(R.id.btn_crisis_findhelp).setOnClickListener(v -> open("https://findahelpline.com"));
         findViewById(R.id.btn_crisis_discord).setOnClickListener(v -> open(DISCORD_INVITE));
-        // No form, no questions: the ticket is created silently and the chat opens directly
+        // One conversation at a time: reopens the open personal ticket or creates it silently
         MaterialButton support = findViewById(R.id.btn_crisis_support);
         support.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
             support.setEnabled(false);
             support.setText(getString(R.string.personal_chat_opening));
-            new Thread(() -> {
-                String id = null;
-                try {
-                    org.json.JSONObject body = new org.json.JSONObject();
-                    body.put("p_reporter_uuid",
-                            eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", ""));
-                    body.put("p_device_token",
-                            eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", ""));
-                    body.put("p_ticket_type", "PERSONAL");
-                    body.put("p_reference_id", "");
-                    body.put("p_title", getString(R.string.personal_chat_ticket_title));
-                    String response = SupportApiHelper.call(this, "rest/v1/rpc/rpc_create_ticket", body.toString());
-                    id = response.replace("\"", "").trim();
-                } catch (Exception e) {
-                    android.util.Log.w("CrisisSupport", "ticket failed: " + e.getMessage());
-                }
-                final String ticketId = id;
-                runOnUiThread(() -> {
-                    support.setEnabled(true);
-                    support.setText(getString(R.string.crisis_support));
-                    if (ticketId != null && !ticketId.isEmpty() && !ticketId.startsWith("{")) {
-                        Intent chat = new Intent(this, PersonalChatActivity.class);
-                        chat.putExtra("TICKET_ID", ticketId);
-                        startActivity(chat);
-                    } else {
-                        Toast.makeText(this, getString(R.string.personal_chat_open_failed), Toast.LENGTH_LONG).show();
+            eu.kodanetwork.mchost.util.PersonalSupport.open(this, new eu.kodanetwork.mchost.util.PersonalSupport.OpenCallback() {
+                @Override
+                public void onBusy(boolean busy) {
+                    if (!busy) {
+                        support.setEnabled(true);
+                        support.setText(getString(R.string.crisis_support));
                     }
-                });
-            }, "KodaPersonalTicket").start();
+                }
+            });
+        });
+        findViewById(R.id.btn_crisis_discord).setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
+            open(DISCORD_INVITE);
         });
     }
 
@@ -125,6 +110,7 @@ public class CrisisSupportActivity extends AppCompatActivity {
                 cont.setEnabled(true);
                 cont.setAlpha(1f);
                 cont.setOnClickListener(v -> {
+                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(CrisisSupportActivity.this, 40);
                     setResult(RESULT_OK);
                     finish();
                 });

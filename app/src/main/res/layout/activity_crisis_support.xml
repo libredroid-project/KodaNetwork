@@ -81,8 +81,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
-            android:text="❤️"
-            android:textSize="72sp" />
+            android:text="&lt;3"
+            android:textColor="#FF9EC6"
+            android:textSize="64sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda" />
 
         <TextView
             android:layout_width="match_parent"

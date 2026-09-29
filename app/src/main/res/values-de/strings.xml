@@ -830,9 +830,9 @@
         <string name="crisis_safe_text">Es passiert nichts, versprochen :) Kein Bann, keine Sperre, dein Server bleibt. Niemand findet das hier raus. Du musst nichts erkl\u00e4ren &lt;3</string>
 
     <!-- Persoenlicher Chat mit libredroid -->
-    <string name="personal_chat_title">libredroid ❤️</string>
+    <string name="personal_chat_title">libredroid &lt;3</string>
     <string name="personal_chat_subtitle">hoert dir zu, antwortet mit Herz</string>
-    <string name="personal_chat_empty">Hey ❤️
+    <string name="personal_chat_empty">Hey &lt;3
 
 Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und niemand sieht es ausser mir.</string>
     <string name="personal_chat_hint">Schreib einfach los...</string>
@@ -840,4 +840,5 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="personal_chat_opening">Wird geoeffnet...</string>
     <string name="personal_chat_open_failed">Das hat nicht geklappt, versuche es bitte nochmal</string>
     <string name="personal_chat_ticket_title">Persoenliche Nachricht</string>
+    <string name="mental_support">Seelischer Beistand &lt;3</string>
 </resources>

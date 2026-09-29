@@ -819,9 +819,9 @@
         <string name="crisis_safe_text">Nothing happens, promise :) No ban, no block, your server stays. Nobody finds out about this screen. You don\u2019t have to explain anything &lt;3</string>
 
     <!-- Personal chat with libredroid -->
-    <string name="personal_chat_title">libredroid ❤️</string>
+    <string name="personal_chat_title">libredroid &lt;3</string>
     <string name="personal_chat_subtitle">hears you, answers with heart</string>
-    <string name="personal_chat_empty">Hey ❤️
+    <string name="personal_chat_empty">Hey &lt;3
 
 Just write what is on your mind. There is no right or wrong here, and nobody sees it except me.</string>
     <string name="personal_chat_hint">Just start typing...</string>
@@ -829,4 +829,5 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="personal_chat_opening">Opening...</string>
     <string name="personal_chat_open_failed">That did not work, please try again</string>
     <string name="personal_chat_ticket_title">Personal message</string>
+    <string name="mental_support">Mental support &lt;3</string>
 </resources>

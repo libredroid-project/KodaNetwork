@@ -59,6 +59,12 @@ public class SupportSelectionDialog extends Dialog {
             llButtons.setVisibility(View.VISIBLE);
         }
 
+        findViewById(R.id.btn_mental_support).setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(getContext(), 30);
+            dismiss();
+            eu.kodanetwork.mchost.util.PersonalSupport.open(getOwnerActivity(), null);
+        });
+
         findViewById(R.id.btn_report_bug).setOnClickListener(v -> {
             dismiss();
             if (listener != null) listener.onReportBugClicked();
