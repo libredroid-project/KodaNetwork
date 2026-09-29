@@ -51,7 +51,7 @@ supabase/.env
 .idea/
 .zcode/
 KodaTransferPlugin/target/
-KodaLobbyPlugin/target/
+# KodaLobbyPlugin is part of the GPL-3.0 licensed app (source published)target/
 app/build/
 bootstrap_*/
 bundle_*/
@@ -64,6 +64,7 @@ frp/
 app/src/main/cpp/secrets_local.h
 
 # Plugin-Quellcode und interne Docs bleiben lokal (nicht oeffentlich)
-KodaLobbyPlugin/
+# KodaLobbyPlugin is part of the GPL-3.0 licensed app (source published)
 docs/
 supabase/.temp/
+KodaLobbyPlugin/target/
