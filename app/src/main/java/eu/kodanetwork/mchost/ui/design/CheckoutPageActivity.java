@@ -27,7 +27,6 @@ public class CheckoutPageActivity extends AppCompatActivity {
         RadioButton rbMonthly = findViewById(R.id.rb_monthly);
         TextView tvPrice = findViewById(R.id.tv_price);
         TextView tvSub = findViewById(R.id.tv_price_sub);
-        Button btnStripe = findViewById(R.id.btn_continue_stripe);
         Button btnBack = findViewById(R.id.btn_back_home);
 
         rgBilling.setOnCheckedChangeListener((group, checkedId) -> {
@@ -41,7 +40,8 @@ public class CheckoutPageActivity extends AppCompatActivity {
         });
         rbMonthly.setChecked(true);
 
-        btnStripe.setOnClickListener(v -> startActivity(new Intent(this, CompleteSetupPageActivity.class)));
+        // No payment step: the app is free, so the setup continues directly
+        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
         btnBack.setOnClickListener(v -> finish());
     }
 }

@@ -33,10 +33,15 @@ public class LicensesActivity extends AppCompatActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         LinearLayout topContainer = findViewById(R.id.ll_legal_top_container);
+        // German devices get the German legal texts; the files are shipped in both languages
+        boolean de = getResources().getConfiguration().getLocales().get(0).getLanguage().equals("de");
         addLicense(topContainer, "App License (GPL v3)", "gpl_v3.txt");
-        addLicense(topContainer, "Imprint (Impressum)", "impressum.txt");
-        addLicense(topContainer, "Terms of Service", "tos.txt");
-        addLicense(topContainer, "Privacy Policy", "privacy.txt");
+        addLicense(topContainer, de ? "Impressum" : "Imprint (Impressum)",
+                de ? "impressum_de.txt" : "impressum.txt");
+        addLicense(topContainer, de ? "Nutzungsbedingungen" : "Terms of Service",
+                de ? "tos_de.txt" : "tos.txt");
+        addLicense(topContainer, de ? "Datenschutzerklaerung" : "Privacy Policy",
+                de ? "privacy_de.txt" : "privacy.txt");
         addLicense(topContainer, "AI Crash Analysis (Google Gemma via OpenRouter)", "gemma_ai.txt");
         addLicense(topContainer, "jBCrypt (ISC)", "jbcrypt.txt");
         addLicense(topContainer, "Monaco Editor (MIT)", "monaco.txt");

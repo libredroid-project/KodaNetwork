@@ -41,7 +41,12 @@ public class RegisterPageActivity extends AppCompatActivity {
 
         android.widget.CheckBox cbLegal = findViewById(R.id.cb_legal);
         if (cbLegal != null) {
-            cbLegal.setText(android.text.Html.fromHtml("I accept the <a href='https://host.kodanetwork.eu/tos.html'>Terms of Service</a> and <a href='https://host.kodanetwork.eu/privacy.html'>Privacy Policy</a>", android.text.Html.FROM_HTML_MODE_LEGACY));
+            // Age confirmation and the acceptance of the legal texts in one step
+            cbLegal.setText(android.text.Html.fromHtml(
+                    "I am at least 16 years old (or have the consent of my legal guardian) and I accept the "
+                    + "<a href='https://host.kodanetwork.eu/tos.html'>Terms of Service</a> and the "
+                    + "<a href='https://host.kodanetwork.eu/privacy.html'>Privacy Policy</a>.",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
             cbLegal.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
         }
 
@@ -56,7 +61,8 @@ public class RegisterPageActivity extends AppCompatActivity {
                 return;
             }
             if (cbLegal != null && !cbLegal.isChecked()) {
-                Toast.makeText(this, "You must accept the Terms of Service and Privacy Policy to continue.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Please confirm that you are 16 or older (or have your guardian's consent) and accept the Terms and Privacy Policy.",
+                        Toast.LENGTH_LONG).show();
                 return;
             }
             

@@ -61,13 +61,6 @@
             android:textColor="@color/txt_secondary"
             android:textSize="12sp" />
 
-        <Button
-            android:id="@+id/btn_continue_stripe"
-            style="@style/KodaButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:text="CONTINUE TO STRIPE" />
 
         <Button
             android:id="@+id/btn_back_home"
