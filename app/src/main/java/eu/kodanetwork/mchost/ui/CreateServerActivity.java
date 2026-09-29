@@ -88,6 +88,8 @@ public class CreateServerActivity extends AppCompatActivity {
     ));
 
     private EditText etName;
+    /** Set when the crisis support screen was shown for the current name (in memory only). */
+    private boolean crisisConfirmed = false;
     private SeekBar seekRam;
     private TextView tvRamValue, tvAddressPreview, tvVersionLoading;
     private TextView tvVersionSelected;
@@ -474,6 +476,10 @@ public class CreateServerActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == eu.kodanetwork.mchost.util.BiometricHelper.REQ_BIO_AUTH) {
+            if (resultCode == RESULT_OK) {
+                createServer();
+            }
+        } else if (requestCode == eu.kodanetwork.mchost.ui.CrisisSupportActivity.REQ_CRISIS) {
             if (resultCode == RESULT_OK) {
                 createServer();
             }
@@ -1386,7 +1392,11 @@ public class CreateServerActivity extends AppCompatActivity {
         TextWatcher w = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s,int a,int b,int c){}
             @Override public void afterTextChanged(Editable s){}
-            @Override public void onTextChanged(CharSequence s,int a,int b,int c){ updatePreview(); }
+            @Override public void onTextChanged(CharSequence s,int a,int b,int c){
+                updatePreview();
+                // Editing the name resets the support gate so a new concerning name is seen
+                crisisConfirmed = false;
+            }
         };
         etName.addTextChangedListener(w); updatePreview();
     }
@@ -1690,6 +1700,16 @@ public class CreateServerActivity extends AppCompatActivity {
         if (!eu.kodanetwork.mchost.security.PraetorSystem.checkConcurrentServer(this)) return;
 
         String name = etName.getText().toString().trim(); if (name.isEmpty()) { etName.setError("Required"); return; }
+
+        // When the name suggests the person is not okay, the support screen opens first.
+        // Like the biometric gate: the creation continues after the screen returns.
+        if (!crisisConfirmed && eu.kodanetwork.mchost.util.CrisisTextDetector.matches(name)) {
+            crisisConfirmed = true;
+            startActivityForResult(new android.content.Intent(this,
+                    eu.kodanetwork.mchost.ui.CrisisSupportActivity.class),
+                    eu.kodanetwork.mchost.ui.CrisisSupportActivity.REQ_CRISIS);
+            return;
+        }
         int port = 30000 + new java.util.Random().nextInt(10000);
         String version = selectedVersion != null && !selectedVersion.isEmpty() ? selectedVersion : "1.21.4";
         ServerInstance.Type type = TYPE_VALS[selectedTypeIndex];

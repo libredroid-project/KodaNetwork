@@ -805,4 +805,24 @@
     <string name="praetor_version_backup_failed">Backup konnte nicht erstellt werden - es wurde nichts geändert.</string>
     <string name="version_switch_current_label">Version %1$s · zum Wechseln tippen</string>
     <string name="jars_enabled">aktiv</string>
+
+    <!-- Krisen-Hilfe-Screen (Servername / Umbenennen / MOTD enthaelt Sorgenwoerter) -->
+    <string name="crisis_title">DU BIST NICHT ALLEIN</string>
+    <string name="crisis_subtitle">KODAHOSTING IST FUER DICH DA</string>
+    <string name="crisis_love_headline">Du wirst geliebt. Hier will dich jemand haben.</string>
+    <string name="crisis_love_text">Was du gerade fuehlst, ist echt, und es ist nicht fuer immer. Du musst es nicht allein tragen. Ein kleiner Schritt zaehlt schon, zum Beispiel eine der Nummern unten. Dein Server kann warten. Dich kann nichts ersetzen.</string>
+    <string name="crisis_breathe_in">Einatmen</string>
+    <string name="crisis_breathe_hold">Halten</string>
+    <string name="crisis_breathe_out">Ausatmen</string>
+    <string name="crisis_help_title">HILFE IST FUER DICH DA</string>
+    <string name="crisis_hotlines">Telefonseelsorge (rund um die Uhr, kostenlos): 0800 111 0 111 oder 0800 111 0 222\nNummer gegen Kummer (fuer Kinder und Jugendliche): 116 111\nKrisenchat (Chat-Beratung bis 25): krisenchat.de\nHilfeline in deinem Land: findahelpline.com\nAkute Gefahr: 112</string>
+    <string name="crisis_call">0800 111 0 111 anrufen (kostenlos, 24/7)</string>
+    <string name="crisis_call_number">08001110111</string>
+    <string name="crisis_krisenchat">Mit krisenchat schreiben (bis 25)</string>
+    <string name="crisis_findhelp">Hilfeline in deinem Land finden</string>
+    <string name="crisis_discord">Mit der Community reden (Discord)</string>
+    <string name="crisis_support">Das KodaHosting-Team anschreiben</string>
+    <string name="crisis_countdown">Weiter in %1$d s</string>
+    <string name="crisis_continue">WEITER</string>
+    <string name="crisis_rename_hint">Dein Servername laesst sich jederzeit aendern.</string>
 </resources>

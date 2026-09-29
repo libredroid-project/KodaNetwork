@@ -84,6 +84,8 @@ public class ServerDetailActivity extends AppCompatActivity {
     private TextView tvLog;
     /** Console follows the newest line while true; scrolling up turns it off. */
     private boolean consoleAutoScroll = true;
+    /** Whether the crisis support screen was already shown here (in memory only). */
+    private boolean crisisShown = false;
     /** True while the app scrolls the console itself, so it does not count as "the user scrolled". */
     private boolean consoleScrollByApp = false;
     private ScrollView scrollLog;
@@ -5197,6 +5199,14 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         // Save Function
         Runnable saveProps = () -> {
+            // A MOTD with crisis phrases reaches every player in the server list - the support
+            // screen opens once (in-memory flag, nothing is logged or sent anywhere)
+            if (etMotd != null && !crisisShown
+                    && eu.kodanetwork.mchost.util.CrisisTextDetector.matches(etMotd.getText().toString())) {
+                crisisShown = true;
+                startActivity(new android.content.Intent(this,
+                        eu.kodanetwork.mchost.ui.CrisisSupportActivity.class));
+            }
             java.util.Map<String, String> updates = new java.util.HashMap<>();
             updates.put("max-players", etMaxPlayers.getText().toString());
             updates.put("difficulty", difficulties[spinnerDifficulty.getSelectedItemPosition()]);
@@ -6325,6 +6335,13 @@ public class ServerDetailActivity extends AppCompatActivity {
         dialog.findViewById(R.id.btn_dialog_confirm).setOnClickListener(view -> {
             String newName = input.getText().toString().trim();
             if (!newName.isEmpty()) {
+                // The rename itself is harmless; the support screen opens right after so the
+                // person still sees the help (once per activity instance, in memory only)
+                if (!crisisShown && eu.kodanetwork.mchost.util.CrisisTextDetector.matches(newName)) {
+                    crisisShown = true;
+                    startActivity(new android.content.Intent(this,
+                            eu.kodanetwork.mchost.ui.CrisisSupportActivity.class));
+                }
                 server.setName(newName);
                 repo.update(server);
                 TextView tvTitle = findViewById(R.id.tv_title);

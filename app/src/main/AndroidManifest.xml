@@ -64,6 +64,10 @@
             />
         <activity android:name=".ui.ScreensaverActivity" />
         <activity android:name="eu.kodanetwork.mchost.cluster.ClusterActivity" android:exported="false"/>
+        <activity android:name=".ui.CrisisSupportActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.KodaNetwork"/>
         <activity android:name=".ui.InfraOverloadActivity"
             android:exported="false"
             android:launchMode="singleTop"

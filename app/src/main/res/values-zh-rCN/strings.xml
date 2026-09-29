@@ -774,4 +774,24 @@
     <string name="praetor_version_backup_failed">无法创建备份——未做任何更改。</string>
     <string name="version_switch_current_label">版本 %1$s · 点击切换</string>
     <string name="jars_enabled">已启用</string>
+
+    <!-- 危机支持页面（服务器名 / 重命名 / MOTD 含危机词汇时显示） -->
+    <string name="crisis_title">你不是一个人</string>
+    <string name="crisis_subtitle">KODAHOSTING 在这里陪你</string>
+    <string name="crisis_love_headline">你被爱着。这里有人需要你。</string>
+    <string name="crisis_love_text">你现在的感受是真实的，但它不会永远如此。你不必独自承受。哪怕只是拨打下面任何一个号码，都是重要的一步。服务器可以等，你无可取代。</string>
+    <string name="crisis_breathe_in">吸气</string>
+    <string name="crisis_breathe_hold">屏住</string>
+    <string name="crisis_breathe_out">呼气</string>
+    <string name="crisis_help_title">帮助就在这里</string>
+    <string name="crisis_hotlines">德国生命热线（24小时，免费）：0800 111 0 111 或 0800 111 0 222\n德国青少年热线：116 111\n香港撒玛利亚防止自杀会：2389 2222\n台湾安心专线：1925\n全球热线目录：findahelpline.com\n紧急情况请拨打当地紧急电话</string>
+    <string name="crisis_call">拨打 0800 111 0 111（免费，24小时）</string>
+    <string name="crisis_call_number">08001110111</string>
+    <string name="crisis_krisenchat">krisenchat 聊天咨询（25岁以下）</string>
+    <string name="crisis_findhelp">寻找你所在地区的求助热线</string>
+    <string name="crisis_discord">与社区聊聊（Discord）</string>
+    <string name="crisis_support">联系 KodaHosting 团队</string>
+    <string name="crisis_countdown">%1$d 秒后可继续</string>
+    <string name="crisis_continue">继续</string>
+    <string name="crisis_rename_hint">服务器名称可以随时修改。</string>
 </resources>

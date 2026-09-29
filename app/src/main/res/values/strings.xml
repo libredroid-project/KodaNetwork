@@ -794,4 +794,24 @@
     <string name="praetor_version_backup_failed">The backup could not be created - nothing was changed.</string>
     <string name="version_switch_current_label">Version %1$s · tap to change</string>
     <string name="jars_enabled">enabled</string>
+
+    <!-- Crisis support screen (server name / rename / MOTD contain crisis phrases) -->
+    <string name="crisis_title">YOU ARE NOT ALONE</string>
+    <string name="crisis_subtitle">KODAHOSTING IS HERE FOR YOU</string>
+    <string name="crisis_love_headline">You are loved. You are wanted here.</string>
+    <string name="crisis_love_text">What you feel right now is real, and it is not forever. You do not have to carry it alone. One small step counts, for example one of the numbers below. Your server can wait. You cannot be replaced.</string>
+    <string name="crisis_breathe_in">Breathe in</string>
+    <string name="crisis_breathe_hold">Hold</string>
+    <string name="crisis_breathe_out">Breathe out</string>
+    <string name="crisis_help_title">HELP IS HERE FOR YOU</string>
+    <string name="crisis_hotlines">Germany (24/7, free): 0800 111 0 111 or 0800 111 0 222\nYouth hotline (Germany): 116 111\nChat counselling (under 25): krisenchat.de\nHelplines in your country: findahelpline.com\nAcute danger: call your local emergency number (112 in the EU)</string>
+    <string name="crisis_call">Call 0800 111 0 111 (free, 24/7)</string>
+    <string name="crisis_call_number">08001110111</string>
+    <string name="crisis_krisenchat">Write to krisenchat (under 25)</string>
+    <string name="crisis_findhelp">Find a helpline in your country</string>
+    <string name="crisis_discord">Talk to the community (Discord)</string>
+    <string name="crisis_support">Message the KodaHosting team</string>
+    <string name="crisis_countdown">Continue in %1$d s</string>
+    <string name="crisis_continue">CONTINUE</string>
+    <string name="crisis_rename_hint">Your server name can be changed at any time.</string>
 </resources>
