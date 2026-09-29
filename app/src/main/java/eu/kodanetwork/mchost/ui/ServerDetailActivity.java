@@ -403,6 +403,12 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (etCmd == null) etCmd = findViewById(R.id.et_console_input);
         layoutChips = null;
         setupConsoleScroll();
+        // Header collapse: tab bar (and the plugins header) shrink while scrolling
+        attachHeaderCollapse(findViewById(R.id.panel_dash));
+        attachHeaderCollapse(findViewById(R.id.panel_settings));
+        attachHeaderCollapse(findViewById(R.id.scroll_log));
+        attachHeaderCollapse(findViewById(R.id.ll_plugin_installed));
+        attachHeaderCollapse(findViewById(R.id.rv_plugins));
 
         layoutFileList = findViewById(R.id.layout_files);
         tvFilesRoot    = findViewById(R.id.tv_files_root);
@@ -3287,6 +3293,13 @@ public class ServerDetailActivity extends AppCompatActivity {
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
+        // Tapping the search shrinks the header, so the results get the room
+        if (etSearch != null) {
+            etSearch.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) setHeadersCollapsed(true, getResources().getDisplayMetrics().density);
+            });
+        }
+
         java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> pluginList = new java.util.ArrayList<>();
         androidx.recyclerview.widget.RecyclerView.Adapter<?> pluginAdapter = new androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
             @Override public androidx.recyclerview.widget.RecyclerView.ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
@@ -3900,6 +3913,69 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
         }
         return false;
+    }
+
+    /** Header heights: the tab bar shrinks while the content is scrolled down. */
+    private static final int TAB_BAR_EXPANDED_DP = 44;
+    private static final int TAB_BAR_COLLAPSED_DP = 30;
+    private boolean headersCollapsed = false;
+
+    /**
+     * Shrinks the tab bar (DASHBOARD, CONSOLE, ...) while the content is scrolled down and grows it
+     * back at the top, so more of the page is visible while reading.
+     */
+    private void attachHeaderCollapse(android.view.View scrollable) {
+        if (scrollable == null) return;
+        final android.view.View tabBar = findViewById(R.id.tabs);
+        if (tabBar == null) return;
+        final float d = getResources().getDisplayMetrics().density;
+        if (scrollable instanceof androidx.recyclerview.widget.RecyclerView) {
+            ((androidx.recyclerview.widget.RecyclerView) scrollable).addOnScrollListener(
+                    new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                        @Override
+                        public void onScrolled(androidx.recyclerview.widget.RecyclerView rv, int dx, int dy) {
+                            if (dy > 4) setHeadersCollapsed(true, d);
+                            else if (!rv.canScrollVertically(-1)) setHeadersCollapsed(false, d);
+                        }
+                    });
+        } else {
+            scrollable.setOnScrollChangeListener(new android.view.View.OnScrollChangeListener() {
+                @Override
+                public void onScrollChange(android.view.View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                    if (scrollY > oldScrollY + 4) setHeadersCollapsed(true, d);
+                    else if (scrollY <= 2) setHeadersCollapsed(false, d);
+                }
+            });
+        }
+    }
+
+    private void setHeadersCollapsed(boolean collapsed, float d) {
+        if (collapsed == headersCollapsed) return;
+        headersCollapsed = collapsed;
+        final android.view.View tabBar = findViewById(R.id.tabs);
+        if (tabBar != null) {
+            android.view.ViewGroup.LayoutParams lp = tabBar.getLayoutParams();
+            lp.height = (int) ((collapsed ? TAB_BAR_COLLAPSED_DP : TAB_BAR_EXPANDED_DP) * d);
+            tabBar.setLayoutParams(lp);
+        }
+        // Keep the tabs and search in sync while the plugins tab is open
+        setPluginsHeaderCollapsed(collapsed, d);
+    }
+
+    /** Search field and the Install/Installed text shrink together with the tab bar. */
+    private void setPluginsHeaderCollapsed(boolean collapsed, float d) {
+        android.view.View searchRow = findViewById(R.id.ll_plugin_search_row);
+        if (searchRow != null) {
+            android.view.ViewGroup.LayoutParams lp = searchRow.getLayoutParams();
+            lp.height = (int) ((collapsed ? 42 : 56) * d);
+            searchRow.setLayoutParams(lp);
+        }
+        android.view.View modeHost = findViewById(R.id.fl_plugins_mode);
+        if (modeHost != null) {
+            android.view.ViewGroup.LayoutParams lp = modeHost.getLayoutParams();
+            lp.height = (int) ((collapsed ? 32 : 40) * d);
+            modeHost.setLayoutParams(lp);
+        }
     }
 
     /** Shows or hides the round button that jumps back to the newest console line. */
