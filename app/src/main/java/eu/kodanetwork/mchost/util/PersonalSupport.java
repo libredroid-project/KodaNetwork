@@ -1,6 +1,5 @@
 package eu.kodanetwork.mchost.util;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
@@ -35,6 +34,7 @@ public final class PersonalSupport {
 
     /** Finds the open personal ticket, or creates one, then opens the chat. */
     public static void open(final Context context, final OpenCallback callback) {
+        if (context == null) return;
         if (callback != null) callback.onBusy(true);
         new Thread(() -> {
             String existingId = null;
@@ -72,7 +72,7 @@ public final class PersonalSupport {
                 Log.w(TAG, "open failed: " + e.getMessage());
             }
             final String ticketId = existingId != null ? existingId : createdId;
-            ((Activity) context).runOnUiThread(() -> {
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                 if (callback != null) callback.onBusy(false);
                 if (ticketId != null && !ticketId.isEmpty() && !ticketId.startsWith("{")) {
                     Intent chat = new Intent(context, PersonalChatActivity.class);

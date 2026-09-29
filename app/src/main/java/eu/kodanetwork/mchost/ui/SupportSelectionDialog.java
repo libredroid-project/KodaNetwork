@@ -62,7 +62,7 @@ public class SupportSelectionDialog extends Dialog {
         findViewById(R.id.btn_mental_support).setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(getContext(), 30);
             dismiss();
-            eu.kodanetwork.mchost.util.PersonalSupport.open(getOwnerActivity(), null);
+            eu.kodanetwork.mchost.util.PersonalSupport.open(getContext(), null);
         });
 
         findViewById(R.id.btn_report_bug).setOnClickListener(v -> {

@@ -93,6 +93,19 @@ public class PersonalChatActivity extends AppCompatActivity {
             return true;
         });
 
+        // Edge-to-edge themes ignore windowSoftInputMode, so the keyboard inset is
+        // applied as padding: the input bar stays above the keyboard
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(
+                findViewById(R.id.personal_chat_root), (v, insets) -> {
+                    androidx.core.graphics.Insets ime =
+                            insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime());
+                    androidx.core.graphics.Insets bars =
+                            insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+                    int bottom = Math.max(ime.bottom, bars.bottom);
+                    v.setPadding(0, bars.top, 0, bottom);
+                    return androidx.core.view.WindowInsetsCompat.CONSUMED;
+                });
+
         loadMessages();
     }
 
@@ -111,19 +124,23 @@ public class PersonalChatActivity extends AppCompatActivity {
     private void send(String text, EditText input) {
         if (text.isEmpty()) return;
         input.setText("");
-        try {
-            JSONObject body = new JSONObject();
-            body.put("p_ticket_id", ticketId);
-            body.put("p_sender_uuid", myUuid);
-            body.put("p_device_token", deviceToken);
-            body.put("p_message", text);
-            SupportApi.makeSupabaseRequest("rest/v1/rpc/rpc_create_ticket_message",
-                    "POST", body.toString(), null);
-        } catch (Exception e) {
-            Toast.makeText(this, getString(R.string.personal_chat_send_failed), Toast.LENGTH_SHORT).show();
-        }
-        // The poll brings the message into the list within seconds; scroll right away
-        loadMessages();
+        // Network call has to run off the UI thread, otherwise Android throws
+        // NetworkOnMainThreadException and the message looks "failed"
+        new Thread(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("p_ticket_id", ticketId);
+                body.put("p_sender_uuid", myUuid);
+                body.put("p_device_token", deviceToken);
+                body.put("p_message", text);
+                SupportApi.makeSupabaseRequest("rest/v1/rpc/rpc_create_ticket_message",
+                        "POST", body.toString(), null);
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.personal_chat_send_failed), Toast.LENGTH_SHORT).show());
+            }
+            loadMessages();
+        }).start();
     }
 
     private void loadMessages() {
