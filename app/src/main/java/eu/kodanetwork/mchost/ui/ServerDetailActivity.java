@@ -1270,6 +1270,8 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showTab(int i) {
+        // A tab switch brings the bar back
+        setHeadersCollapsed(false, getResources().getDisplayMetrics().density);
         int targetSettings = server.isDatabase() ? 3 : 4;
         animatePanel(pDash, i == 0);
         animatePanel(pConsole, i == 1);
@@ -3917,7 +3919,6 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     /** Header heights: the tab bar shrinks while the content is scrolled down. */
     private static final int TAB_BAR_EXPANDED_DP = 44;
-    private static final int TAB_BAR_COLLAPSED_DP = 30;
     private boolean headersCollapsed = false;
 
     /**
@@ -3949,33 +3950,40 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
+    /** Closes the tab bar completely while the content is scrolled down. */
     private void setHeadersCollapsed(boolean collapsed, float d) {
         if (collapsed == headersCollapsed) return;
         headersCollapsed = collapsed;
         final android.view.View tabBar = findViewById(R.id.tabs);
-        if (tabBar != null) {
-            android.view.ViewGroup.LayoutParams lp = tabBar.getLayoutParams();
-            lp.height = (int) ((collapsed ? TAB_BAR_COLLAPSED_DP : TAB_BAR_EXPANDED_DP) * d);
-            tabBar.setLayoutParams(lp);
-        }
-        // Keep the tabs and search in sync while the plugins tab is open
-        setPluginsHeaderCollapsed(collapsed, d);
-    }
+        if (tabBar == null) return;
 
-    /** Search field and the Install/Installed text shrink together with the tab bar. */
-    private void setPluginsHeaderCollapsed(boolean collapsed, float d) {
-        android.view.View searchRow = findViewById(R.id.ll_plugin_search_row);
-        if (searchRow != null) {
-            android.view.ViewGroup.LayoutParams lp = searchRow.getLayoutParams();
-            lp.height = (int) ((collapsed ? 42 : 56) * d);
-            searchRow.setLayoutParams(lp);
+        final int expanded = (int) (TAB_BAR_EXPANDED_DP * d);
+        android.animation.ValueAnimator animator;
+        if (collapsed) {
+            animator = android.animation.ValueAnimator.ofInt(tabBar.getHeight() == 0 ? expanded : tabBar.getHeight(), 0);
+        } else {
+            tabBar.setVisibility(android.view.View.VISIBLE);
+            animator = android.animation.ValueAnimator.ofInt(0, expanded);
         }
-        android.view.View modeHost = findViewById(R.id.fl_plugins_mode);
-        if (modeHost != null) {
-            android.view.ViewGroup.LayoutParams lp = modeHost.getLayoutParams();
-            lp.height = (int) ((collapsed ? 32 : 40) * d);
-            modeHost.setLayoutParams(lp);
-        }
+        animator.setDuration(160);
+        animator.addUpdateListener(a -> {
+            android.view.ViewGroup.LayoutParams lp = tabBar.getLayoutParams();
+            lp.height = (Integer) a.getAnimatedValue();
+            tabBar.setLayoutParams(lp);
+        });
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                if (collapsed) {
+                    tabBar.setVisibility(android.view.View.GONE);
+                } else {
+                    android.view.ViewGroup.LayoutParams lp = tabBar.getLayoutParams();
+                    lp.height = expanded;
+                    tabBar.setLayoutParams(lp);
+                }
+            }
+        });
+        animator.start();
     }
 
     /** Shows or hides the round button that jumps back to the newest console line. */
