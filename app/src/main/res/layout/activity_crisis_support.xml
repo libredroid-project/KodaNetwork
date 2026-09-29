@@ -85,28 +85,32 @@
 
             <ImageView
                 android:id="@+id/crisis_heart"
-                android:layout_width="150dp"
-                android:layout_height="150dp"
+                android:layout_width="170dp"
+                android:layout_height="170dp"
                 android:layout_gravity="center"
                 android:src="@drawable/heart_koda"
                 android:contentDescription="@string/crisis_love_headline" />
 
-            <TextView
-                android:id="@+id/breathing_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:fontFamily="@font/font_koda"
-                android:text="@string/crisis_breathe_in"
-                android:textColor="#FFB68C"
-                android:textSize="15sp"
-                android:textStyle="bold" />
         </FrameLayout>
+
+        <TextView
+            android:id="@+id/crisis_safe"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/crisis_safe_box"
+            android:padding="14dp"
+            android:gravity="center"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/crisis_safe_text"
+            android:textColor="#C9BFB8"
+            android:textSize="13sp"
+            android:lineSpacingMultiplier="1.35" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="26dp"
+            android:layout_marginTop="20dp"
             android:fontFamily="@font/font_koda"
             android:text="@string/crisis_help_title"
             android:textColor="#8A8A9A"

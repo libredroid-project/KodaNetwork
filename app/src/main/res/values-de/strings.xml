@@ -808,12 +808,9 @@
 
     <!-- Krisen-Hilfe-Screen (Servername / Umbenennen / MOTD enthaelt Sorgenwoerter) -->
     <string name="crisis_title">DU BIST NICHT ALLEIN</string>
-    <string name="crisis_subtitle">EINE NACHRICHT VON LIBREDROID</string>
+    <string name="crisis_subtitle">Du wirst geliebt &lt;3</string>
     <string name="crisis_love_headline">Ich bin libredroid. Ich habe diese App gebaut. Und ich will, dass es dir gut geht.</string>
     <string name="crisis_love_text">Ich kenne dich nicht, aber ich weiss, dass du hier etwas erschaffst, und dass du zaehlst. Was du gerade fuehlst, ist echt und schwer, und es ist nicht fuer immer. Du musst es nicht allein tragen. Eine der Nummern unten zu waehlen ist ein winziger Schritt, und er zaehlt. Dein Server kann warten. Dich kann nichts ersetzen.</string>
-    <string name="crisis_breathe_in">Einatmen</string>
-    <string name="crisis_breathe_hold">Halten</string>
-    <string name="crisis_breathe_out">Ausatmen</string>
     <string name="crisis_help_title">HILFE IST FUER DICH DA</string>
     <string name="crisis_hotlines">Telefonseelsorge (rund um die Uhr, kostenlos): 0800 111 0 111 oder 0800 111 0 222\nNummer gegen Kummer (fuer Kinder und Jugendliche): 116 111\nKrisenchat (Chat-Beratung bis 25): krisenchat.de\nHilfeline in deinem Land: findahelpline.com\nAkute Gefahr: 112</string>
     <string name="crisis_call">0800 111 0 111 anrufen (kostenlos, 24/7)</string>
@@ -825,4 +822,10 @@
     <string name="crisis_countdown">Weiter in %1$d s</string>
     <string name="crisis_continue">WEITER</string>
     <string name="crisis_rename_hint">Dein Servername laesst sich jederzeit aendern.</string>
+
+    <!-- Persoenliches (Krisen-)Support-Ticket -->
+    <string name="ticket_personal_title">Schreib libredroid</string>
+    <string name="ticket_personal_hint">Was beschaeftigt dich?</string>
+    <string name="ticket_personal_created">Gesendet. Du bist nicht allein.</string>
+        <string name="crisis_safe_text">Es passiert nichts. Kein Bann, keine Sperre, dein Server bleibt. Niemand erf\u00e4hrt von diesem Bildschirm. Du musst nichts erkl\u00e4ren und nirgendwo hin tippen.</string>
 </resources>

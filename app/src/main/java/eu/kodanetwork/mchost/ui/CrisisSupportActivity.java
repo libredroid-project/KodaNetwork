@@ -1,6 +1,7 @@
 package eu.kodanetwork.mchost.ui;
 
 import android.animation.Animator;
+import android.animation.AnimatorSet;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
@@ -52,52 +53,44 @@ public class CrisisSupportActivity extends AppCompatActivity {
         startUnlockCountdown();
     }
 
-    /** The heart grows while breathing in, holds, shrinks while breathing out - slow and calm. */
+    /**
+     * The heart beats in a real heartbeat rhythm: two quick beats (lub-dub), then rest.
+     * A calm pace - not a panic pulse - so it steadies instead of alarms.
+     */
     private void startBreathing() {
         final android.widget.ImageView heart = findViewById(R.id.crisis_heart);
-        final TextView label = findViewById(R.id.breathing_label);
         if (heart == null) return;
 
-        final String in = getString(R.string.crisis_breathe_in);
-        final String hold = getString(R.string.crisis_breathe_hold);
-        final String out = getString(R.string.crisis_breathe_out);
-        label.setText(in);
-
-        final Runnable[] breath = new Runnable[1];
-        breath[0] = new Runnable() {
+        final Runnable[] beat = new Runnable[1];
+        beat[0] = new Runnable() {
             @Override
             public void run() {
-                label.setText(in);
-                ObjectAnimator grow = ObjectAnimator.ofFloat(heart, View.SCALE_X, 1f, 1.5f);
-                grow.setDuration(4000);
-                grow.setInterpolator(new DecelerateInterpolator());
-                ObjectAnimator growY = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1f, 1.5f);
-                growY.setDuration(4000);
-                growY.setInterpolator(new DecelerateInterpolator());
-                grow.start();
-                growY.start();
-
-                heart.postDelayed(() -> label.setText(hold), 4000);
-                heart.postDelayed(() -> {
-                    label.setText(out);
-                    ObjectAnimator shrink = ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.5f, 1f);
-                    shrink.setDuration(4000);
-                    shrink.setInterpolator(new DecelerateInterpolator());
-                    ObjectAnimator shrinkY = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.5f, 1f);
-                    shrinkY.setDuration(4000);
-                    shrinkY.setInterpolator(new DecelerateInterpolator());
-                    shrink.start();
-                    shrinkY.start();
-                    shrink.addListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            heart.postDelayed(breath[0], 2000);
-                        }
-                    });
-                }, 8000);
+                // lub (quick, strong), short dip, dub (slightly softer), then rest
+                AnimatorSet set = new AnimatorSet();
+                set.playSequentially(
+                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1f, 1.22f),
+                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.22f, 1.08f),
+                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.08f, 1.26f),
+                        ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.26f, 1f));
+                ObjectAnimator y = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1f, 1f);
+                // Scale both axes together
+                android.animation.ObjectAnimator sx1 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1f, 1.22f);
+                android.animation.ObjectAnimator sx2 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.22f, 1.08f);
+                android.animation.ObjectAnimator sx3 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.08f, 1.26f);
+                android.animation.ObjectAnimator sx4 = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.26f, 1f);
+                sx1.setDuration(140); sx2.setDuration(110); sx3.setDuration(150); sx4.setDuration(420);
+                android.animation.AnimatorSet ys = new AnimatorSet();
+                ys.playSequentially(sx1, sx2, sx3, sx4);
+                ys.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        heart.postDelayed(beat[0], 900);
+                    }
+                });
+                ys.start();
             }
         };
-        breath[0].run();
+        beat[0].run();
     }
 
     private void wireHelpButtons() {
@@ -116,7 +109,9 @@ public class CrisisSupportActivity extends AppCompatActivity {
         findViewById(R.id.btn_crisis_discord).setOnClickListener(v -> open(DISCORD_INVITE));
         findViewById(R.id.btn_crisis_support).setOnClickListener(v -> {
             setResult(RESULT_CANCELED);
-            startActivity(new Intent(this, CreateSupportTicketActivity.class));
+            Intent ticket = new Intent(this, CreateSupportTicketActivity.class);
+            ticket.putExtra("TICKET_TYPE", "PERSONAL");
+            startActivity(ticket);
         });
     }
 

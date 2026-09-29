@@ -38,6 +38,11 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
 
         TextView tvTitle = findViewById(R.id.tv_title);
         EditText etReference = findViewById(R.id.et_reference);
+        // PERSONAL comes from the crisis support screen: a private message, no diagnostics
+        if ("PERSONAL".equals(ticketType)) {
+            tvTitle.setText(getString(R.string.ticket_personal_title));
+            etReference.setHint(getString(R.string.ticket_personal_hint));
+        }
         if (ticketType.equals("SERVER_REPORT")) {
             tvTitle.setText("Report Server");
             etReference.setHint("Name of the server");
@@ -113,7 +118,17 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
                             "rest/v1/rpc/rpc_create_ticket_message", "POST", msgObj.toString(), sessionToken);
 
                     // 2b. Append Diagnostic Telemetry (unter der eigenen UUID, da die RPC
-                    // den Sender gegen den device_token prueft)
+                    // den Sender gegen den device_token prueft) - nie bei persoenlichen Tickets
+                    if ("PERSONAL".equals(ticketType)) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, getString(R.string.ticket_personal_created), Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(this, SupportChatActivity.class);
+                            intent.putExtra("TICKET_ID", ticketId);
+                            startActivity(intent);
+                            finish();
+                        });
+                        return;
+                    }
                     String telemetry = getDiagnosticTelemetry(uuid, sessionToken);
                     JSONObject sysObj = new JSONObject();
                     sysObj.put("p_ticket_id", ticketId);
