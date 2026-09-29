@@ -50,6 +50,9 @@ public class SupportChatActivity extends AppCompatActivity {
     private String sessionToken;
     private RecyclerView rvChat;
     private ChatAdapter adapter;
+    /** E2EE key for personal (mental support) tickets; null when not established. */
+    private byte[] e2eeKey;
+    private volatile boolean e2eeConversation;
     private List<JSONObject> messagesList = new ArrayList<>();
     
     private Uri selectedAttachmentUri = null;
@@ -111,6 +114,7 @@ public class SupportChatActivity extends AppCompatActivity {
         rvChat.setLayoutManager(layoutManager);
         adapter = new ChatAdapter();
         rvChat.setAdapter(adapter);
+        setupE2EE();
 
         etMessage = findViewById(R.id.et_message);
         llAttachmentPreview = findViewById(R.id.ll_attachment_preview);
@@ -164,6 +168,43 @@ public class SupportChatActivity extends AppCompatActivity {
         pollHandler.removeCallbacks(pollRunnable);
     }
 
+    /**
+     * Personal tickets are end-to-end encrypted: publish the own key once, fetch the peer
+     * key (for an admin that is the reporter's key). Regular support tickets stay plaintext.
+     */
+    private void setupE2EE() {
+        new Thread(() -> {
+            String token = eu.kodanetwork.mchost.App.getPrefs(SupportChatActivity.this).getString("device_token", "");
+            String pub = eu.kodanetwork.mchost.util.E2EE.ensureKeyPair(SupportChatActivity.this);
+            try {
+                if (pub != null && !eu.kodanetwork.mchost.util.E2EE.isUploaded(SupportChatActivity.this)) {
+                    JSONObject body = new JSONObject();
+                    body.put("p_app_uuid", myUuid);
+                    body.put("p_device_token", token);
+                    body.put("p_public_key", pub);
+                    SupportApi.makeSupabaseRequest("rest/v1/rpc/rpc_set_my_public_key",
+                            "POST", body.toString(), null);
+                    eu.kodanetwork.mchost.util.E2EE.markUploaded(SupportChatActivity.this);
+                }
+                JSONObject body = new JSONObject();
+                body.put("p_ticket_id", ticketId);
+                body.put("p_reporter_uuid", myUuid);
+                body.put("p_device_token", token);
+                String response = SupportApi.makeSupabaseRequest(
+                        "rest/v1/rpc/rpc_get_chat_peer_key", "POST", body.toString(), null);
+                String peerKey = response.replace("\"", "").trim();
+                if (!peerKey.isEmpty() && !peerKey.startsWith("{")) {
+                    byte[] shared = eu.kodanetwork.mchost.util.E2EE.sharedKey(SupportChatActivity.this, peerKey);
+                    if (shared != null) runOnUiThread(() -> {
+                        e2eeKey = shared;
+                        adapter.notifyDataSetChanged();
+                    });
+                }
+            } catch (Exception ignored) {
+            }
+        }, "KodaE2EEAdmin").start();
+    }
+
     private void loadMessages() {
         new Thread(() -> {
             try {
@@ -209,6 +250,12 @@ public class SupportChatActivity extends AppCompatActivity {
             try {
                 String senderUuid = msg.getString("sender_uuid");
                 String message = msg.optString("message", "");
+                if (eu.kodanetwork.mchost.util.E2EE.isEncrypted(message)) {
+                    // Personal ticket: decrypt with the shared key, plaintext stays as-is
+                    e2eeConversation = true;
+                    String plain = eu.kodanetwork.mchost.util.E2EE.decrypt(e2eeKey, message);
+                    message = plain != null ? plain : getString(R.string.personal_chat_locked);
+                }
                 String attachmentUrl = msg.optString("attachment_url", null);
                 String date = msg.optString("created_at", "").split("\\.")[0].replace("T", " ");
                 boolean isAdmin = msg.optBoolean("is_admin", false) || "admin".equals(senderUuid);
@@ -301,8 +348,14 @@ public class SupportChatActivity extends AppCompatActivity {
                 msgObj.put("p_ticket_id", ticketId);
                 msgObj.put("p_sender_uuid", myUuid);
                 msgObj.put("p_device_token", eu.kodanetwork.mchost.App.getPrefs(SupportChatActivity.this).getString("device_token", ""));
-                if (!text.isEmpty()) {
-                    msgObj.put("p_message", text);
+                String wire = text;
+                if (e2eeConversation && e2eeKey != null && !text.isEmpty()) {
+                    // Answer in a personal ticket: encrypt like the question
+                    String encrypted = eu.kodanetwork.mchost.util.E2EE.encrypt(e2eeKey, text);
+                    if (encrypted != null) wire = encrypted;
+                }
+                if (!wire.isEmpty()) {
+                    msgObj.put("p_message", wire);
                 } else {
                     msgObj.put("p_message", "");
                 }
@@ -366,6 +419,12 @@ public class SupportChatActivity extends AppCompatActivity {
             try {
                 String senderUuid = msg.getString("sender_uuid");
                 String message = msg.optString("message", "");
+                if (eu.kodanetwork.mchost.util.E2EE.isEncrypted(message)) {
+                    // Personal ticket: decrypt with the shared key, plaintext stays as-is
+                    e2eeConversation = true;
+                    String plain = eu.kodanetwork.mchost.util.E2EE.decrypt(e2eeKey, message);
+                    message = plain != null ? plain : getString(R.string.personal_chat_locked);
+                }
                 String attachmentUrl = msg.optString("attachment_url", null);
                 String date = msg.optString("created_at", "").split("\\.")[0].replace("T", " ");
 

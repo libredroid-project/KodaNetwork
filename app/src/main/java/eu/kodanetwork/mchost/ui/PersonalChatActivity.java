@@ -49,6 +49,8 @@ public class PersonalChatActivity extends AppCompatActivity {
     private ChatAdapter adapter;
     private RecyclerView rvChat;
     private TextView tvEmpty;
+    /** Shared E2EE key with the peer (admin); null while not established. */
+    private byte[] peerSharedKey;
 
     /** Loads new messages every few seconds while the chat is open. */
     private final Runnable poll = new Runnable() {
@@ -93,8 +95,52 @@ public class PersonalChatActivity extends AppCompatActivity {
             return true;
         });
 
-        // Edge-to-edge themes ignore windowSoftInputMode, so the keyboard inset is
-        // applied as padding: the input bar stays above the keyboard
+        setupEncryption();
+        loadMessages();
+    }
+
+    /**
+     * Publishes the own public key once and derives the shared key with the peer. Until the
+     * peer has published a key too, messages stay readable plaintext (old devices).
+     */
+    private void setupEncryption() {
+        new Thread(() -> {
+            String pub = eu.kodanetwork.mchost.util.E2EE.ensureKeyPair(this);
+            try {
+                if (pub != null && !eu.kodanetwork.mchost.util.E2EE.isUploaded(this)) {
+                    JSONObject body = new JSONObject();
+                    body.put("p_app_uuid", myUuid);
+                    body.put("p_device_token", deviceToken);
+                    body.put("p_public_key", pub);
+                    SupportApi.makeSupabaseRequest("rest/v1/rpc/rpc_set_my_public_key",
+                            "POST", body.toString(), null);
+                    eu.kodanetwork.mchost.util.E2EE.markUploaded(this);
+                }
+                JSONObject body = new JSONObject();
+                body.put("p_ticket_id", ticketId);
+                body.put("p_reporter_uuid", myUuid);
+                body.put("p_device_token", deviceToken);
+                String response = SupportApi.makeSupabaseRequest(
+                        "rest/v1/rpc/rpc_get_chat_peer_key", "POST", body.toString(), null);
+                String peerKey = response.replace("\"", "").trim();
+                if (!peerKey.isEmpty() && !peerKey.startsWith("{")) {
+                    byte[] shared = eu.kodanetwork.mchost.util.E2EE.sharedKey(this, peerKey);
+                    if (shared != null) runOnUiThread(() -> {
+                        peerSharedKey = shared;
+                        adapter.notifyDataSetChanged();
+                    });
+                }
+            } catch (Exception ignored) {
+                // Without a peer key the chat still works, just unencrypted
+            }
+        }, "KodaE2EE").start();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // App.java registers its own insets listener after onCreate and would overwrite this,
+        // so the keyboard padding is (re)applied here, after the global one
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.personal_chat_root), (v, insets) -> {
                     androidx.core.graphics.Insets ime =
@@ -105,13 +151,7 @@ public class PersonalChatActivity extends AppCompatActivity {
                     v.setPadding(0, bars.top, 0, bottom);
                     return androidx.core.view.WindowInsetsCompat.CONSUMED;
                 });
-
-        loadMessages();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
+        findViewById(R.id.personal_chat_root).requestApplyInsets();
         pollHandler.postDelayed(poll, 5000);
     }
 
@@ -132,7 +172,12 @@ public class PersonalChatActivity extends AppCompatActivity {
                 body.put("p_ticket_id", ticketId);
                 body.put("p_sender_uuid", myUuid);
                 body.put("p_device_token", deviceToken);
-                body.put("p_message", text);
+                String wire = text;
+                if (peerSharedKey != null) {
+                    String encrypted = eu.kodanetwork.mchost.util.E2EE.encrypt(peerSharedKey, text);
+                    if (encrypted != null) wire = encrypted;
+                }
+                body.put("p_message", wire);
                 SupportApi.makeSupabaseRequest("rest/v1/rpc/rpc_create_ticket_message",
                         "POST", body.toString(), null);
             } catch (Exception e) {
@@ -185,6 +230,11 @@ public class PersonalChatActivity extends AppCompatActivity {
             String time = msg.optString("created_at", "");
             if (time.contains("T")) time = time.split("T")[1].split("\\.")[0].substring(0, 5);
 
+            String shown = text;
+            if (eu.kodanetwork.mchost.util.E2EE.isEncrypted(text)) {
+                String plain = eu.kodanetwork.mchost.util.E2EE.decrypt(peerSharedKey, text);
+                shown = plain != null ? plain : getString(R.string.personal_chat_locked); // wrong key
+            }
             boolean mine = msg.optString("sender_uuid", "").equals(myUuid);
             LinearLayout bubble = holder.bubble;
             LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) bubble.getLayoutParams();
@@ -193,7 +243,7 @@ public class PersonalChatActivity extends AppCompatActivity {
             bubble.setLayoutParams(params);
             bubble.setBackgroundResource(mine ? R.drawable.bg_personal_bubble_me : R.drawable.bg_personal_bubble_other);
             holder.message.setMaxWidth((int) (280 * getResources().getDisplayMetrics().density));
-            holder.message.setText(text);
+            holder.message.setText(shown);
             holder.message.setTextColor(mine ? 0xFF1B1613 : 0xFFE8E2D6);
             holder.time.setTextColor(mine ? 0xFF6B5E56 : 0xFF8A8A9A);
             holder.time.setText(time);

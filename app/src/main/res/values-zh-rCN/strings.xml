@@ -810,4 +810,5 @@
     <string name="personal_chat_open_failed">没有成功，请再试一次</string>
     <string name="personal_chat_ticket_title">私人消息</string>
     <string name="mental_support">心理支持 &lt;3</string>
+    <string name="personal_chat_locked">加密消息（密钥不匹配）</string>
 </resources>
