@@ -808,9 +808,9 @@
 
     <!-- Krisen-Hilfe-Screen (Servername / Umbenennen / MOTD enthaelt Sorgenwoerter) -->
     <string name="crisis_title">DU BIST NICHT ALLEIN</string>
-    <string name="crisis_subtitle">KODAHOSTING IST FUER DICH DA</string>
-    <string name="crisis_love_headline">Du wirst geliebt. Hier will dich jemand haben.</string>
-    <string name="crisis_love_text">Was du gerade fuehlst, ist echt, und es ist nicht fuer immer. Du musst es nicht allein tragen. Ein kleiner Schritt zaehlt schon, zum Beispiel eine der Nummern unten. Dein Server kann warten. Dich kann nichts ersetzen.</string>
+    <string name="crisis_subtitle">EINE NACHRICHT VON LIBREDROID</string>
+    <string name="crisis_love_headline">Ich bin libredroid. Ich habe diese App gebaut. Und ich will, dass es dir gut geht.</string>
+    <string name="crisis_love_text">Ich kenne dich nicht, aber ich weiss, dass du hier etwas erschaffst, und dass du zaehlst. Was du gerade fuehlst, ist echt und schwer, und es ist nicht fuer immer. Du musst es nicht allein tragen. Eine der Nummern unten zu waehlen ist ein winziger Schritt, und er zaehlt. Dein Server kann warten. Dich kann nichts ersetzen.</string>
     <string name="crisis_breathe_in">Einatmen</string>
     <string name="crisis_breathe_hold">Halten</string>
     <string name="crisis_breathe_out">Ausatmen</string>
@@ -820,8 +820,8 @@
     <string name="crisis_call_number">08001110111</string>
     <string name="crisis_krisenchat">Mit krisenchat schreiben (bis 25)</string>
     <string name="crisis_findhelp">Hilfeline in deinem Land finden</string>
-    <string name="crisis_discord">Mit der Community reden (Discord)</string>
-    <string name="crisis_support">Das KodaHosting-Team anschreiben</string>
+    <string name="crisis_discord">Red mit der Community (Discord)</string>
+    <string name="crisis_support">Schreib mir direkt (Support-Ticket)</string>
     <string name="crisis_countdown">Weiter in %1$d s</string>
     <string name="crisis_continue">WEITER</string>
     <string name="crisis_rename_hint">Dein Servername laesst sich jederzeit aendern.</string>

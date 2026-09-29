@@ -777,9 +777,9 @@
 
     <!-- 危机支持页面（服务器名 / 重命名 / MOTD 含危机词汇时显示） -->
     <string name="crisis_title">你不是一个人</string>
-    <string name="crisis_subtitle">KODAHOSTING 在这里陪你</string>
-    <string name="crisis_love_headline">你被爱着。这里有人需要你。</string>
-    <string name="crisis_love_text">你现在的感受是真实的，但它不会永远如此。你不必独自承受。哪怕只是拨打下面任何一个号码，都是重要的一步。服务器可以等，你无可取代。</string>
+    <string name="crisis_subtitle">来自 LIBREDROID 的一段话</string>
+    <string name="crisis_love_headline">我是 libredroid。这个应用是我写的。我希望你一切都好。</string>
+    <string name="crisis_love_text">我不认识你，但我知道你正在这里创造一些东西，你很重要。你现在的感受真实而沉重，但它不会永远如此。你不必独自承受。拨打下面任何一个号码都是一小步，而这一步有意义。服务器可以等，你无可取代。</string>
     <string name="crisis_breathe_in">吸气</string>
     <string name="crisis_breathe_hold">屏住</string>
     <string name="crisis_breathe_out">呼气</string>
@@ -790,7 +790,7 @@
     <string name="crisis_krisenchat">krisenchat 聊天咨询（25岁以下）</string>
     <string name="crisis_findhelp">寻找你所在地区的求助热线</string>
     <string name="crisis_discord">与社区聊聊（Discord）</string>
-    <string name="crisis_support">联系 KodaHosting 团队</string>
+    <string name="crisis_support">直接给我写消息（工单）</string>
     <string name="crisis_countdown">%1$d 秒后可继续</string>
     <string name="crisis_continue">继续</string>
     <string name="crisis_rename_hint">服务器名称可以随时修改。</string>

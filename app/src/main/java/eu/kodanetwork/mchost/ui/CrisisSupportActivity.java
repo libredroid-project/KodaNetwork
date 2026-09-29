@@ -52,11 +52,11 @@ public class CrisisSupportActivity extends AppCompatActivity {
         startUnlockCountdown();
     }
 
-    /** Breathing circle: grow while breathing in, hold, shrink while breathing out, repeat. */
+    /** The heart grows while breathing in, holds, shrinks while breathing out - slow and calm. */
     private void startBreathing() {
-        final View circle = findViewById(R.id.breathing_circle);
+        final android.widget.ImageView heart = findViewById(R.id.crisis_heart);
         final TextView label = findViewById(R.id.breathing_label);
-        if (circle == null) return;
+        if (heart == null) return;
 
         final String in = getString(R.string.crisis_breathe_in);
         final String hold = getString(R.string.crisis_breathe_hold);
@@ -68,22 +68,22 @@ public class CrisisSupportActivity extends AppCompatActivity {
             @Override
             public void run() {
                 label.setText(in);
-                ObjectAnimator grow = ObjectAnimator.ofFloat(circle, View.SCALE_X, 1f, 1.5f);
+                ObjectAnimator grow = ObjectAnimator.ofFloat(heart, View.SCALE_X, 1f, 1.5f);
                 grow.setDuration(4000);
                 grow.setInterpolator(new DecelerateInterpolator());
-                ObjectAnimator growY = ObjectAnimator.ofFloat(circle, View.SCALE_Y, 1f, 1.5f);
+                ObjectAnimator growY = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1f, 1.5f);
                 growY.setDuration(4000);
                 growY.setInterpolator(new DecelerateInterpolator());
                 grow.start();
                 growY.start();
 
-                circle.postDelayed(() -> label.setText(hold), 4000);
-                circle.postDelayed(() -> {
+                heart.postDelayed(() -> label.setText(hold), 4000);
+                heart.postDelayed(() -> {
                     label.setText(out);
-                    ObjectAnimator shrink = ObjectAnimator.ofFloat(circle, View.SCALE_X, 1.5f, 1f);
+                    ObjectAnimator shrink = ObjectAnimator.ofFloat(heart, View.SCALE_X, 1.5f, 1f);
                     shrink.setDuration(4000);
                     shrink.setInterpolator(new DecelerateInterpolator());
-                    ObjectAnimator shrinkY = ObjectAnimator.ofFloat(circle, View.SCALE_Y, 1.5f, 1f);
+                    ObjectAnimator shrinkY = ObjectAnimator.ofFloat(heart, View.SCALE_Y, 1.5f, 1f);
                     shrinkY.setDuration(4000);
                     shrinkY.setInterpolator(new DecelerateInterpolator());
                     shrink.start();
@@ -91,7 +91,7 @@ public class CrisisSupportActivity extends AppCompatActivity {
                     shrink.addListener(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(Animator animation) {
-                            circle.postDelayed(breath[0], 2000);
+                            heart.postDelayed(breath[0], 2000);
                         }
                     });
                 }, 8000);
@@ -164,9 +164,8 @@ public class CrisisSupportActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         if (unlockTimer != null) unlockTimer.cancel();
-        if (breatheAnimator != null) breatheAnimator.cancel();
-        View circle = findViewById(R.id.breathing_circle);
-        if (circle != null) circle.getHandler().removeCallbacksAndMessages(null);
+        android.widget.ImageView heart = findViewById(R.id.crisis_heart);
+        if (heart != null) heart.getHandler().removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 }

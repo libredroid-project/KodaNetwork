@@ -77,18 +77,19 @@
             android:textSize="13.5sp"
             android:lineSpacingMultiplier="1.35" />
 
-        <!-- Breathing circle: scales with the breath rhythm, label follows along -->
+        <!-- The heart pulses slowly with the breath rhythm, label follows along -->
         <FrameLayout
             android:layout_width="220dp"
             android:layout_height="220dp"
             android:layout_marginTop="26dp">
 
-            <View
-                android:id="@+id/breathing_circle"
+            <ImageView
+                android:id="@+id/crisis_heart"
                 android:layout_width="150dp"
                 android:layout_height="150dp"
                 android:layout_gravity="center"
-                android:background="@drawable/breathing_circle" />
+                android:src="@drawable/heart_koda"
+                android:contentDescription="@string/crisis_love_headline" />
 
             <TextView
                 android:id="@+id/breathing_label"
@@ -158,22 +159,28 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_crisis_discord"
-            style="@style/KodaButton.Outline"
+            style="@style/KodaButton"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="8dp"
+            android:backgroundTint="#5865F2"
+            app:rippleColor="#4752C4"
             android:text="@string/crisis_discord"
+            android:textColor="#FFFFFF"
             android:textSize="12sp"
             app:cornerRadius="12dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_crisis_support"
-            style="@style/KodaButton.Outline"
+            style="@style/KodaButton"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="8dp"
+            android:layout_height="54dp"
+            android:layout_marginTop="16dp"
             android:text="@string/crisis_support"
-            android:textSize="12sp"
+            android:textColor="#1B1613"
+            android:textSize="13sp"
+            app:strokeColor="#FFB68C"
+            app:strokeWidth="2dp"
             app:cornerRadius="12dp" />
 
         <TextView
