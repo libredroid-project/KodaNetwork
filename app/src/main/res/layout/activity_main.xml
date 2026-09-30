@@ -27,11 +27,6 @@
                 app:autoSizeMaxTextSize="12sp"/>
         </LinearLayout>
 
-        <TextView android:id="@+id/tv_server_count" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginStart="8dp" android:layout_marginEnd="16dp"
-            android:text="" android:textColor="#8A8A9A"
-            android:textSize="11sp" android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
-
         <TextView android:id="@+id/btn_debug_log" android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="@string/log_button" android:textColor="#8A8A9A"
             android:textSize="11sp" android:fontFamily="@font/font_koda" android:letterSpacing="0.1"
@@ -153,10 +148,10 @@
         android:background="#16110D"
         android:paddingStart="16dp" android:paddingEnd="16dp"
         android:paddingTop="6dp" android:paddingBottom="6dp">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+        <TextView android:id="@+id/tv_footer_count" android:layout_width="0dp" android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="KodaHosting" android:textColor="#555566"
-            android:textSize="11sp" android:fontFamily="@font/font_koda"/>
+            android:text="" android:textColor="#8A8A9A"
+            android:textSize="11sp" android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
         
         <com.google.android.material.button.MaterialButton android:id="@+id/fab_add_db"
             android:layout_width="wrap_content" android:layout_height="40dp"

@@ -536,7 +536,7 @@ public class MainActivity extends AppCompatActivity {
                 adapter.setData(list);
                 if (tvEmpty != null) tvEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
                 
-                TextView tvCount = findViewById(R.id.tv_server_count);
+                TextView tvCount = findViewById(R.id.tv_footer_count);
                 if (tvCount != null) {
                     String label = list.size() == 1 ? getString(R.string.server_singular) : getString(R.string.server_plural);
                     tvCount.setText(list.size() + label);
