@@ -59,7 +59,18 @@ public class SupportSelectionDialog extends Dialog {
             llButtons.setVisibility(View.VISIBLE);
         }
 
-        findViewById(R.id.btn_mental_support).setOnClickListener(v -> {
+        // "Mental support <3" only exists while a personal conversation is open; a new one
+        // is started from the crisis screen, this entry point continues the existing chat
+        android.view.View mentalButton = findViewById(R.id.btn_mental_support);
+        mentalButton.setVisibility(View.GONE);
+        if (isLoggedIn) {
+            eu.kodanetwork.mchost.util.PersonalSupport.hasOpenTicket(getContext(), has -> {
+                if (has && isShowing()) {
+                    mentalButton.setVisibility(View.VISIBLE);
+                }
+            });
+        }
+        mentalButton.setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(getContext(), 30);
             dismiss();
             eu.kodanetwork.mchost.util.PersonalSupport.open(getContext(), null);

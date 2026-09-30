@@ -32,6 +32,39 @@ public final class PersonalSupport {
         default void onOpened() {}
     }
 
+    /** Reports whether an open personal conversation exists (runs the check off the UI thread). */
+    public static void hasOpenTicket(final Context context, final java.util.function.Consumer<Boolean> callback) {
+        if (context == null) {
+            callback.accept(false);
+            return;
+        }
+        new Thread(() -> {
+            boolean found = false;
+            try {
+                String uuid = eu.kodanetwork.mchost.App.getPrefs(context).getString("app_uuid", "");
+                String token = eu.kodanetwork.mchost.App.getPrefs(context).getString("device_token", "");
+                org.json.JSONObject body = new org.json.JSONObject();
+                body.put("p_reporter_uuid", uuid);
+                body.put("p_device_token", token);
+                body.put("p_all", false);
+                String response = SupportApi.makeSupabaseRequest(
+                        "rest/v1/rpc/rpc_get_tickets", "POST", body.toString(), null);
+                org.json.JSONArray tickets = new org.json.JSONArray(response);
+                for (int i = 0; i < tickets.length(); i++) {
+                    org.json.JSONObject ticket = tickets.getJSONObject(i);
+                    if ("PERSONAL".equals(ticket.optString("ticket_type", ""))
+                            && "OPEN".equals(ticket.optString("status", ""))) {
+                        found = true;
+                        break;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+            final boolean result = found;
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> callback.accept(result));
+        }, "KodaPersonalCheck").start();
+    }
+
     /** Finds the open personal ticket, or creates one, then opens the chat. */
     public static void open(final Context context, final OpenCallback callback) {
         if (context == null) return;
