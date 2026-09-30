@@ -52,7 +52,7 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_info_details"
+                        android:src="@drawable/ic_lucide_log"
                         app:tint="?attr/colorOnSurfaceVariant"/>
 
                     <ImageButton
@@ -60,7 +60,7 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_help"
+                        android:src="@drawable/ic_lucide_lifering"
                         app:tint="?attr/colorOnSurfaceVariant"/>
 
                     <ImageButton
@@ -68,7 +68,7 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_preferences"
+                        android:src="@drawable/ic_lucide_settings"
                         app:tint="?attr/colorOnSurfaceVariant"/>
                 </LinearLayout>
             </com.google.android.material.appbar.MaterialToolbar>

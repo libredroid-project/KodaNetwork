@@ -842,4 +842,5 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="personal_chat_ticket_title">Persoenliche Nachricht</string>
     <string name="mental_support">Seelischer Beistand &lt;3</string>
     <string name="personal_chat_locked">Verschluesselte Nachricht (Schluessel passt nicht)</string>
+    <string name="discord_open">KodaHosting-Community auf Discord oeffnen</string>
 </resources>

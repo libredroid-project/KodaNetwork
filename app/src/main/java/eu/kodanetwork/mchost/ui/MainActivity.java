@@ -309,6 +309,32 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
 
+            // Community + source, next to the other header icons
+            View btnDiscordMain = findViewById(R.id.btn_discord_main);
+            if (btnDiscordMain != null) {
+                btnDiscordMain.setOnClickListener(v -> {
+                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://discord.gg/e5axQpq3xp")));
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(this, "https://discord.gg/e5axQpq3xp", android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+            View btnGithubMain = findViewById(R.id.btn_github_main);
+            if (btnGithubMain != null) {
+                btnGithubMain.setOnClickListener(v -> {
+                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://github.com/libredroid-project/KodaNetwork")));
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(this, "github.com/libredroid-project/KodaNetwork", android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+
             View btnSupportMain = findViewById(R.id.btn_support_main);
             if (btnSupportMain != null) {
                 btnSupportMain.setOnClickListener(v -> {

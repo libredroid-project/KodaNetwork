@@ -831,4 +831,5 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="personal_chat_ticket_title">Personal message</string>
     <string name="mental_support">Mental support &lt;3</string>
     <string name="personal_chat_locked">Encrypted message (key does not fit)</string>
+    <string name="discord_open">Open the KodaHosting community on Discord</string>
 </resources>

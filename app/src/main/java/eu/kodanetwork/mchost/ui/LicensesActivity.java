@@ -52,6 +52,8 @@ public class LicensesActivity extends AppCompatActivity {
         addLicense(container, "Pumpkin (MIT)", "pumpkin.txt");
         addLicense(container, "Kotlin Coroutines (Apache-2.0)", "coroutines.txt");
         addLicense(container, "Okio (Apache-2.0)", "okio.txt");
+        addLicense(container, "Lucide Icons (ISC)", "lucide.txt");
+        addLicense(container, "Simple Icons (CC0)", "simple_icons.txt");
         addLicense(container, "OpenJDK", "openjdk.txt");
         addLicense(container, "MariaDB", "mariadb.txt");
         addLicense(container, "Redis", "redis.txt");

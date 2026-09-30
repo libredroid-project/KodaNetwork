@@ -317,6 +317,10 @@ public class SettingsActivity extends Activity {
                         .putBoolean("eula_accepted", false)
                         .putBoolean("tutorial_completed_v2", false)
                         .putInt("tutorial_phase", 0)
+                        // MainActivity checks tos_accepted_v3, not eula_accepted - without
+                        // resetting these the first-open dialog never came back
+                        .putBoolean("tos_accepted_v3", false)
+                        .putLong("accepted_tos_version_ts", 0L)
                         .apply();
                 Toast.makeText(this, getString(eu.kodanetwork.mchost.R.string.tutorial_replay_hint), Toast.LENGTH_LONG).show();
             });
