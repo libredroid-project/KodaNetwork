@@ -1225,7 +1225,7 @@ public class MainActivity extends AppCompatActivity {
         bottom.addView(version, vLp);
 
         android.widget.TextView source = new android.widget.TextView(this);
-        source.setText("kodanetwork.eu");
+        source.setText(android.text.Html.fromHtml("<font color=\"#555566\">Koda</font><font color=\"#FF6B00\">Hosting</font>", android.text.Html.FROM_HTML_MODE_LEGACY));
         source.setTextColor(0xFF555566);
         source.setTextSize(10);
         android.widget.LinearLayout.LayoutParams sLp = new android.widget.LinearLayout.LayoutParams(

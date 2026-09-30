@@ -59,7 +59,7 @@
         <ImageButton android:id="@+id/btn_support_main"
             android:layout_width="18dp" android:layout_height="18dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_lucide_lifering"
+            android:src="@drawable/ic_lucide_ticket"
             app:tint="#8A8A9A"
             android:layout_marginEnd="10dp"
             android:contentDescription="@string/support"
@@ -77,7 +77,7 @@
         <ImageButton android:id="@+id/btn_settings"
             android:layout_width="18dp" android:layout_height="18dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_lucide_settings"
+            android:src="@drawable/ic_mdi_cog"
             app:tint="#8A8A9A"
             android:layout_marginEnd="10dp"
             android:contentDescription="@string/settings"
@@ -155,7 +155,7 @@
         android:paddingTop="6dp" android:paddingBottom="6dp">
         <TextView android:layout_width="0dp" android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="kodanetwork.eu" android:textColor="#2A2A35"
+            android:text="KodaHosting" android:textColor="#555566"
             android:textSize="11sp" android:fontFamily="@font/font_koda"/>
         
         <com.google.android.material.button.MaterialButton android:id="@+id/fab_add_db"

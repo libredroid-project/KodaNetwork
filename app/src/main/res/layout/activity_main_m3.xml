@@ -62,7 +62,7 @@
                         android:layout_height="22dp"
                         android:scaleType="fitCenter"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_lucide_lifering"
+                        android:src="@drawable/ic_lucide_ticket"
                         app:tint="?attr/colorOnSurfaceVariant"/>
 
                     <ImageButton
@@ -71,7 +71,7 @@
                         android:layout_height="22dp"
                         android:scaleType="fitCenter"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_lucide_settings"
+                        android:src="@drawable/ic_mdi_cog"
                         app:tint="?attr/colorOnSurfaceVariant"/>
                 </LinearLayout>
             </com.google.android.material.appbar.MaterialToolbar>
