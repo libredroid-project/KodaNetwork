@@ -13,8 +13,8 @@ android {
         applicationId "eu.kodanetwork.mchost"
         minSdk 26
         targetSdk 36
-        versionCode 8512
-        versionName "v0.134beta"
+        versionCode 8513
+        versionName "v0.135beta"
         // Instanz-spezifisches Gate (z.B. KodaDash-Beta): -PKODADASH_ACCOUNT=... beim Bau
         buildConfigField "String", "KODADASH_ACCOUNT", "\"" + (project.findProperty('KODADASH_ACCOUNT') ?: '') + "\""
         ndkVersion "27.0.12077973"

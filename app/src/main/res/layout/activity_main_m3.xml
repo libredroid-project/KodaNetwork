@@ -49,8 +49,8 @@
                         
                     <ImageButton
                         android:id="@+id/btn_debug_log"
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:scaleType="fitCenter"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_lucide_log"
@@ -58,8 +58,8 @@
 
                     <ImageButton
                         android:id="@+id/btn_support_main"
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:scaleType="fitCenter"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_lucide_ticket"
@@ -67,8 +67,8 @@
 
                     <ImageButton
                         android:id="@+id/btn_settings"
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:scaleType="fitCenter"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_mdi_cog"

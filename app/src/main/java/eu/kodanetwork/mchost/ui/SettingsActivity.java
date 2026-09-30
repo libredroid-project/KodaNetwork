@@ -39,6 +39,11 @@ public class SettingsActivity extends Activity {
         if (tvVersion != null) {
             tvVersion.setText(eu.kodanetwork.mchost.BuildConfig.VERSION_NAME);
         }
+        // The about card showed a hardcoded version that drifted from the real one
+        TextView cardVersion = findViewById(R.id.tv_app_version_card);
+        if (cardVersion != null) {
+            cardVersion.setText(eu.kodanetwork.mchost.BuildConfig.VERSION_NAME);
+        }
 
         prefs = eu.kodanetwork.mchost.App.getPrefs(this);
         boolean isCyber = "cyber".equals(prefs.getString("app_theme", "modern"));
