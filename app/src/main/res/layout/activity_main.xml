@@ -39,42 +39,47 @@
 
         <!-- Black & white icons (Lucide / Simple Icons), tinted like the old emoji grey -->
         <ImageButton android:id="@+id/btn_discord_main"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_width="18dp" android:layout_height="18dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_si_discord"
             app:tint="#8A8A9A"
-            android:padding="10dp"
+            android:layout_marginEnd="10dp"
             android:contentDescription="@string/discord_open"
             android:background="?attr/selectableItemBackgroundBorderless"/>
 
         <ImageButton android:id="@+id/btn_github_main"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_width="18dp" android:layout_height="18dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_si_github"
             app:tint="#8A8A9A"
-            android:padding="10dp"
+            android:layout_marginEnd="10dp"
             android:contentDescription="@string/github_open_source"
             android:background="?attr/selectableItemBackgroundBorderless"/>
 
         <ImageButton android:id="@+id/btn_support_main"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_width="18dp" android:layout_height="18dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_lucide_lifering"
             app:tint="#8A8A9A"
-            android:padding="10dp"
+            android:layout_marginEnd="10dp"
             android:contentDescription="@string/support"
             android:background="?attr/selectableItemBackgroundBorderless"/>
 
         <ImageButton android:id="@+id/btn_donate_main"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_width="18dp" android:layout_height="18dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_lucide_coffee"
             app:tint="#8A8A9A"
-            android:padding="10dp"
+            android:layout_marginEnd="10dp"
             android:contentDescription="@string/support"
             android:background="?attr/selectableItemBackgroundBorderless"/>
 
         <ImageButton android:id="@+id/btn_settings"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_width="18dp" android:layout_height="18dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_lucide_settings"
             app:tint="#8A8A9A"
-            android:padding="10dp"
+            android:layout_marginEnd="10dp"
             android:contentDescription="@string/settings"
             android:background="?attr/selectableItemBackgroundBorderless"/>
     </LinearLayout>
