@@ -354,7 +354,10 @@ public class WelcomeActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_RECOVERY_ZIP) {
-            // whether a ZIP was picked or not: continue with the next server
+            if (resultCode == RESULT_OK && data != null && data.getData() != null && pendingZipServer != null) {
+                // Actually extract the picked ZIP into the server directory
+                extractZipToServer(data.getData(), pendingZipServer);
+            }
             promptNextZip();
             return;
         }
@@ -386,6 +389,93 @@ public class WelcomeActivity extends AppCompatActivity {
                 finishRecovery(getString(R.string.welcome_recovery_deleted, cloudServers.size()));
             });
         }, "KodaWelcomeDelete").start();
+    }
+
+    /**
+     * Extracts the picked ZIP into the server directory and flips the placeholder to OFFLINE,
+     * so the server is actually playable after the setup (not a dead HIBERNATED stub).
+     */
+    private void extractZipToServer(android.net.Uri uri, JSONObject serverRow) {
+        final String host = serverRow.optString("host", "server");
+        final String targetId = findOrCreateLocalId(host);
+        if (targetId == null) return;
+        final java.io.File targetDir = new java.io.File(new java.io.File(getFilesDir(), "servers"), targetId);
+
+        new Thread(() -> {
+            boolean ok = false;
+            try {
+                targetDir.mkdirs();
+                String canonicalBase = targetDir.getCanonicalPath() + java.io.File.separator;
+                java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
+                        getContentResolver().openInputStream(uri));
+                java.util.zip.ZipEntry entry;
+                byte[] buf = new byte[8192];
+                while ((entry = zis.getNextEntry()) != null) {
+                    java.io.File out = new java.io.File(targetDir, entry.getName());
+                    String canonical = out.getCanonicalPath();
+                    if (!canonical.startsWith(canonicalBase) && !canonical.equals(targetDir.getCanonicalPath())) {
+                        continue; // Zip-Slip
+                    }
+                    if (entry.isDirectory()) {
+                        out.mkdirs();
+                    } else {
+                        out.getParentFile().mkdirs();
+                        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(out)) {
+                            int n;
+                            while ((n = zis.read(buf)) > 0) fos.write(buf, 0, n);
+                        }
+                    }
+                    zis.closeEntry();
+                }
+                zis.close();
+                ok = true;
+            } catch (Exception e) {
+                android.util.Log.e("Welcome", "zip extract failed", e);
+            }
+
+            // Server-Zustand auf OFFLINE setzen (nicht HIBERNATED) damit er startbar ist
+            final boolean success = ok;
+            runOnUiThread(() -> {
+                updateLocalServerState(targetId, success ? "OFFLINE" : "HIBERNATED");
+                Toast.makeText(this, success
+                        ? getString(R.string.welcome_recovery_zip_ok, host)
+                        : getString(R.string.welcome_recovery_zip_fail, host),
+                        Toast.LENGTH_SHORT).show();
+            });
+        }, "KodaWelcomeZip").start();
+    }
+
+    /** Finds the local server ID for a host name, or returns null. */
+    private String findOrCreateLocalId(String host) {
+        try {
+            String raw = getSharedPreferences("koda_v3", MODE_PRIVATE).getString("servers", "[]");
+            JSONArray arr = new JSONArray(raw);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject s = arr.getJSONObject(i);
+                if (host.equals(s.optString("name", "")) || host.equals(s.optString("subdomain", ""))) {
+                    return s.optString("id", null);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    /** Sets the state of a local server entry by its ID. */
+    private void updateLocalServerState(String id, String state) {
+        try {
+            String raw = getSharedPreferences("koda_v3", MODE_PRIVATE).getString("servers", "[]");
+            JSONArray arr = new JSONArray(raw);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject s = arr.getJSONObject(i);
+                if (id.equals(s.optString("id", ""))) {
+                    s.put("state", state);
+                    break;
+                }
+            }
+            getSharedPreferences("koda_v3", MODE_PRIVATE).edit().putString("servers", arr.toString()).apply();
+        } catch (Exception ignored) {
+        }
     }
 
     private void finishRecovery(String message) {

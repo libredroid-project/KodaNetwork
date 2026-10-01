@@ -902,4 +902,6 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="auth_error_legal">Bitte akzeptiere zuerst die Nutzungsbedingungen und Datenschutzerklärung</string>
     <string name="auth_error_generic">Das hat nicht geklappt: %1$s</string>
     <string name="export_saved_to">Gespeichert in Downloads: %1$s</string>
+    <string name="welcome_recovery_zip_ok">Welt fuer %1$s importiert</string>
+    <string name="welcome_recovery_zip_fail">Konnte %1$s nicht importieren, spaeter in der App erneut versuchen</string>
 </resources>

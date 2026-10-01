@@ -871,4 +871,6 @@
     <string name="auth_error_legal">请先接受服务条款和隐私政策</string>
     <string name="auth_error_generic">操作失败：%1$s</string>
     <string name="export_saved_to">已保存到下载文件夹：%1$s</string>
+    <string name="welcome_recovery_zip_ok">已导入 %1$s 的世界</string>
+    <string name="welcome_recovery_zip_fail">无法导入 %1$s，稍后在应用中重试</string>
 </resources>
