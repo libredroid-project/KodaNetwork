@@ -870,4 +870,24 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="welcome_account_linked">Signed in. Welcome back!</string>
     <string name="welcome_done_text">Everything is set. Create your first server, invite your friends, have fun ❤</string>
     <string name="welcome_start">START KODAHOSTING</string>
-    <string name="welcome_legal_summary">KodaHosting is a free, private project. In short:\n\n\u2022 The app runs a Minecraft server on your device\n\u2022 We store your account data (email, device info) to operate the service\n\u2022 We never sell your data, no ads, no tracking\n\u2022 You can delete your account and data at any time\n\nFull documents: \u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003eTerms of Service\u003c/a\u003e and \u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003ePrivacy Policy\u003c/a\u003e</string>\n</resources>
+    <string name="welcome_legal_summary">KodaHosting is a free, private project. In short:\n\n\u2022 The app runs a Minecraft server on your device\n\u2022 We store your account data (email, device info) to operate the service\n\u2022 We never sell your data, no ads, no tracking\n\u2022 You can delete your account and data at any time\n\nFull documents: \u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003eTerms of Service\u003c/a\u003e and \u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003ePrivacy Policy\u003c/a\u003e</string>\n
+    <!-- Login & register (human language, was: ENTITY/AUTHENTICATE/OAUTH) -->
+    <string name="auth_sign_in_title">Sign in</string>
+    <string name="auth_register_title">Create account</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_email_hint">you@example.com</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_password_hint">Your password</string>
+    <string name="auth_invite_code">Invite code (optional)</string>
+    <string name="auth_invite_hint">Got one? Enter it here</string>
+    <string name="auth_sign_in_button">Sign in</string>
+    <string name="auth_register_button">Create account</string>
+    <string name="auth_google">Continue with Google</string>
+    <string name="auth_no_account">No account yet?</string>
+    <string name="auth_have_account">Already have an account?</string>
+    <string name="auth_loading">Signing in…</string>
+    <string name="auth_registering">Creating account…</string>
+    <string name="auth_error_empty">Please fill in email and password</string>
+    <string name="auth_error_legal">Please accept the Terms of Service and Privacy Policy first</string>
+    <string name="auth_error_generic">That did not work: %1$s</string>
+</resources>

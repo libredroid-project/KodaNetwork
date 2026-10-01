@@ -850,4 +850,24 @@
     <string name="welcome_account_linked">已登录。欢迎回来！</string>
     <string name="welcome_done_text">一切就绪。创建你的第一个服务器，邀请朋友，玩得开心 ❤</string>
     <string name="welcome_start">开始使用 KODAHOSTING</string>
-    <string name="welcome_legal_summary">KodaHosting 是一个免费的私人项目。摘要：\n\n\u2022 应用在你的设备上运行 Minecraft 服务器\n\u2022 我们存储你的账户数据（邮箱、设备信息）以维持服务运行\n\u2022 我们绝不出售数据，没有广告，没有追踪\n\u2022 你可以随时删除账户和数据\n\n完整文档：\u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003e服务条款\u003c/a\u003e和\u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003e隐私政策\u003c/a\u003e</string>\n</resources>
+    <string name="welcome_legal_summary">KodaHosting 是一个免费的私人项目。摘要：\n\n\u2022 应用在你的设备上运行 Minecraft 服务器\n\u2022 我们存储你的账户数据（邮箱、设备信息）以维持服务运行\n\u2022 我们绝不出售数据，没有广告，没有追踪\n\u2022 你可以随时删除账户和数据\n\n完整文档：\u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003e服务条款\u003c/a\u003e和\u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003e隐私政策\u003c/a\u003e</string>\n
+    <!-- 登录与注册 -->
+    <string name="auth_sign_in_title">登录</string>
+    <string name="auth_register_title">创建账号</string>
+    <string name="auth_email">邮箱</string>
+    <string name="auth_email_hint">you@example.com</string>
+    <string name="auth_password">密码</string>
+    <string name="auth_password_hint">你的密码</string>
+    <string name="auth_invite_code">邀请码（可选）</string>
+    <string name="auth_invite_hint">有的话在这里输入</string>
+    <string name="auth_sign_in_button">登录</string>
+    <string name="auth_register_button">创建账号</string>
+    <string name="auth_google">使用 Google 继续</string>
+    <string name="auth_no_account">还没有账号？</string>
+    <string name="auth_have_account">已有账号？</string>
+    <string name="auth_loading">正在登录……</string>
+    <string name="auth_registering">正在创建账号……</string>
+    <string name="auth_error_empty">请填写邮箱和密码</string>
+    <string name="auth_error_legal">请先接受服务条款和隐私政策</string>
+    <string name="auth_error_generic">操作失败：%1$s</string>
+</resources>

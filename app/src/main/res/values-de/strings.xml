@@ -881,4 +881,24 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="welcome_account_linked">Angemeldet. Willkommen zurueck!</string>
     <string name="welcome_done_text">Alles bereit. Erstelle deinen ersten Server, lade deine Freunde ein, viel Spass ❤</string>
     <string name="welcome_start">KODAHOSTING STARTEN</string>
-    <string name="welcome_legal_summary">KodaHosting ist ein kostenloses, privates Projekt. Kurz:\n\n\u2022 Die App laesst einen Minecraft-Server auf deinem Geraet laufen\n\u2022 Wir speichern deine Kontodaten (E-Mail, Geraetedaten), um den Betrieb zu gewaehrleisten\n\u2022 Wir verkaufen keine Daten, keine Werbung, kein Tracking\n\u2022 Du kannst dein Konto und deine Daten jederzeit loeschen\n\nVollstaendige Dokumente: \u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003eNutzungsbedingungen\u003c/a\u003e und \u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003eDatenschutzerklaerung\u003c/a\u003e</string>\n</resources>
+    <string name="welcome_legal_summary">KodaHosting ist ein kostenloses, privates Projekt. Kurz:\n\n\u2022 Die App laesst einen Minecraft-Server auf deinem Geraet laufen\n\u2022 Wir speichern deine Kontodaten (E-Mail, Geraetedaten), um den Betrieb zu gewaehrleisten\n\u2022 Wir verkaufen keine Daten, keine Werbung, kein Tracking\n\u2022 Du kannst dein Konto und deine Daten jederzeit loeschen\n\nVollstaendige Dokumente: \u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003eNutzungsbedingungen\u003c/a\u003e und \u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003eDatenschutzerklaerung\u003c/a\u003e</string>\n
+    <!-- Anmelden & Registrieren (menschliche Sprache) -->
+    <string name="auth_sign_in_title">Anmelden</string>
+    <string name="auth_register_title">Konto erstellen</string>
+    <string name="auth_email">E-Mail</string>
+    <string name="auth_email_hint">du@beispiel.de</string>
+    <string name="auth_password">Passwort</string>
+    <string name="auth_password_hint">Dein Passwort</string>
+    <string name="auth_invite_code">Invite-Code (optional)</string>
+    <string name="auth_invite_hint">Hast du einen? Hier eintragen</string>
+    <string name="auth_sign_in_button">Anmelden</string>
+    <string name="auth_register_button">Konto erstellen</string>
+    <string name="auth_google">Weiter mit Google</string>
+    <string name="auth_no_account">Noch kein Konto?</string>
+    <string name="auth_have_account">Schon ein Konto?</string>
+    <string name="auth_loading">Melde an…</string>
+    <string name="auth_registering">Erstelle Konto…</string>
+    <string name="auth_error_empty">Bitte E-Mail und Passwort ausfüllen</string>
+    <string name="auth_error_legal">Bitte akzeptiere zuerst die Nutzungsbedingungen und Datenschutzerklärung</string>
+    <string name="auth_error_generic">Das hat nicht geklappt: %1$s</string>
+</resources>

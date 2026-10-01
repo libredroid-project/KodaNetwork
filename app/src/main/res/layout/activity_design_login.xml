@@ -48,7 +48,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="IDENTIFICATION REQUIRED"
+                android:text="@string/auth_sign_in_title"
                 android:textColor="#8A8A9A"
                 android:textSize="10sp"
                 android:textStyle="bold"
@@ -66,7 +66,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="EMAIL"
+                android:text="@string/auth_email"
                 android:textColor="#888888"
                 android:textSize="12sp"
                 android:fontFamily="@font/font_koda_mono"
@@ -77,7 +77,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:background="#1A1A1A"
-                android:hint="user@network.local"
+                android:hint="@string/auth_email_hint"
                 android:inputType="textEmailAddress"
                 android:textColor="#F0F0F0"
                 android:textColorHint="#444444"
@@ -89,7 +89,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="PASSKEY"
+                android:text="@string/auth_password"
                 android:textColor="#888888"
                 android:textSize="12sp"
                 android:fontFamily="@font/font_koda_mono"
@@ -100,7 +100,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:background="#1A1A1A"
-                android:hint="••••••••"
+                android:hint="@string/auth_password_hint"
                 android:inputType="textPassword"
                 android:textColor="#F0F0F0"
                 android:textColorHint="#444444"
@@ -124,7 +124,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 style="@style/KodaButton.Danger"
-                android:text="AUTHENTICATE"
+                android:text="@string/auth_sign_in_button"
                 android:layout_marginBottom="16dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -132,7 +132,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 style="@style/KodaButton.Outline"
-                android:text="OAUTH PROTOCOL" />
+                android:text="@string/auth_google" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -143,7 +143,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Unregistered? "
+                    android:text="@string/auth_no_account"
                     android:textColor="#555555"
                     android:fontFamily="@font/font_koda_mono"
                     android:textSize="14sp"/>
@@ -152,7 +152,7 @@
                     android:id="@+id/tv_create_account"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="INITIALIZE"
+                    android:text="@string/auth_register_title"
                     android:textColor="#FF0000"
                     android:fontFamily="@font/font_koda_mono"
                     android:textSize="14sp"

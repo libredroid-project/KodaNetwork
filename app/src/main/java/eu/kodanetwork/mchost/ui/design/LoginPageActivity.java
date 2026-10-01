@@ -42,7 +42,7 @@ public class LoginPageActivity extends AppCompatActivity {
 
         android.widget.CheckBox cbLegal = findViewById(R.id.cb_legal);
         if (cbLegal != null) {
-            cbLegal.setText(android.text.Html.fromHtml("I accept the <a href='https://host.kodanetwork.eu/tos.html'>Terms of Service</a> and <a href='https://host.kodanetwork.eu/privacy.html'>Privacy Policy</a>", android.text.Html.FROM_HTML_MODE_LEGACY));
+            cbLegal.setText(android.text.Html.fromHtml(getString(R.string.welcome_legal_checkbox), android.text.Html.FROM_HTML_MODE_LEGACY));
             cbLegal.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
         }
 
@@ -52,15 +52,15 @@ public class LoginPageActivity extends AppCompatActivity {
             String email = etUser.getText().toString().trim();
             String pwd = etPass.getText().toString().trim();
             if (email.isEmpty() || pwd.isEmpty()) {
-                Toast.makeText(this, "Email und Passwort erforderlich", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.auth_error_empty), Toast.LENGTH_SHORT).show();
                 return;
             }
             if (cbLegal != null && !cbLegal.isChecked()) {
-                Toast.makeText(this, "You must accept the Terms of Service and Privacy Policy to continue.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, getString(R.string.auth_error_legal), Toast.LENGTH_LONG).show();
                 return;
             }
             btnSignIn.setEnabled(false);
-            btnSignIn.setText("Lade...");
+            btnSignIn.setText(getString(R.string.auth_loading));
 
             eu.kodanetwork.mchost.network.supabase.SupabaseAuth.signInWithEmail(this, email, pwd, new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
                 @Override
@@ -86,8 +86,8 @@ public class LoginPageActivity extends AppCompatActivity {
                 public void onError(String message) {
                     runOnUiThread(() -> {
                         btnSignIn.setEnabled(true);
-                        btnSignIn.setText("Sign In");
-                        Toast.makeText(LoginPageActivity.this, "Fehler: " + message, Toast.LENGTH_LONG).show();
+                        btnSignIn.setText(getString(R.string.auth_sign_in_button));
+                        Toast.makeText(LoginPageActivity.this, getString(R.string.auth_error_generic, message), Toast.LENGTH_LONG).show();
                     });
                 }
             });
@@ -95,7 +95,7 @@ public class LoginPageActivity extends AppCompatActivity {
 
         btnGoogle.setOnClickListener(v -> {
             if (!cbLegal.isChecked()) {
-                Toast.makeText(this, "Du musst die Terms of Service und Privacy Policy akzeptieren.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.auth_error_legal), Toast.LENGTH_SHORT).show();
                 return;
             }
             try {
@@ -125,7 +125,7 @@ public class LoginPageActivity extends AppCompatActivity {
                 com.google.android.gms.auth.api.signin.GoogleSignInAccount account = task.getResult(com.google.android.gms.common.api.ApiException.class);
                 String idToken = account.getIdToken();
                 if (idToken != null) {
-                    Toast.makeText(this, "Google Token received, verifying...", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.auth_loading), Toast.LENGTH_SHORT).show();
                     eu.kodanetwork.mchost.network.supabase.SupabaseAuth.signInWithGoogle(this, idToken, new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
                         @Override
                         public void onSuccess() {
@@ -148,10 +148,10 @@ public class LoginPageActivity extends AppCompatActivity {
             } catch (Exception e) {
                 if (e instanceof com.google.android.gms.common.api.ApiException) {
                     int code = ((com.google.android.gms.common.api.ApiException)e).getStatusCode();
-                    Toast.makeText(this, "Google Login aborted (Code: " + code + ")", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getString(R.string.auth_error_generic, "Google " + code), Toast.LENGTH_LONG).show();
                     android.util.Log.e("GoogleLogin", "ApiException code " + code, e);
                 } else {
-                    Toast.makeText(this, "Google Login aborted: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getString(R.string.auth_error_generic, e.getMessage() == null ? "Google" : e.getMessage()), Toast.LENGTH_LONG).show();
                     android.util.Log.e("GoogleLogin", "Exception during login", e);
                 }
             }
