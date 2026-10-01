@@ -400,10 +400,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (etCmd == null) etCmd = findViewById(R.id.et_console_input);
         layoutChips = null;
         setupConsoleScroll();
-        // Header collapse: tab bar (and the plugins header) shrink while scrolling
-        attachHeaderCollapse(findViewById(R.id.panel_dash));
-        attachHeaderCollapse(findViewById(R.id.panel_settings));
-        attachHeaderCollapse(findViewById(R.id.scroll_log));
+        // Tab bar hides ONLY while scrolling in the plugins/mods tab
         attachHeaderCollapse(findViewById(R.id.ll_plugin_installed));
         attachHeaderCollapse(findViewById(R.id.rv_plugins));
 
@@ -1267,6 +1264,9 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showTab(int i) {
+        // Console tab: sync the follow state with the server preference
+        consoleAutoScroll = server == null || server.isConsoleAutoScroll();
+        updateScrollButton();
         // A tab switch brings the bar back
         setHeadersCollapsed(false, getResources().getDisplayMetrics().density);
         int targetSettings = server.isDatabase() ? 3 : 4;

@@ -37,6 +37,7 @@ public class RegisterPageActivity extends AppCompatActivity {
         if (tvTitle != null) {
             String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font><font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
             tvTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
+        tvTitle.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.space_grotesk_bold));
         }
 
         android.widget.CheckBox cbLegal = findViewById(R.id.cb_legal);
@@ -85,6 +86,7 @@ public class RegisterPageActivity extends AppCompatActivity {
                         if (tvTitle != null) {
                             String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font><font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
                             tvTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
+        tvTitle.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(RegisterPageActivity.this, R.font.space_grotesk_bold));
                         }
 
                         TextView tvSubtitle = dialog.findViewById(R.id.tv_dialog_subtitle);
