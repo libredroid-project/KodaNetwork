@@ -870,4 +870,5 @@
     <string name="auth_error_empty">请填写邮箱和密码</string>
     <string name="auth_error_legal">请先接受服务条款和隐私政策</string>
     <string name="auth_error_generic">操作失败：%1$s</string>
+    <string name="export_saved_to">已保存到下载文件夹：%1$s</string>
 </resources>

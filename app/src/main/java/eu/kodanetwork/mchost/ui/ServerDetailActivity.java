@@ -6076,24 +6076,23 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (server != null) {
             new Thread(() -> {
                 try {
-                    File cacheDir = new File(getCacheDir(), "exports");
-                    if (!cacheDir.exists()) cacheDir.mkdirs();
-                    
-                    File zipFile = new File(cacheDir, server.getName() + "_export.zip");
-                    
+                    // Save directly to the Downloads folder - no share dialog, no picker
+                    File downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS);
+                    if (!downloadsDir.exists()) downloadsDir.mkdirs();
+
+                    String stamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                            .format(new java.util.Date());
+                    File zipFile = new File(downloadsDir, server.getName() + "_" + stamp + ".zip");
+
                     runOnUiThread(() -> android.widget.Toast.makeText(ServerDetailActivity.this, getString(R.string.sd_toast_zipping), android.widget.Toast.LENGTH_SHORT).show());
-                    
+
                     eu.kodanetwork.mchost.utils.ZipUtils.zipFolder(server.getServerDir(), zipFile.getAbsolutePath());
-                    
-                    android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(ServerDetailActivity.this, "eu.kodanetwork.mchost.fileprovider", zipFile);
-                    
-                    android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
-                    shareIntent.setType("application/zip");
-                    shareIntent.putExtra(android.content.Intent.EXTRA_STREAM, uri);
-                    shareIntent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    
+
                     runOnUiThread(() -> {
-                        startActivity(android.content.Intent.createChooser(shareIntent, "Save Server ZIP"));
+                        android.widget.Toast.makeText(ServerDetailActivity.this,
+                                getString(R.string.export_saved_to, zipFile.getName()),
+                                android.widget.Toast.LENGTH_LONG).show();
                     });
                 } catch (Exception e) {
                     e.printStackTrace();

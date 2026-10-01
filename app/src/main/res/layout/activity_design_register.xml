@@ -42,7 +42,7 @@
         android:paddingStart="8dp"
         android:gravity="center"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/changa_one"
+                android:fontFamily="@font/space_grotesk_bold"
         android:text="P.R.A.E.T.O.R."
                 android:textColor="#FF3333"
                 android:textSize="36sp"
