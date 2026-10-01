@@ -56,16 +56,55 @@ public class HibernationManager {
         repo.update(server);
     }
 
+    /**
+     * Checks whether the koda_servers row for this host still belongs to this device.
+     * If it does, the DNS "occupation" is our own entry and waking up is fine.
+     */
+    private static boolean dnsBelongsToUs(Context context, ServerInstance server) {
+        try {
+            String appUuid = eu.kodanetwork.mchost.App.getPrefs(context).getString("app_uuid", "");
+            String deviceToken = eu.kodanetwork.mchost.App.getPrefs(context).getString("device_token", "");
+            if (appUuid.isEmpty() || deviceToken.isEmpty()) return false;
+
+            org.json.JSONObject body = new org.json.JSONObject()
+                    .put("p_app_uuid", appUuid)
+                    .put("p_device_token", deviceToken);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(
+                    eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                            + "/rest/v1/rpc/rpc_get_my_servers").openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("apikey", eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+            conn.setRequestProperty("Authorization", "Bearer " + eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+            conn.setDoOutput(true);
+            conn.getOutputStream().write(body.toString().getBytes("UTF-8"));
+            if (conn.getResponseCode() != 200) return false;
+            java.util.Scanner sc = new java.util.Scanner(conn.getInputStream()).useDelimiter("\\A");
+            org.json.JSONArray arr = new org.json.JSONArray(sc.hasNext() ? sc.next() : "[]");
+            for (int i = 0; i < arr.length(); i++) {
+                org.json.JSONObject row = arr.getJSONObject(i);
+                if (server.getSubdomain().equals(row.optString("host", ""))) {
+                    return true; // our own row -> DNS is ours
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.w("HibernationManager", "dnsBelongsToUs check failed: " + e.getMessage());
+        }
+        return false;
+    }
+
     public static void wakeUpServer(Context context, ServerInstance server, ServerRepo repo) throws Exception {
         if (server.state != ServerInstance.State.HIBERNATED) return;
 
-        // 1. Check if DNS is occupied
+        // 1. Check if DNS is occupied - but only by SOMEONE ELSE.
+        // A hibernated server keeps its DNS entry, so "taken" is expected for our own
+        // name. We only block when the record belongs to a different owner.
         if (server.getSubdomain() != null && !server.getSubdomain().isEmpty()) {
             String token = SupabaseAuth.getSessionToken(context);
             try {
                 boolean isTaken = new SupabaseFunctionsClient(context)
                         .checkServerName(token, server.getSubdomain(), server.getBaseDomain());
-                if (isTaken) {
+                if (isTaken && !dnsBelongsToUs(context, server)) {
                     throw new RuntimeException("DNS_OCCUPIED");
                 }
             } catch (Exception e) {

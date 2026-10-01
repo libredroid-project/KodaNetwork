@@ -408,10 +408,46 @@ public class WelcomeActivity extends AppCompatActivity {
                 String canonicalBase = targetDir.getCanonicalPath() + java.io.File.separator;
                 java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
                         getContentResolver().openInputStream(uri));
+
+                // Detect the common first directory (the ZIP contains "uuid/server.properties",
+                // because zipFolder prepends the source directory name). Strip it so files
+                // land directly in the server directory, not in a nested UUID folder.
+                String firstDir = null;
                 java.util.zip.ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    String name = entry.getName();
+                    int slash = name.indexOf('/');
+                    if (slash > 0) {
+                        String candidate = name.substring(0, slash);
+                        if (firstDir == null) {
+                            firstDir = candidate;
+                        } else if (!firstDir.equals(candidate)) {
+                            firstDir = null; // mixed roots -> no stripping
+                            break;
+                        }
+                    } else {
+                        firstDir = null; // file at root -> no wrapping directory
+                        break;
+                    }
+                    zis.closeEntry();
+                }
+
+                // Reopen: the stream was consumed for detection
+                zis.close();
+                zis = new java.util.zip.ZipInputStream(getContentResolver().openInputStream(uri));
+                String stripPrefix = firstDir != null ? firstDir + "/" : "";
+
                 byte[] buf = new byte[8192];
                 while ((entry = zis.getNextEntry()) != null) {
-                    java.io.File out = new java.io.File(targetDir, entry.getName());
+                    String name = entry.getName();
+                    if (name.startsWith(stripPrefix)) {
+                        name = name.substring(stripPrefix.length());
+                    }
+                    if (name.isEmpty()) {
+                        zis.closeEntry();
+                        continue;
+                    }
+                    java.io.File out = new java.io.File(targetDir, name);
                     String canonical = out.getCanonicalPath();
                     if (!canonical.startsWith(canonicalBase) && !canonical.equals(targetDir.getCanonicalPath())) {
                         continue; // Zip-Slip
