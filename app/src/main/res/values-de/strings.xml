@@ -843,4 +843,42 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="mental_support">Seelischer Beistand &lt;3</string>
     <string name="personal_chat_locked">Verschluesselte Nachricht (Schluessel passt nicht)</string>
     <string name="discord_open">KodaHosting-Community auf Discord oeffnen</string>
-</resources>
+
+    <!-- Textbasiertes Erst-Setup -->
+    <string name="welcome_title">Willkommen</string>
+    <string name="welcome_intro">KodaHosting macht aus deinem Handy einen Minecraft-Server. Der Server laeuft auf deinem Geraet, die Verbindung geht durch unseren Tunnel, ganz ohne Portfreigabe. Alles ist kostenlos. Dieses Setup dauert zwei Minuten, dann bist du startklar.</string>
+    <string name="welcome_continue">Weiter</string>
+    <string name="welcome_legal_title">NUTZUNGSBEDINGUNGEN &amp; DATENSCHUTZ</string>
+    <string name="welcome_legal_checkbox">Ich bin mindestens 16 Jahre alt (oder habe die Einwilligung meiner Erziehungsberechtigten) und akzeptiere die Nutzungsbedingungen und die Datenschutzerklaerung.</string>
+    <string name="welcome_legal_accept">Akzeptieren &amp; weiter</string>
+    <string name="welcome_background_title">HINTERGRUND</string>
+    <string name="welcome_background_text">Damit dein Server mit ausgeschaltetem Bildschirm weiterlaeuft, erlaube Akku-Ausnahmen und Benachrichtigungen. Du kannst das ueberspringen, die App erinnert dich spaeter.</string>
+    <string name="welcome_battery_button">Hintergrund erlauben (Akku + Benachrichtigungen)</string>
+    <string name="welcome_battery_toast">Waehle im naechsten Menue \"Keine Einschraenkungen\"</string>
+    <string name="welcome_battery_failed">Akku-Einstellungen konnten nicht geoeffnet werden</string>
+    <string name="welcome_skip">Vorerst ueberspringen</string>
+    <string name="welcome_recovery_title">ALTE SERVER</string>
+    <string name="welcome_recovery_checking">Pruefe, ob du vorher auf diesem Geraet Server hattest…</string>
+    <string name="welcome_recovery_found">%1$d Server aus einer frueheren Installation gefunden: %2$s. Du kannst sie importieren (pro Server waehlst du ein Backup-ZIP) oder endgueltig loeschen.</string>
+    <string name="welcome_recovery_import">Meine Server importieren</string>
+    <string name="welcome_recovery_delete">Endgueltig loeschen</string>
+    <string name="welcome_recovery_importing">Verknuempfe die Server mit diesem Geraet…</string>
+    <string name="welcome_recovery_adopted">%1$d Server verknuepft. Jetzt die Welt-Backups waehlen.</string>
+    <string name="welcome_recovery_zip_hint">Waehle das Welt-ZIP fuer \"%1$s\" (oder ueberspringen)</string>
+    <string name="welcome_recovery_deleting">Entferne die alten Eintraege…</string>
+    <string name="welcome_recovery_deleted">%1$d Server entfernt.</string>
+    <string name="welcome_recovery_none">Keine alten Server auf diesem Geraet gefunden. Hattest du Server auf einem anderen Geraet oder mit anderem Konto, kannst du dich in den naechsten Schritten anmelden.</string>
+    <string name="welcome_recovery_offline">Der Server konnte fuer die Pruefung nicht erreicht werden. Du kannst weitermachen, wir fragen spaeter nochmal.</string>
+    <string name="welcome_recovery_done">Deine Server sind verknuepft. Uebersprungene Welten kannst du spaeter in der App importieren.</string>
+    <string name="welcome_nickname_title">SPITZNAME</string>
+    <string name="welcome_nickname_text">Wie sollen wir dich nennen? Wird deinen Freunden in der Serverliste gezeigt. Optional.</string>
+    <string name="welcome_nickname_hint">z. B. Steve</string>
+    <string name="welcome_account_title">KONTO (OPTIONAL)</string>
+    <string name="welcome_account_text">Ein Konto ist nicht noetig. Damit siehst du deine Server auf der Website und rettest sie auf einem neuen Geraet einfacher.</string>
+    <string name="welcome_account_login">Anmelden</string>
+    <string name="welcome_account_register">Konto erstellen</string>
+    <string name="welcome_account_skip">Ueberspringen, ohne Konto starten</string>
+    <string name="welcome_account_linked">Angemeldet. Willkommen zurueck!</string>
+    <string name="welcome_done_text">Alles bereit. Erstelle deinen ersten Server, lade deine Freunde ein, viel Spass ❤</string>
+    <string name="welcome_start">KODAHOSTING STARTEN</string>
+    <string name="welcome_legal_summary">KodaHosting ist ein kostenloses, privates Projekt. Kurz:\n\n\u2022 Die App laesst einen Minecraft-Server auf deinem Geraet laufen\n\u2022 Wir speichern deine Kontodaten (E-Mail, Geraetedaten), um den Betrieb zu gewaehrleisten\n\u2022 Wir verkaufen keine Daten, keine Werbung, kein Tracking\n\u2022 Du kannst dein Konto und deine Daten jederzeit loeschen\n\nVollstaendige Dokumente: \u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003eNutzungsbedingungen\u003c/a\u003e und \u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003eDatenschutzerklaerung\u003c/a\u003e</string>\n</resources>

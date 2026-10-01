@@ -66,6 +66,7 @@
         <activity android:name="eu.kodanetwork.mchost.cluster.ClusterActivity" android:exported="false"/>
         <activity android:name=".ui.PersonalChatActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ui.WelcomeActivity" android:exported="false" />
         <activity android:name=".ui.CrisisSupportActivity"
             android:exported="false"
             android:launchMode="singleTop"

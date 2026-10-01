@@ -832,4 +832,42 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="mental_support">Mental support &lt;3</string>
     <string name="personal_chat_locked">Encrypted message (key does not fit)</string>
     <string name="discord_open">Open the KodaHosting community on Discord</string>
-</resources>
+
+    <!-- Text-based first setup -->
+    <string name="welcome_title">Welcome</string>
+    <string name="welcome_intro">KodaHosting turns your phone into a Minecraft server. The server runs on your device, the connection goes through our tunnel, no port forwarding needed. Everything is free. This setup takes two minutes and then you are ready.</string>
+    <string name="welcome_continue">Continue</string>
+    <string name="welcome_legal_title">TERMS &amp; PRIVACY</string>
+    <string name="welcome_legal_checkbox">I am at least 16 years old (or have the consent of my legal guardian) and I accept the Terms of Service and the Privacy Policy.</string>
+    <string name="welcome_legal_accept">Accept &amp; continue</string>
+    <string name="welcome_background_title">BACKGROUND</string>
+    <string name="welcome_background_text">So your server keeps running with the screen off, allow battery exceptions and notifications. You can skip this and do it later, the app will remind you.</string>
+    <string name="welcome_battery_button">Allow background (battery + notifications)</string>
+    <string name="welcome_battery_toast">Pick \"No restrictions\" in the next menu</string>
+    <string name="welcome_battery_failed">Could not open the battery settings</string>
+    <string name="welcome_skip">Skip for now</string>
+    <string name="welcome_recovery_title">OLD SERVERS</string>
+    <string name="welcome_recovery_checking">Checking whether you had servers on this device before…</string>
+    <string name="welcome_recovery_found">Found %1$d server(s) from a previous installation: %2$s. You can import them (you will pick a backup ZIP per server) or delete them for good.</string>
+    <string name="welcome_recovery_import">Import my servers</string>
+    <string name="welcome_recovery_delete">Delete them for good</string>
+    <string name="welcome_recovery_importing">Linking the servers to this device…</string>
+    <string name="welcome_recovery_adopted">Linked %1$d server(s). Now pick the world backups.</string>
+    <string name="welcome_recovery_zip_hint">Pick the world ZIP for \"%1$s\" (or skip)</string>
+    <string name="welcome_recovery_deleting">Removing the old entries…</string>
+    <string name="welcome_recovery_deleted">Removed %1$d server(s).</string>
+    <string name="welcome_recovery_none">No old servers found on this device. If you had servers on another device or with a different account, you can sign in in the next steps.</string>
+    <string name="welcome_recovery_offline">Could not reach the server to check. You can continue, we will ask again later.</string>
+    <string name="welcome_recovery_done">Your servers are linked. Worlds that you skipped can be imported later in the app.</string>
+    <string name="welcome_nickname_title">NICKNAME</string>
+    <string name="welcome_nickname_text">How should we call you? Shown to your friends on the server list. Optional.</string>
+    <string name="welcome_nickname_hint">e.g. Steve</string>
+    <string name="welcome_account_title">ACCOUNT (OPTIONAL)</string>
+    <string name="welcome_account_text">An account is not required. With one you can see your servers on the website and recover them more easily on a new device.</string>
+    <string name="welcome_account_login">Sign in</string>
+    <string name="welcome_account_register">Create account</string>
+    <string name="welcome_account_skip">Skip, start without account</string>
+    <string name="welcome_account_linked">Signed in. Welcome back!</string>
+    <string name="welcome_done_text">Everything is set. Create your first server, invite your friends, have fun ❤</string>
+    <string name="welcome_start">START KODAHOSTING</string>
+    <string name="welcome_legal_summary">KodaHosting is a free, private project. In short:\n\n\u2022 The app runs a Minecraft server on your device\n\u2022 We store your account data (email, device info) to operate the service\n\u2022 We never sell your data, no ads, no tracking\n\u2022 You can delete your account and data at any time\n\nFull documents: \u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003eTerms of Service\u003c/a\u003e and \u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003ePrivacy Policy\u003c/a\u003e</string>\n</resources>

@@ -107,7 +107,13 @@ public class RegisterPageActivity extends AppCompatActivity {
                                         public void onSuccess() {
                                             runOnUiThread(() -> {
                                                 Toast.makeText(RegisterPageActivity.this, "Account erfolgreich erstellt!", Toast.LENGTH_SHORT).show();
-                                                startActivity(new Intent(RegisterPageActivity.this, eu.kodanetwork.mchost.ui.MainActivity.class));
+                                                // Called from the welcome setup: go back there instead of restarting the app
+                    if (getIntent().getBooleanExtra("RETURN_TO_WELCOME", false)) {
+                        setResult(RESULT_OK);
+                        finish();
+                        return;
+                    }
+                    startActivity(new Intent(RegisterPageActivity.this, eu.kodanetwork.mchost.ui.MainActivity.class));
                                                 finishAffinity();
                                             });
                                         }

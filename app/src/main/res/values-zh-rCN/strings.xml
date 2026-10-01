@@ -812,4 +812,42 @@
     <string name="mental_support">心理支持 &lt;3</string>
     <string name="personal_chat_locked">加密消息（密钥不匹配）</string>
     <string name="discord_open">打开 KodaHosting 的 Discord 社区</string>
-</resources>
+
+    <!-- 文字版首次设置 -->
+    <string name="welcome_title">欢迎</string>
+    <string name="welcome_intro">KodaHosting 把你的手机变成 Minecraft 服务器。服务器运行在你的设备上，连接通过我们的隧道转发，无需端口映射，完全免费。整个设置只需两分钟。</string>
+    <string name="welcome_continue">继续</string>
+    <string name="welcome_legal_title">服务条款与隐私</string>
+    <string name="welcome_legal_checkbox">我已年满 16 周岁（或已获得监护人同意），并接受服务条款和隐私政策。</string>
+    <string name="welcome_legal_accept">接受并继续</string>
+    <string name="welcome_background_title">后台运行</string>
+    <string name="welcome_background_text">为了让服务器在熄屏后继续运行，请允许电池例外和通知。可以跳过，应用之后会提醒你。</string>
+    <string name="welcome_battery_button">允许后台（电池 + 通知）</string>
+    <string name="welcome_battery_toast">请在下一个菜单中选择“无限制”</string>
+    <string name="welcome_battery_failed">无法打开电池设置</string>
+    <string name="welcome_skip">暂时跳过</string>
+    <string name="welcome_recovery_title">旧服务器</string>
+    <string name="welcome_recovery_checking">正在检查这台设备上是否有过服务器……</string>
+    <string name="welcome_recovery_found">找到 %1$d 个来自之前安装的服务器：%2$s。你可以导入（每个服务器选择一个备份 ZIP），也可以永久删除。</string>
+    <string name="welcome_recovery_import">导入我的服务器</string>
+    <string name="welcome_recovery_delete">永久删除</string>
+    <string name="welcome_recovery_importing">正在把服务器绑定到这台设备……</string>
+    <string name="welcome_recovery_adopted">已绑定 %1$d 个服务器。现在选择世界备份。</string>
+    <string name="welcome_recovery_zip_hint">为“%1$s”选择世界 ZIP（或跳过）</string>
+    <string name="welcome_recovery_deleting">正在移除旧条目……</string>
+    <string name="welcome_recovery_deleted">已移除 %1$d 个服务器。</string>
+    <string name="welcome_recovery_none">这台设备上没有找到旧服务器。如果你在其他设备或用其他账号有过服务器，可以在下一步登录。</string>
+    <string name="welcome_recovery_offline">暂时无法连接服务器检查。你可以继续，稍后会再问一次。</string>
+    <string name="welcome_recovery_done">服务器已绑定。跳过的世界之后可以在应用里导入。</string>
+    <string name="welcome_nickname_title">昵称</string>
+    <string name="welcome_nickname_text">我们该怎么称呼你？会显示在服务器列表中。可不填。</string>
+    <string name="welcome_nickname_hint">例如 Steve</string>
+    <string name="welcome_account_title">账号（可选）</string>
+    <string name="welcome_account_text">不需要账号也可以使用。有账号可以在网站上查看服务器，也更容易在新设备上找回它们。</string>
+    <string name="welcome_account_login">登录</string>
+    <string name="welcome_account_register">创建账号</string>
+    <string name="welcome_account_skip">跳过，不使用账号</string>
+    <string name="welcome_account_linked">已登录。欢迎回来！</string>
+    <string name="welcome_done_text">一切就绪。创建你的第一个服务器，邀请朋友，玩得开心 ❤</string>
+    <string name="welcome_start">开始使用 KODAHOSTING</string>
+    <string name="welcome_legal_summary">KodaHosting 是一个免费的私人项目。摘要：\n\n\u2022 应用在你的设备上运行 Minecraft 服务器\n\u2022 我们存储你的账户数据（邮箱、设备信息）以维持服务运行\n\u2022 我们绝不出售数据，没有广告，没有追踪\n\u2022 你可以随时删除账户和数据\n\n完整文档：\u003ca href=\"https://host.kodanetwork.eu/tos.html\"\u003e服务条款\u003c/a\u003e和\u003ca href=\"https://host.kodanetwork.eu/privacy.html\"\u003e隐私政策\u003c/a\u003e</string>\n</resources>

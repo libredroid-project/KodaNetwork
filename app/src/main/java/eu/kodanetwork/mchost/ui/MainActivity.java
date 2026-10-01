@@ -203,7 +203,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         showWelcomeSplash();
-        maybeAskNickname();
+        if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("tos_accepted_v3", false)) {
+            maybeAskNickname();
+        } // fresh installs: the welcome setup asks (with a working device token)
         // KodaCluster slave runs whenever its toggle is on — not only after visiting Settings
         if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("dev_cluster_slave", false)) {
             eu.kodanetwork.mchost.cluster.ClusterSlave.get(this).start();
@@ -400,12 +402,13 @@ public class MainActivity extends AppCompatActivity {
 
             ThemeHelper.apply(this);
             eu.kodanetwork.mchost.util.HapticUtil.applyHaptics(this);
-            // First app open: cinematic tutorial takes over (includes the ToS step);
-            // the plain ToS dialog below stays as fallback for skipped tutorials
-            tutorialRunning = eu.kodanetwork.mchost.util.TutorialCoach.maybeStartTutorial(this);
-            if (!tutorialRunning) {
-                checkToS(0);
+            // Text-based first setup replaces the cinematic tutorial for fresh installs
+            if (!eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("tos_accepted_v3", false)) {
+                startActivity(new Intent(this, eu.kodanetwork.mchost.ui.WelcomeActivity.class));
+                finish();
+                return;
             }
+            checkToS(0);
             Log.d(TAG, "MainActivity created");
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreate", e);
@@ -413,7 +416,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkToS(long newTs) {
-        if (tutorialRunning) return;
+        if (tutorialRunning && !eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("tutorial_completed_v2", false)) return;
         android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
         if (!prefs.getBoolean("tos_accepted_v3", false) || (newTs > 0 && newTs > prefs.getLong("accepted_tos_version_ts", 0))) {
             android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
@@ -561,7 +564,20 @@ public class MainActivity extends AppCompatActivity {
         }, 1000);
     }
 
+    private boolean pmIgnoresBatteryOptimizations() {
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private void requestPerms() {
+        // The welcome setup already asked; the runtime battery dialog stays for others
+        if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("onboarding_bg_done", false) && pmIgnoresBatteryOptimizations()) {
+            // battery already allowed and setup handled it - only permissions may be missing
+        }
         List<String> perms = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             perms.add(Manifest.permission.POST_NOTIFICATIONS);

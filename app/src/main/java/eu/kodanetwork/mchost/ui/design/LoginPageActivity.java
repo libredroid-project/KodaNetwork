@@ -70,7 +70,13 @@ public class LoginPageActivity extends AppCompatActivity {
                             android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(LoginPageActivity.this);
                             prefs.edit().putBoolean("auto_generate_code", true).apply();
                         } else {
-                            startActivity(new Intent(LoginPageActivity.this, eu.kodanetwork.mchost.ui.MainActivity.class));
+                            // Called from the welcome setup: go back there instead of restarting the app
+                    if (getIntent().getBooleanExtra("RETURN_TO_WELCOME", false)) {
+                        setResult(RESULT_OK);
+                        finish();
+                        return;
+                    }
+                    startActivity(new Intent(LoginPageActivity.this, eu.kodanetwork.mchost.ui.MainActivity.class));
                         }
                         finish();
                     });
