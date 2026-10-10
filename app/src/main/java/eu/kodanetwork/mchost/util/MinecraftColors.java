@@ -60,6 +60,123 @@ public final class MinecraftColors {
     }
 
     /** colour of one code letter, -1 when that letter is no colour. */
+    /**
+     * turns what the user typed into what a server actually reads.
+     *
+     * the field works with ampersand codes because that is what people know, but vanilla
+     * and paper only understand the section sign. hex colours become the §x§r§r§g§g§b§b
+     * wire form on 1.16 and newer, older servers get the closest of the sixteen colours.
+     */
+    public static String toServerMotd(String input, boolean supportsHex) {
+        if (input == null) return "";
+        StringBuilder out = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+
+            if (c == '&' && i + 1 < input.length()) {
+                char next = input.charAt(i + 1);
+
+                // hex colour, both spellings people use
+                if (next == '#' && i + 8 <= input.length() && isHex(input.substring(i + 2, i + 8))) {
+                    out.append(hexToServer(input.substring(i + 2, i + 8), supportsHex));
+                    i += 7;
+                    continue;
+                }
+                if (next == '<' && i + 9 < input.length() && input.charAt(i + 8) == '>'
+                        && isHex(input.substring(i + 2, i + 8))) {
+                    out.append(hexToServer(input.substring(i + 2, i + 8), supportsHex));
+                    i += 8;
+                    continue;
+                }
+                if (CODES.indexOf(Character.toLowerCase(next)) >= 0
+                        || "klmnor".indexOf(Character.toLowerCase(next)) >= 0) {
+                    out.append('\u00A7').append(Character.toLowerCase(next));
+                    i++;
+                    continue;
+                }
+            }
+
+            // an existing section sign stays, that value is already in server form
+            out.append(c);
+        }
+        return toPropertiesEscaped(out.toString());
+    }
+
+    /**
+     * escapes a value the way a java properties file needs it.
+     *
+     * minecraft reads server.properties as ISO-8859-1, so a plain section sign (or any
+     * other non ascii letter, a chinese motd for example) turns into mojibake. vanilla
+     * therefore writes \u00A7, and this does the same.
+     */
+    public static String toPropertiesEscaped(String value) {
+        if (value == null) return "";
+        StringBuilder out = new StringBuilder(value.length() + 16);
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '\\') out.append("\\\\");
+            else if (c < 0x20 || c > 0x7E) out.append(String.format("\\u%04X", (int) c));
+            else out.append(c);
+        }
+        return out.toString();
+    }
+
+    /** the other way round: a value read from the file back into plain text. */
+    public static String fromPropertiesEscaped(String value) {
+        if (value == null) return "";
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '\\' && i + 1 < value.length()) {
+                char next = value.charAt(i + 1);
+                if (next == 'u' && i + 5 < value.length()) {
+                    try {
+                        out.append((char) Integer.parseInt(value.substring(i + 2, i + 6), 16));
+                        i += 5;
+                        continue;
+                    } catch (Exception ignored) {}
+                }
+                if (next == '\\') { out.append('\\'); i++; continue; }
+            }
+            out.append(c);
+        }
+        return out.toString();
+    }
+
+    /** the server form of one hex colour: the wire on 1.16+, the closest colour before that. */
+    private static String hexToServer(String rgb, boolean supportsHex) {
+        if (!supportsHex) {
+            int r = Integer.parseInt(rgb.substring(0, 2), 16);
+            int g = Integer.parseInt(rgb.substring(2, 4), 16);
+            int b = Integer.parseInt(rgb.substring(4, 6), 16);
+            return "\u00A7" + nearestLegacy(r, g, b);
+        }
+        StringBuilder out = new StringBuilder("\u00A7x");
+        for (int i = 0; i < 6; i++) out.append('\u00A7').append(Character.toLowerCase(rgb.charAt(i)));
+        return out.toString();
+    }
+
+    /** the closest of the sixteen colours, for servers that cannot do hex. */
+    private static char nearestLegacy(int r, int g, int b) {
+        int best = 0;
+        long bestDist = Long.MAX_VALUE;
+        for (int i = 0; i < 16; i++) {
+            int cr = (COLORS[i] >> 16) & 0xFF, cg = (COLORS[i] >> 8) & 0xFF, cb = COLORS[i] & 0xFF;
+            long dist = (long) (r - cr) * (r - cr) + (long) (g - cg) * (g - cg) + (long) (b - cb) * (b - cb);
+            if (dist < bestDist) { bestDist = dist; best = i; }
+        }
+        return CODES.charAt(best);
+    }
+
+    /**
+     * the other direction, for the editor field: what stands in the file becomes the
+     * ampersand form the field works with, escapes included.
+     */
+    public static String toAmpersand(String serverValue) {
+        if (serverValue == null) return "";
+        return fromPropertiesEscaped(serverValue).replace('\u00A7', '&');
+    }
+
     public static int colorFor(char code) {
         int index = CODES.indexOf(Character.toLowerCase(code));
         return index < 0 ? -1 : COLORS[index];

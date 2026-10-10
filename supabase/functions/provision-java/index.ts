@@ -16,9 +16,14 @@
  * SPDX-FileCopyrightText: 2026 KodaHosting
  * SPDX-License-Identifier: GPL-3.0-only
  */
-// Copyright (c) 2026 KodaHosting
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// hands out a signed download URL for a bundled JDK. two holes fixed: the caller
+// was never identified (anyone with the anon key could mint signed URLs) and the
+// arch value was string-interpolated into the object path, so "a/../../x" signed
+// arbitrary objects in the bucket. arch is allowlisted and the device verified now.
 import { corsHeaders } from "../_shared/cors.ts";
+import { adminClient, jsonError, verifyDeviceToken } from "../_shared/deviceAuth.ts";
+
+const ALLOWED_ARCH = new Set(["aarch64", "armv7", "x86_64"]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,26 +34,26 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization") ?? "";
     const body = await req.json();
-    const arch = String(body.arch ?? "aarch64");
+    const supabaseAdmin = adminClient();
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const { app_uuid, device_token } = body;
+    if (!(await verifyDeviceToken(supabaseAdmin, app_uuid, device_token))) {
+      return jsonError("unauthorized", 401);
+    }
+
+    const arch = String(body.arch ?? "aarch64");
+    if (!ALLOWED_ARCH.has(arch)) {
+      return jsonError("unsupported_arch", 400);
+    }
+
     const bucket = Deno.env.get("JDK_STORAGE_BUCKET") ?? "artifacts";
     const objectPath = `openjdk17/openjdk17-${arch}.tar.gz`;
     const checksum = Deno.env.get(`OPENJDK17_SHA256_${arch.toUpperCase()}`) ?? "";
 
-    const admin = createClient(supabaseUrl, serviceRole, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data, error } = await admin.storage.from(bucket).createSignedUrl(objectPath, 60 * 10);
+    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(objectPath, 60 * 10);
     if (error || !data?.signedUrl) {
-      return new Response(JSON.stringify({ error: "signed_url_failed", detail: error?.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("signed_url_failed", 500);
     }
 
     return new Response(
@@ -60,10 +65,7 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (e) {
-    return new Response(JSON.stringify({ error: "internal_error", detail: String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  } catch (e: any) {
+    return jsonError(e.message, 500);
   }
 });

@@ -42,17 +42,30 @@ public class TarXzUtil {
              XZInputStream xzIn = new XZInputStream(bis);
              TarArchiveInputStream tarIn = new TarArchiveInputStream(xzIn)) {
 
+            String canonicalDest = destFolder.getCanonicalPath();
+            if (!canonicalDest.endsWith(File.separator)) canonicalDest += File.separator;
+
             TarArchiveEntry entry;
             while ((entry = (TarArchiveEntry) tarIn.getNextEntry()) != null) {
                 File outputFile = new File(destDir, entry.getName());
+                String canonicalOutputFile = outputFile.getCanonicalPath();
+                if (!canonicalOutputFile.startsWith(canonicalDest) && !canonicalOutputFile.equals(destFolder.getCanonicalPath())) {
+                    throw new IllegalStateException("archive slip blocked: " + entry.getName());
+                }
                 
                 if (entry.isDirectory()) {
                     outputFile.mkdirs();
                 } else if (entry.isSymbolicLink()) {
                     outputFile.getParentFile().mkdirs();
+                    java.nio.file.Path link = outputFile.toPath();
+                    java.nio.file.Path target = java.nio.file.Paths.get(entry.getLinkName());
+                    // a symlink may not point outside either, relative targets resolve from the link itself
+                    java.nio.file.Path resolved = target.isAbsolute() ? target : link.getParent().resolve(target);
+                    String canonicalTarget = resolved.normalize().toFile().getCanonicalPath();
+                    if (!canonicalTarget.startsWith(canonicalDest) && !canonicalTarget.equals(destFolder.getCanonicalPath())) {
+                        throw new IllegalStateException("symlink slip blocked: " + entry.getName());
+                    }
                     try {
-                        java.nio.file.Path link = outputFile.toPath();
-                        java.nio.file.Path target = java.nio.file.Paths.get(entry.getLinkName());
                         if (java.nio.file.Files.exists(link, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
                             java.nio.file.Files.delete(link);
                         }

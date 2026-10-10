@@ -806,7 +806,7 @@ public class SettingsActivity extends Activity {
     private void setupGeminiApi() {
         View layoutGemini = findViewById(R.id.layout_gemini_settings);
         String email = prefs.getString("account_email", "");
-        if (!"karolbrz11212@gmail.com".equalsIgnoreCase(email)) {
+        if (!eu.kodanetwork.mchost.util.OwnerCheck.isOwnerEmail(email)) {
             if (layoutGemini != null) layoutGemini.setVisibility(View.GONE);
             return;
         } else {

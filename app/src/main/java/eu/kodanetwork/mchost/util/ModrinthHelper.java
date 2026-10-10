@@ -64,6 +64,8 @@ public class ModrinthHelper {
         void onProgress(int percent);
         void onSuccess(File file);
         void onError(String err);
+        /** every required dependency that came along with the install, called before onSuccess. */
+        default void onDependencies(java.util.List<String> names) {}
     }
 
     // ---- modpack support, .mrpack files via modrinth ----
@@ -258,123 +260,191 @@ public class ModrinthHelper {
     public static void autoDownload(String projectId, ServerInstance server, DownloadCallback cb) {
         executor.submit(() -> {
             try {
-                String loader = server.getType().name().toLowerCase();
-                if (server.getType() == ServerInstance.Type.PURPUR) loader = "paper";
-                
-                String mcVer = server.getVersion();
-                
-                java.util.List<String> compLoaders = loaderOrder(server);
-                
-                JSONArray versions = null;
-                for (String l : compLoaders) {
-                    String qL = URLEncoder.encode("[\"" + l + "\"]", "UTF-8");
-                    String qG = URLEncoder.encode("[\"" + mcVer + "\"]", "UTF-8");
-                    
-                    String u = API_BASE + "/project/" + projectId + "/version?loaders=" + qL + "&game_versions=" + qG;
-                    HttpURLConnection conn = (HttpURLConnection) new URL(u).openConnection();
-                    conn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
-                    if (conn.getResponseCode() == 200) {
-                        InputStream is = conn.getInputStream();
-                        StringBuilder sb = new StringBuilder();
-                        byte[] buf = new byte[4096]; int r;
-                        while ((r = is.read(buf)) != -1) sb.append(new String(buf, 0, r));
-                        is.close();
-                        versions = new JSONArray(sb.toString());
-                        if (versions.length() > 0) break;
-                    }
-                    
-
-                }
-                
-                if (versions == null || versions.length() == 0) {
-                    final String fVer = mcVer;
-                    final String fLoader = loader;
-                    mainHandler.post(() -> cb.onError("No compatible version found for " + fVer + " (" + fLoader + ")"));
+                JSONObject version = resolveNewestVersion(projectId, server);
+                if (version == null) {
+                    final String mcVer = server.getVersion();
+                    final String loader = loaderOrder(server).get(0);
+                    mainHandler.post(() -> cb.onError("No compatible version found for " + mcVer + " (" + loader + ")"));
                     return;
                 }
-                
-                // index 0 is the newest version, usually
-                JSONObject latest = versions.getJSONObject(0);
-                String latestVersionId = latest.getString("id");
-                
-                if (latestVersionId.equals(server.pluginVersions.get(projectId))) {
+
+                String versionId = version.getString("id");
+                if (versionId.equals(server.pluginVersions.get(projectId))) {
                     mainHandler.post(() -> cb.onError("Already up-to-date."));
                     return;
                 }
-                
-                JSONArray files = latest.getJSONArray("files");
-                if (files.length() == 0) {
-                    mainHandler.post(() -> cb.onError("No files found in version."));
+
+                File targetFile = downloadVersionFile(projectId, server, version, cb);
+                if (targetFile == null) {
+                    mainHandler.post(() -> cb.onError("Download failed."));
                     return;
                 }
-                
-                // take the primary file, else whatever comes first
-                JSONObject fileObj = files.getJSONObject(0);
-                for (int i = 0; i < files.length(); i++) {
-                    if (files.getJSONObject(i).optBoolean("primary", false)) {
-                        fileObj = files.getJSONObject(i);
-                        break;
-                    }
+
+                // whatever the version marks as required comes along, or the server
+                // refuses to start with a wall of missing dependency errors
+                java.util.List<String> installedDeps = new java.util.ArrayList<>();
+                java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+                seen.add(projectId);
+                installDependencies(version, server, installedDeps, seen, 1, cb);
+                if (!installedDeps.isEmpty()) {
+                    final java.util.List<String> names = new java.util.ArrayList<>(installedDeps);
+                    mainHandler.post(() -> cb.onDependencies(names));
                 }
-                
-                String downloadUrl = fileObj.getString("url");
-                String fileName = fileObj.getString("filename");
-                
-                // now the download
-                String folderName = isPluginServer(server) ? "plugins" : "mods";
-                File targetDir = new File(server.getServerDir(), folderName);
-                targetDir.mkdirs();
-                
-                // the old version of this plugin should go, but its exact filename is
-                // unknown and modrinth jars are not named after a pattern. the cleaner
-                // spot for that is UpdateServerActivity, for now we just download it.
-                // hunting for old jars by name is an option, and the caller may also
-                // deal with it.
-                
-                File targetFile = new File(targetDir, fileName);
-                
-                HttpURLConnection dlConn = (HttpURLConnection) new URL(downloadUrl).openConnection();
-                dlConn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
-                dlConn.setInstanceFollowRedirects(true);
-                
-                int dlResponseCode = dlConn.getResponseCode();
-                if (dlResponseCode >= 300) {
-                    mainHandler.post(() -> cb.onError("Download HTTP " + dlResponseCode));
-                    return;
-                }
-                
-                
-                String oldVersionId = server.pluginVersions.get(projectId);
-                deleteOldVersion(oldVersionId, targetDir, fileName);
-                
-                long total = dlConn.getContentLengthLong();
-                InputStream dlIs = dlConn.getInputStream();
-                FileOutputStream fos = new FileOutputStream(targetFile);
-                long downloaded = 0;
-                long lastCb = 0;
-                byte[] dlBuf = new byte[8192];
-                int dlR;
-                while ((dlR = dlIs.read(dlBuf)) != -1) {
-                    fos.write(dlBuf, 0, dlR);
-                    downloaded += dlR;
-                    long now = System.currentTimeMillis();
-                    if (now - lastCb > 500 && total > 0) {
-                        int pct = (int) ((downloaded * 100) / total);
-                        mainHandler.post(() -> cb.onProgress(pct));
-                        lastCb = now;
-                    }
-                }
-                fos.close();
-                dlIs.close();
-                
-                server.pluginVersions.put(projectId, latestVersionId);
-                
+
                 mainHandler.post(() -> cb.onSuccess(targetFile));
-                
             } catch (Exception e) {
                 mainHandler.post(() -> cb.onError("Download exception: " + e.getMessage()));
             }
         });
+    }
+
+    /** newest version of a project that fits the server loader and minecraft version, null when there is none. */
+    private static JSONObject resolveNewestVersion(String projectId, ServerInstance server) throws Exception {
+        String mcVer = server.getVersion();
+        for (String loader : loaderOrder(server)) {
+            String qL = URLEncoder.encode("[\"" + loader + "\"]", "UTF-8");
+            String qG = URLEncoder.encode("[\"" + mcVer + "\"]", "UTF-8");
+            String u = API_BASE + "/project/" + projectId + "/version?loaders=" + qL + "&game_versions=" + qG;
+            HttpURLConnection conn = (HttpURLConnection) new URL(u).openConnection();
+            conn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            if (conn.getResponseCode() == 200) {
+                JSONArray versions = new JSONArray(readAll(conn));
+                if (versions.length() > 0) return versions.getJSONObject(0);   // newest first
+            }
+        }
+        return null;
+    }
+
+    /** downloads the primary file of one version into plugins/ or mods/ and remembers the version. */
+    private static File downloadVersionFile(String projectId, ServerInstance server, JSONObject version,
+                                            DownloadCallback cb) throws Exception {
+        String versionId = version.getString("id");
+        JSONArray files = version.getJSONArray("files");
+        if (files.length() == 0) return null;
+
+        JSONObject fileObj = files.getJSONObject(0);
+        for (int i = 0; i < files.length(); i++) {
+            if (files.getJSONObject(i).optBoolean("primary", false)) {
+                fileObj = files.getJSONObject(i);
+                break;
+            }
+        }
+        String downloadUrl = fileObj.getString("url");
+        String fileName = fileObj.getString("filename");
+
+        String folderName = isPluginServer(server) ? "plugins" : "mods";
+        File targetDir = new File(server.getServerDir(), folderName);
+        targetDir.mkdirs();
+        File targetFile = new File(targetDir, fileName);
+
+        HttpURLConnection dlConn = (HttpURLConnection) new URL(downloadUrl).openConnection();
+        dlConn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+        dlConn.setInstanceFollowRedirects(true);
+        if (dlConn.getResponseCode() >= 300) return null;
+
+        deleteOldVersion(server.pluginVersions.get(projectId), targetDir, fileName);
+
+        long total = dlConn.getContentLengthLong();
+        long downloaded = 0, lastCb = 0;
+        try (InputStream in = dlConn.getInputStream();
+             FileOutputStream out = new FileOutputStream(targetFile)) {
+            byte[] buf = new byte[8192];
+            int r;
+            while ((r = in.read(buf)) != -1) {
+                out.write(buf, 0, r);
+                downloaded += r;
+                long now = System.currentTimeMillis();
+                if (cb != null && total > 0 && now - lastCb > 500) {
+                    final int pct = (int) ((downloaded * 100) / total);
+                    mainHandler.post(() -> cb.onProgress(pct));
+                    lastCb = now;
+                }
+            }
+        }
+        server.pluginVersions.put(projectId, versionId);
+        return targetFile;
+    }
+
+    /**
+     * walks the "required" dependencies of a version and installs the ones that are missing.
+     * optional and incompatible entries are ignored, already installed projects are skipped,
+     * and depth plus count are capped so a weird dependency web cannot loop forever.
+     */
+    private static void installDependencies(JSONObject version, ServerInstance server,
+                                            java.util.List<String> installed, java.util.Set<String> seen,
+                                            int depth, DownloadCallback cb) {
+        if (depth > 4 || installed.size() >= 20) return;
+        JSONArray deps = version.optJSONArray("dependencies");
+        if (deps == null) return;
+
+        for (int i = 0; i < deps.length(); i++) {
+            JSONObject dep = deps.optJSONObject(i);
+            if (dep == null) continue;
+            if (!"required".equals(dep.optString("dependency_type"))) continue;
+            String depProject = dep.optString("project_id", "");
+            String depVersionId = dep.optString("version_id", "");
+            try {
+                if (depProject.isEmpty() && !depVersionId.isEmpty()) depProject = projectOfVersion(depVersionId);
+                if (depProject.isEmpty() || !seen.add(depProject)) continue;
+                if (server.pluginVersions.containsKey(depProject)) continue;   // already on the server
+
+                JSONObject depVersion = resolveNewestVersion(depProject, server);
+                if (depVersion == null && !depVersionId.isEmpty()) depVersion = versionById(depVersionId);
+                if (depVersion == null) continue;
+                File file = downloadVersionFile(depProject, server, depVersion, null);
+                if (file == null) continue;
+                installed.add(projectTitle(depProject, file.getName()));
+                installDependencies(depVersion, server, installed, seen, depth + 1, cb);
+            } catch (Exception ignored) {
+                // one broken dependency must not kill the whole install
+            }
+        }
+    }
+
+    /** the project a modrinth version belongs to, empty when it cannot be read. */
+    private static String projectOfVersion(String versionId) {
+        JSONObject v = versionById(versionId);
+        return v == null ? "" : v.optString("project_id", "");
+    }
+
+    private static JSONObject versionById(String versionId) {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) new URL(API_BASE + "/version/" + versionId).openConnection();
+            conn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(12000);
+            if (conn.getResponseCode() != 200) return null;
+            return new JSONObject(readAll(conn));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** display name of a project, falling back to the file name when modrinth cannot be asked. */
+    private static String projectTitle(String projectId, String fallback) {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) new URL(API_BASE + "/project/" + projectId).openConnection();
+            conn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(12000);
+            if (conn.getResponseCode() == 200) {
+                String title = new JSONObject(readAll(conn)).optString("title", "");
+                if (!title.isEmpty()) return title;
+            }
+        } catch (Exception ignored) {}
+        return fallback;
+    }
+
+    private static String readAll(HttpURLConnection conn) throws Exception {
+        try (InputStream is = conn.getInputStream()) {
+            StringBuilder sb = new StringBuilder();
+            byte[] buf = new byte[8192];
+            int r;
+            while ((r = is.read(buf)) != -1) sb.append(new String(buf, 0, r, "UTF-8"));
+            return sb.toString();
+        }
     }
 
     public static void deleteOldVersion(String oldVersionId, File targetDir, String newFileName) {
@@ -575,8 +645,59 @@ public class ModrinthHelper {
             dlIs.close();
             
             server.pluginVersions.put(projectId, latestVersionId);
-            
+
+            // required dependencies (fabric api and friends) come along automatically
+            try {
+                java.util.List<String> deps = new java.util.ArrayList<>();
+                java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+                seen.add(projectId);
+                installDependencies(latest, server, deps, seen, 1, null);
+            } catch (Exception ignored) {
+                // the main jar is in, a dependency that failed is not fatal here
+            }
+
             return targetFile;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Finds the modrinth project for a mod id that a crash log complains about.
+     * Searches with the server loader and minecraft version, and prefers an exact
+     * slug match: the top hit for a short id like "cloth-config" is not always right.
+     */
+    public static String searchProjectIdForMod(String modId, ServerInstance server) {
+        try {
+            boolean pluginServer = isPluginServer(server);
+            String facetLoader = pluginServer ? "paper" : server.getType().name().toLowerCase();
+            String facets = "[[\"project_type:" + (pluginServer ? "plugin" : "mod") + "\"]"
+                    + ",[\"versions:" + server.getVersion() + "\"]"
+                    + ",[\"categories:" + facetLoader + "\"]]";
+            String url = API_BASE + "/search?limit=8"
+                    + "&query=" + URLEncoder.encode(modId, "UTF-8")
+                    + "&facets=" + URLEncoder.encode(facets, "UTF-8");
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            if (conn.getResponseCode() != 200) return null;
+
+            JSONArray hits = new JSONObject(readAll(conn)).optJSONArray("hits");
+            if (hits == null || hits.length() == 0) return null;
+
+            String wanted = modId.toLowerCase().replace(" ", "-");
+            String firstHit = null;
+            for (int i = 0; i < hits.length(); i++) {
+                JSONObject hit = hits.getJSONObject(i);
+                String slug = hit.optString("slug", "").toLowerCase();
+                String title = hit.optString("title", "").toLowerCase().replace(" ", "-");
+                if (firstHit == null) firstHit = hit.optString("project_id", "");
+                if (slug.equals(wanted) || title.equals(wanted)) {
+                    return hit.optString("project_id", firstHit);
+                }
+            }
+            return firstHit.isEmpty() ? null : firstHit;
         } catch (Exception e) {
             return null;
         }

@@ -298,6 +298,10 @@ public class AntiTamperSystem {
             if (appUuid != null && !appUuid.equals("UNLINKED") && appUuid.length() == 36) {
                 payload.put("p_user_uuid", appUuid);
             }
+            // the report writers only accept a verified device since 2026-10-10,
+            // without the token the report is dropped instead of trusted
+            payload.put("p_app_uuid", appUuid == null ? "" : appUuid);
+            payload.put("p_device_token", eu.kodanetwork.mchost.App.getPrefs(context).getString("device_token", ""));
 
             OutputStream os = conn.getOutputStream();
             os.write(payload.toString().getBytes("UTF-8"));
@@ -402,6 +406,14 @@ public class AntiTamperSystem {
                 if (appUuid != null && !appUuid.equals("UNLINKED") && appUuid.length() == 36) {
                     payload.put("p_user_uuid", appUuid);
                 }
+                // the report writers only accept a verified device since 2026-10-10;
+                // the fallback store keeps the token for exactly this kind of run
+                String tamperToken = context.getSharedPreferences("koda_settings_enc_fallback", Context.MODE_PRIVATE).getString("device_token", "");
+                if (tamperToken == null || tamperToken.isEmpty()) {
+                    tamperToken = eu.kodanetwork.mchost.App.getPrefs(context).getString("device_token", "");
+                }
+                payload.put("p_app_uuid", appUuid == null ? "" : appUuid);
+                payload.put("p_device_token", tamperToken);
 
                 OutputStream os = conn.getOutputStream();
                 os.write(payload.toString().getBytes("UTF-8"));

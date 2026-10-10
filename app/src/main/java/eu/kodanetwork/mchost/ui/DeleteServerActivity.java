@@ -182,6 +182,22 @@ public class DeleteServerActivity extends AppCompatActivity {
         });
     }
     
+    /**
+     * looks whether the server folder is really gone. returns false and puts an honest
+     * message plus the retry button on screen when something survived, because a delete
+     * that silently leaves files behind is worse than a loud failure.
+     */
+    private boolean verifyDeleted() {
+        File dir = new File(server.getServerDir());
+        int left = 0;
+        File[] files = dir.listFiles();
+        if (files != null) left = files.length;
+        if (!dir.exists()) return true;
+        showError(getString(R.string.delete_leftover_title),
+                getString(R.string.delete_leftover_body, left));
+        return false;
+    }
+
     private void showError(String msg, String sub) {
         handler.post(() -> {
             tvMsg.setText(msg);
@@ -335,6 +351,7 @@ public class DeleteServerActivity extends AppCompatActivity {
                 deleteRecursively(new File(server.getServerDir()));
                 
                 handler.post(() -> {
+                    if (!verifyDeleted()) return;
                     if (dnsCleanupFailed) {
                         Toast.makeText(this, getString(R.string.delete_dns_leftover, server.getJoinAddress()),
                                 Toast.LENGTH_LONG).show();
@@ -366,6 +383,7 @@ public class DeleteServerActivity extends AppCompatActivity {
         new Thread(() -> {
             deleteRecursively(new File(server.getServerDir()));
             handler.post(() -> {
+                if (!verifyDeleted()) return;
                 repo.delete(server.getId());
                 if (blobAnimator != null) blobAnimator.cancel();
                 Intent homeIntent = new Intent(DeleteServerActivity.this, MainActivity.class);
@@ -418,12 +436,19 @@ public class DeleteServerActivity extends AppCompatActivity {
 
     private long lastUpdate = 0;
     
-    private void deleteRecursively(File fileOrDirectory) {
+    /**
+     * removes a folder and everything in it.
+     *
+     * @return how many entries survived the attempt, so the caller can tell the user
+     *         instead of walking away as if the folder was really gone
+     */
+    private int deleteRecursively(File fileOrDirectory) {
+        int leftovers = 0;
         if (fileOrDirectory.isDirectory()) {
             File[] children = fileOrDirectory.listFiles();
             if (children != null) {
                 for (File child : children) {
-                    deleteRecursively(child);
+                    leftovers += deleteRecursively(child);
                 }
             }
         }
@@ -442,6 +467,7 @@ public class DeleteServerActivity extends AppCompatActivity {
             } catch (InterruptedException ignored) {}
         }
         
-        fileOrDirectory.delete();
+        if (!fileOrDirectory.delete() && fileOrDirectory.exists()) leftovers++;
+        return leftovers;
     }
 }

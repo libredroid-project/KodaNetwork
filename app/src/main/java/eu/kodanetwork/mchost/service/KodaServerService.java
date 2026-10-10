@@ -438,11 +438,8 @@ public class KodaServerService extends Service {
                     .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
                     .build();
                 okhttp3.Response response = httpClient.newCall(request).execute();
-                // TEMP-DEBUG for the restore suite
-                Log.d(TAG, "pollNewRemoteServers HTTP " + response.code() + " uuid=" + uuid + " token=" + (deviceToken.isEmpty() ? "LEER" : deviceToken.substring(0, 6)));
                 if (response.isSuccessful() && response.body() != null) {
                     String json = response.body().string();
-                    Log.d(TAG, "pollNewRemoteServers body: " + json.substring(0, Math.min(200, json.length())));
                     org.json.JSONArray arr = new org.json.JSONArray(json);
                     // empty local repo means a fresh install, restore the cloud rows as placeholders
                     boolean freshInstall = ServerRepo.get(this).all().isEmpty();
@@ -986,7 +983,7 @@ public class KodaServerService extends Service {
                         }
                         script += "sh \"" + dir.getAbsolutePath() + "/mariadb-install-db.sh\" --datadir=\"" + dataDir.getAbsolutePath() + "\" --basedir=\"" + usrDir.getAbsolutePath() + "\" --auth-root-authentication-method=normal\n";
                         script += "echo \"CREATE USER IF NOT EXISTS '" + srv.getDbUsername() + "'@'%' IDENTIFIED BY '" + srv.getDbPassword() + "';\" > init.sql\n";
-                        script += "echo \"GRANT ALL PRIVILEGES ON *.* TO '" + srv.getDbUsername() + "'@'%' WITH GRANT OPTION;\" >> init.sql\n";
+                        script += "echo \"GRANT ALL PRIVILEGES ON *.* TO '" + srv.getDbUsername() + "'@'%';\" >> init.sql\n";
                         script += "echo \"FLUSH PRIVILEGES;\" >> init.sql\n";
                     }
 
@@ -1052,6 +1049,16 @@ public class KodaServerService extends Service {
 
     private File findServerJar(ServerInstance srv, File dir) {
         if (dir == null || !dir.exists()) return null;
+
+        // the launcher the user picked for this server wins over every guess
+        String chosen = srv.getLauncherJar();
+        if (!chosen.isEmpty()) {
+            File picked = new File(dir, chosen);
+            if (picked.exists()) return picked;
+            File nested = findFileByName(dir, chosen, 0);   // imported folders nest the jar sometimes
+            if (nested != null) return nested;
+            log(srv.getId(), "  \u26a0 Chosen server file " + chosen + " is gone, picking one again.");
+        }
         // root dir first
         File[] rootJars = dir.listFiles((d, name) -> name.endsWith(".jar") && !name.toLowerCase().contains("paperclip"));
         if (rootJars != null && rootJars.length > 0) {
@@ -1083,9 +1090,37 @@ public class KodaServerService extends Service {
             }
         }
         
+        // the imported folder can hold the server in a subfolder of its own
+        File[] subDirs = dir.listFiles(File::isDirectory);
+        if (subDirs != null) {
+            for (File sub : subDirs) {
+                String n = sub.getName().toLowerCase();
+                if (n.equals("plugins") || n.equals("mods") || n.equals("libraries") || n.equals("logs")
+                        || n.equals("cache") || n.equals("world") || n.startsWith("world_") || n.equals(".sys")) {
+                    continue;
+                }
+                File[] subJars = sub.listFiles((d, name) -> name.endsWith(".jar"));
+                if (subJars != null && subJars.length > 0) return subJars[0];
+            }
+        }
+
         // and as a last resort any jar in the root
         File[] anyJars = dir.listFiles((d, name) -> name.endsWith(".jar"));
         return (anyJars != null && anyJars.length > 0) ? anyJars[0] : null;
+    }
+
+    /** searches a folder tree for one file name, four levels deep is plenty. */
+    private File findFileByName(File dir, String name, int depth) {
+        if (dir == null || depth > 4) return null;
+        File direct = new File(dir, name);
+        if (direct.isFile()) return direct;
+        File[] children = dir.listFiles(File::isDirectory);
+        if (children == null) return null;
+        for (File child : children) {
+            File hit = findFileByName(child, name, depth + 1);
+            if (hit != null) return hit;
+        }
+        return null;
     }
 
     private void continueStartWithJar(ServerInstance srv, boolean writePluginConfigs, File jar, File dir) {
@@ -1130,6 +1165,26 @@ public class KodaServerService extends Service {
         } else {
             startTermuxFlow(srv, jar, logFile);
         }
+    }
+
+    /**
+     * the server jar a forge installer leaves behind, named forge-<mc>-<version>.jar (or
+     * neoforge-...), while the installer itself ends in -installer.jar. null means the
+     * folder only holds the installer, so nothing can be started yet.
+     */
+    private File findForgeServerJar(File serverDir) {
+        File[] files = serverDir.listFiles();
+        File best = null;
+        if (files != null) {
+            for (File f : files) {
+                String n = f.getName().toLowerCase();
+                if (!n.endsWith(".jar") || n.contains("installer")) continue;
+                if (n.startsWith("minecraft_server") || n.startsWith("server") || n.startsWith("paper")) continue;
+                if (!n.startsWith("forge") && !n.startsWith("neoforge")) continue;
+                if (best == null || f.lastModified() > best.lastModified()) best = f;
+            }
+        }
+        return best;
     }
 
     private void startEmbeddedJvmFlow(ServerInstance srv, File jar, File logFile) {
@@ -1211,18 +1266,9 @@ public class KodaServerService extends Service {
                 }
             }
             
-            File libJvm = new File(jvmDir, "jre21-x86_64-20231011/lib/server/libjvm.so");
-            if (!libJvm.exists()) libJvm = new File(jvmDir, "lib/server/libjvm.so");
-            if (!libJvm.exists()) libJvm = new File(jvmDir, "jre/lib/server/libjvm.so");
-            if (!libJvm.exists()) {
-                // one level deeper, some builds nest the JDK
-                File[] search = jvmDir.listFiles();
-                if (search != null && search.length > 0 && search[0].isDirectory()) {
-                    libJvm = new File(search[0], "lib/server/libjvm.so");
-                }
-            }
+            File libJvm = findLibJvm(jvmDir);
 
-            if (!libJvm.exists()) {
+            if (libJvm == null) {
                 log(id, "  ✗ Could not locate libjvm.so in " + jvmDir.getAbsolutePath());
                 setState(srv, ServerInstance.State.CRASHED);
                 return;
@@ -1235,8 +1281,35 @@ public class KodaServerService extends Service {
             progArgsFile.delete();
 
             boolean isForgeFamily = srv.getType() == ServerInstance.Type.FORGE || srv.getType() == ServerInstance.Type.NEOFORGE;
-            boolean needsInstall = isForgeFamily && !new File(serverDir, "libraries").exists();
+
+            // the forge installer is not a server: it only drops the real server jar next to
+            // itself when run with --installServer. so the installer runs when that server jar
+            // is still missing, and afterwards the server jar is what gets launched.
+            File forgeJar = isForgeFamily ? findForgeServerJar(serverDir) : null;
+            boolean installerJar = jar != null && jar.getName().toLowerCase().contains("installer");
+            boolean needsInstall = isForgeFamily && forgeJar == null && installerJar;
             final boolean installing = needsInstall;
+
+            final File launchJar;
+            if (isForgeFamily && !installing) {
+                File target = forgeJar != null ? forgeJar : jar;
+                if (target == null) {
+                    log(id, "  ✗ No Forge server jar to launch, download the server again.");
+                    srv.crashExitCode = -1;
+                    srv.crashCategory = "MISSING_JAR";
+                    srv.crashReason = "The Forge server jar is missing";
+                    srv.crashFixAction = "REDOWNLOAD_JAR";
+                    srv.crashFix = "Download the server jar again";
+                    setState(srv, ServerInstance.State.CRASHED);
+                    return;
+                }
+                if (!target.getAbsolutePath().equals(jar.getAbsolutePath())) {
+                    log(id, "  ℹ Launching the Forge server: " + target.getName());
+                }
+                launchJar = target;
+            } else {
+                launchJar = jar;
+            }
 
             String mainClassName = "org/bukkit/craftbukkit/Main";
             
@@ -1255,7 +1328,7 @@ public class KodaServerService extends Service {
             }
             
             try {
-                java.util.jar.JarFile jarFile = new java.util.jar.JarFile(jar);
+                java.util.jar.JarFile jarFile = new java.util.jar.JarFile(launchJar);
                 java.util.jar.Manifest manifest = jarFile.getManifest();
                 if (manifest != null) {
                     String mc = manifest.getMainAttributes().getValue("Main-Class");
@@ -1450,7 +1523,7 @@ public class KodaServerService extends Service {
                     
 
                     
-                    int result = jvmSvc[0].startJvm(libJvm.getAbsolutePath(), jar.getAbsolutePath(), srv.getRamMB(), mainClassName, logFile.getParent());
+                    int result = jvmSvc[0].startJvm(libJvm.getAbsolutePath(), launchJar.getAbsolutePath(), srv.getRamMB(), mainClassName, logFile.getParent());
                     log(id, "  ℹ JNI JVM Engine exited with code: " + result);
                     
                     try { if (rt.dummyWriter != null) rt.dummyWriter.close(); } catch (Exception ignored) {}
@@ -1466,11 +1539,25 @@ public class KodaServerService extends Service {
                     updateNotif();
                     try { unbindService(jvmConn); } catch (Exception ignored) {}
                     
-                    if (installing && result == 0) {
-                        log(id, "  ✓ Installation complete. Rebooting into server...");
-                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                            startEmbeddedJvmFlow(srv, jar, logFile);
-                        }, 2000);
+                    if (installing) {
+                        // the installer is a one-shot job: it exits when it is done, and that
+                        // exit is never a server crash. either the server starts now or the
+                        // installation did not get far enough.
+                        boolean installed = new File(serverDir, "libraries").exists();
+                        if (installed) {
+                            log(id, "  ✓ Installation complete. Rebooting into the server...");
+                            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                                startEmbeddedJvmFlow(srv, launchJar, logFile);
+                            }, 2000);
+                        } else {
+                            log(id, "  ✗ The installer stopped before it finished (exit " + result + ").");
+                            srv.crashExitCode = result;
+                            srv.crashCategory = "MISSING_JAR";
+                            srv.crashReason = "The Forge installer did not finish (exit code " + result + ")";
+                            srv.crashFixAction = "REDOWNLOAD_JAR";
+                            srv.crashFix = "Download the installer again and retry";
+                            setState(srv, ServerInstance.State.CRASHED);
+                        }
                         return;
                     }
                     
@@ -1525,6 +1612,32 @@ public class KodaServerService extends Service {
                 if (srv.state == ServerInstance.State.STOPPING || srv.state == ServerInstance.State.OFFLINE) {
                     log(id, "  ℹ JVM Prozess normal beendet (Server wurde gestoppt).");
                     // leave the state alone, stopServer() already set OFFLINE
+                } else if (installing) {
+                    // same rule as above, just without an exit code to look at
+                    boolean installed = new File(srv.getServerDir(), "libraries").exists();
+                    if (installed) {
+                        log(id, "  ✓ Installation complete. Rebooting into the server...");
+                        if (rt.frpcProc != null) {
+                            try { rt.frpcProc.destroyForcibly(); } catch (Exception ignored) {}
+                        }
+                        runtimes.remove(id);
+                        updateNotif();
+                        if (jvmConnRef[0] != null) {
+                            try { unbindService(jvmConnRef[0]); } catch (Exception ignored) {}
+                        }
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                            startEmbeddedJvmFlow(srv, launchJar, logFile);
+                        }, 2000);
+                    } else {
+                        log(id, "  ✗ The installer stopped before it finished.");
+                        srv.crashExitCode = -1;
+                        srv.crashCategory = "MISSING_JAR";
+                        srv.crashReason = "The Forge installer did not finish";
+                        srv.crashFixAction = "REDOWNLOAD_JAR";
+                        srv.crashFix = "Download the installer again and retry";
+                        setState(srv, ServerInstance.State.CRASHED);
+                    }
+                    return;
                 } else {
                     log(id, "  ℹ JVM Prozess beendet/abgestürzt: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
                     eu.kodanetwork.mchost.util.CrashAnalyzer.Result cr = eu.kodanetwork.mchost.util.CrashAnalyzer.analyze(srv, -1);
@@ -2112,7 +2225,8 @@ public class KodaServerService extends Service {
             }
 
             android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
-            if (pm != null && pm.getCurrentThermalStatus() >= android.os.PowerManager.THERMAL_STATUS_SEVERE) {
+            // getCurrentThermalStatus is android 10+, an unguarded call would NoSuchMethodError on older devices
+            if (pm != null && android.os.Build.VERSION.SDK_INT >= 29 && pm.getCurrentThermalStatus() >= android.os.PowerManager.THERMAL_STATUS_SEVERE) {
                 long now = System.currentTimeMillis();
                 if (now - lastThermalWarning > 60L * 60L * 1000L) {
                     lastThermalWarning = now;
@@ -2132,6 +2246,9 @@ public class KodaServerService extends Service {
      * server: every player walking into ungenerated terrain makes the CPU build chunks
      * mid-play. the job starts 60 seconds after the server came online, once per server.
      */
+    /** per server: when the next chunky install attempt may run after a failure. */
+    private final java.util.Map<String, Long> pregenerationNextTry = new java.util.concurrent.ConcurrentHashMap<>();
+
     private void maybeStartPregeneration(ServerInstance srv) {
         try {
             if (!srv.isPregenerate() || srv.isPregenerateDone()) return;
@@ -2141,30 +2258,37 @@ public class KodaServerService extends Service {
                 return;
             }
             long since = onlineSince.computeIfAbsent(srv.getId(), k -> System.currentTimeMillis());
-            if (System.currentTimeMillis() - since < 60000L) return;
+            // chunky is installed before the boot, so it only needs a moment for the
+            // world to be loaded before the task can start
+            if (System.currentTimeMillis() - since < 20000L) return;
             if (!pregenerationStarted.add(srv.getId())) return;
+            Long retryAt = pregenerationNextTry.get(srv.getId());
+            if (retryAt != null) {
+                if (System.currentTimeMillis() < retryAt) {
+                    pregenerationStarted.remove(srv.getId());
+                    return;
+                }
+                pregenerationNextTry.remove(srv.getId());
+            }
 
             int radius = eu.kodanetwork.mchost.App.getPrefs(this).getInt("pregenerate_radius", 1000);
 
-            // chunky is a normal Paper plugin, so it only gets downloaded when missing
-            java.io.File pluginsDir = new java.io.File(srv.getServerDir(), "plugins");
-            boolean installed = false;
-            java.io.File[] existing = pluginsDir.listFiles();
-            if (existing != null) {
-                for (java.io.File file : existing) {
-                    if (file.getName().toLowerCase().startsWith("chunky")) installed = true;
-                }
-            }
+            // chunky ships as a plugin for the bukkit family and as a mod for fabric/forge, so
+            // look in both folders before downloading anything
+            boolean installed = hasChunky(new java.io.File(srv.getServerDir(), "plugins"))
+                    || hasChunky(new java.io.File(srv.getServerDir(), "mods"));
             if (!installed) {
-                log(srv.getId(), "  \u2139 Pre-generation: installing Chunky...");
+                log(srv.getId(), "  \u2139 Pre-generation: installing Chunky for " + srv.getType().name() + "...");
                 java.io.File downloaded = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync("chunky", srv);
                 if (downloaded == null) {
-                    log(srv.getId(), "  \u26a0 Chunky could not be installed - pre-generation skipped");
-                    srv.setPregenerateDone(true);
-                    eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
+                    // do not mark it done: a flaky download or a missing build must be retried,
+                    // otherwise the feature looks dead after the first failure
+                    log(srv.getId(), "  \u26a0 Chunky could not be installed, trying again in 5 minutes");
+                    pregenerationStarted.remove(srv.getId());
+                    pregenerationNextTry.put(srv.getId(), System.currentTimeMillis() + 5 * 60_000L);
                     return;
                 }
-                log(srv.getId(), "  \u2714 Chunky installed");
+                log(srv.getId(), "  \u2714 Chunky installed: " + downloaded.getName());
             }
 
             log(srv.getId(), "  \u2139 Pre-generation started (radius " + radius + " blocks). Progress: /chunky progress");
@@ -2178,6 +2302,67 @@ public class KodaServerService extends Service {
         } catch (Exception e) {
             android.util.Log.w("KodaChunky", "Pre-generation failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * true once the service handed the pre-generation over to chunky for this server.
+     * the live screen only trusts progress numbers after this turned true, otherwise a
+     * stray 100% during the boot looks like a finished job.
+     */
+    public boolean isPregenerationStarted(String id) {
+        return id != null && pregenerationStarted.contains(id);
+    }
+
+    /**
+     * drops the right KodaTransfer build into mods/ for fabric, forge or neoforge.
+     *
+     * the mods are compiled against one minecraft line each, so this only installs where
+     * a build exists and says so in the log when it does not. nothing here for paper and
+     * friends, they get the bukkit plugin a few lines further down.
+     */
+    private void installTransferMod(ServerInstance srv) {
+        String asset = null;
+        String version = srv.getVersion() == null ? "" : srv.getVersion();
+        switch (srv.getType()) {
+            case FABRIC:
+                if (version.startsWith("1.21")) asset = "koda_transfer_fabric.jar";
+                break;
+            case NEOFORGE:
+                if (version.startsWith("1.21")) asset = "koda_transfer_neoforge.jar";
+                break;
+            case FORGE:
+                if (version.startsWith("1.20.1")) asset = "koda_transfer_forge.jar";
+                break;
+            default:
+                return;
+        }
+        File modsDir = new File(srv.getServerDir(), "mods");
+        modsDir.mkdirs();
+        File target = new File(modsDir, "koda_transfer.jar");
+        if (asset == null) {
+            log(srv.getId(), "  \u26A0 No KodaTransfer build for " + srv.getType().name() + " " + version
+                    + ", the map and /khub stay unavailable here");
+            return;
+        }
+        try (InputStream is = getAssets().open(asset);
+             java.io.FileOutputStream os = new java.io.FileOutputStream(target)) {
+            byte[] b = new byte[8192];
+            int r;
+            while ((r = is.read(b)) != -1) os.write(b, 0, r);
+            log(srv.getId(), "  \u2714 KodaTransfer mod installed (" + srv.getType().name() + " " + version + ")");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to extract " + asset, e);
+        }
+    }
+
+    /** true when a chunky jar sits in that folder. */
+    private boolean hasChunky(java.io.File dir) {
+        java.io.File[] files = dir.listFiles();
+        if (files == null) return false;
+        for (java.io.File f : files) {
+            if (f.getName().toLowerCase().startsWith("chunky")) return true;
+        }
+        return false;
     }
 
     /**
@@ -3061,6 +3246,53 @@ public class KodaServerService extends Service {
         }
     }
 
+    /**
+     * Finds libjvm.so inside an extracted runtime. Every build lays it out differently:
+     * the newer ones keep it flat in lib/server, the java 8 build for android puts it
+     * under lib/aarch64/server, and some dailies nest the whole jdk one level deeper.
+     */
+    private File findLibJvm(File jvmDir) {
+        File[] flat = {
+            new File(jvmDir, "lib/server/libjvm.so"),
+            new File(jvmDir, "jre/lib/server/libjvm.so"),
+            new File(jvmDir, "lib/aarch64/server/libjvm.so"),
+            new File(jvmDir, "lib/arm64/server/libjvm.so"),
+            new File(jvmDir, "jre21-x86_64-20231011/lib/server/libjvm.so"),
+        };
+        for (File f : flat) {
+            if (f.exists()) return f;
+        }
+        File[] children = jvmDir.listFiles();
+        if (children == null) return null;
+        for (File child : children) {
+            if (!child.isDirectory()) continue;
+            File nested = findLibJvmFlat(child);
+            if (nested != null) return nested;
+        }
+        return null;
+    }
+
+    private File findLibJvmFlat(File root) {
+        File[] direct = {
+            new File(root, "lib/server/libjvm.so"),
+            new File(root, "jre/lib/server/libjvm.so"),
+        };
+        for (File f : direct) {
+            if (f.exists()) return f;
+        }
+        // the java 8 layout: lib/<arch>/server/libjvm.so
+        File lib = new File(root, "lib");
+        File[] archDirs = lib.listFiles();
+        if (archDirs != null) {
+            for (File arch : archDirs) {
+                if (!arch.isDirectory()) continue;
+                File cand = new File(arch, "server/libjvm.so");
+                if (cand.exists()) return cand;
+            }
+        }
+        return null;
+    }
+
     private void ensurePluginsInstalled(ServerInstance srv, File pDir) {
         if (srv.getType() == ServerInstance.Type.PAPER || srv.getType() == ServerInstance.Type.PURPUR || srv.getType() == ServerInstance.Type.FOLIA) {
             log(srv.getId(), "  🔌 Installing KodaTransferPlugin...");
@@ -3069,6 +3301,26 @@ public class KodaServerService extends Service {
             extractPlugin(sysDir, "koda_transfer.jar", "koda_core.jar");
             // the old name from earlier installs has to go
             new File(pDir, "KodaTransferPlugin.jar").delete();
+        }
+
+        // modded servers cannot load a bukkit plugin, so they get the mod twin of
+        // koda transfer: same jobs, same map file, one build per loader
+        installTransferMod(srv);
+
+        // chunky has to be in the folder before the server boots: a plugin that arrives while
+        // it runs is never loaded, which is exactly why "chunky start" did nothing
+        if (srv.isPregenerate() && !srv.isPregenerateDone()) {
+            boolean chunkyThere = hasChunky(new File(srv.getServerDir(), "plugins"))
+                    || hasChunky(new File(srv.getServerDir(), "mods"));
+            if (!chunkyThere) {
+                log(srv.getId(), "  🔌 Installing Chunky for the pre-generation...");
+                File chunky = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync("chunky", srv);
+                if (chunky != null) {
+                    log(srv.getId(), "  ✔ Chunky ready: " + chunky.getName());
+                } else {
+                    log(srv.getId(), "  ⚠ Chunky could not be installed, pre-generation will not start");
+                }
+            }
         }
 
         if (srv.isAutoSetup() && srv.getAiPrompt().isEmpty()) {
@@ -3136,6 +3388,40 @@ public class KodaServerService extends Service {
             int r;
             while ((r = is.read(b)) != -1) os.write(b, 0, r);
         } catch (IOException e) { Log.e(TAG, "Failed to extract " + assetName, e); }
+    }
+
+    /**
+     * geyser and floodgate only pair up when both carry the same 16 byte key, so keep one
+     * copy in the floodgate folder and hand the same bytes to both. a fresh install gets
+     * random bytes instead of the fixed apk asset, an install with an existing key keeps it.
+     */
+    private byte[] ensureBedrockKey(File pluginsDir) {
+        File keyFile = new File(new File(pluginsDir, "floodgate"), "key.pem");
+        if (keyFile.isFile() && keyFile.length() > 0) {
+            byte[] existing = new byte[(int) keyFile.length()];
+            try (java.io.FileInputStream in = new java.io.FileInputStream(keyFile)) {
+                int off = 0;
+                while (off < existing.length) {
+                    int r = in.read(existing, off, existing.length - off);
+                    if (r < 0) break;
+                    off += r;
+                }
+                if (off == existing.length) return existing;
+            } catch (Exception e) {
+                Log.w(TAG, "Could not read the existing bedrock key, generating a new one", e);
+            }
+        }
+        byte[] key = new byte[16];
+        new java.security.SecureRandom().nextBytes(key);
+        try {
+            keyFile.getParentFile().mkdirs();
+            try (java.io.FileOutputStream os = new java.io.FileOutputStream(keyFile)) {
+                os.write(key);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not store the bedrock key", e);
+        }
+        return key;
     }
 
     private void stripNativeLibsFromJar(File jarFile) {
@@ -3417,7 +3703,7 @@ public class KodaServerService extends Service {
                         .replace("{SERVER_PORT}", String.valueOf(srv.getPort()))
                         .replace("{VPS_IP}", eu.kodanetwork.mchost.security.PraetorSecurity.getBoreIp());
                     write(new File(geyserDir, "config.yml"), geyserConfig);
-                    extractPlugin(geyserDir, "key.pem", "key.pem");
+                    write(new File(geyserDir, "key.pem"), ensureBedrockKey(pluginsDir));
                 } catch (Exception e) { Log.e(TAG, "Failed to write Geyser config", e); }
             }
         }
@@ -3429,7 +3715,7 @@ public class KodaServerService extends Service {
                     floodgateDir.mkdirs();
                     String floodgateConfig = readAsset("floodgate_config.yml");
                     write(new File(floodgateDir, "config.yml"), floodgateConfig);
-                    extractPlugin(floodgateDir, "key.pem", "key.pem");
+                    write(new File(floodgateDir, "key.pem"), ensureBedrockKey(pluginsDir));
                 } catch (Exception e) { Log.e(TAG, "Failed to write Floodgate config", e); }
             }
         }
@@ -3709,7 +3995,14 @@ public class KodaServerService extends Service {
         java.util.Map<String, String> updates = new java.util.LinkedHashMap<>();
         updates.put("server-port", String.valueOf(s.getPort()));
         updates.put("server-ip", "127.0.0.1");
-        updates.put("motd", s.getMotd() != null ? s.getMotd() : "");
+        // the model keeps what the user typed (ampersands), the file gets the server form
+        boolean hexOk = true;
+        try {
+            String[] parts = (s.getVersion() == null ? "" : s.getVersion()).split("\\.");
+            hexOk = parts.length < 2 || Integer.parseInt(parts[0]) > 1 || Integer.parseInt(parts[1]) >= 16;
+        } catch (Exception ignored) {}
+        updates.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(
+                s.getMotd() != null ? s.getMotd() : "", hexOk));
         updates.put("accepts-transfers", "true");
         updates.put("gamemode", s.getGamemode() != null ? s.getGamemode().name().toLowerCase() : "survival");
         updates.put("difficulty", s.getDifficulty() != null ? s.getDifficulty().name().toLowerCase() : "normal");
@@ -3764,6 +4057,12 @@ public class KodaServerService extends Service {
     private void write(File f, String c) throws IOException {
         try (FileWriter fw = new FileWriter(f)) {
             fw.write(c);
+        }
+    }
+
+    private void write(File f, byte[] b) throws IOException {
+        try (java.io.FileOutputStream os = new java.io.FileOutputStream(f)) {
+            os.write(b);
         }
     }
 

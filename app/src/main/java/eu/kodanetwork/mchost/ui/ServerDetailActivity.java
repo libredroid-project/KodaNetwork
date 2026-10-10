@@ -322,6 +322,20 @@ public class ServerDetailActivity extends AppCompatActivity {
         setupConsole();
         setupPlugins();
         setupSettings();
+
+        // a server whose folder holds no server file downloads its software on its own:
+        // the owner picked software and version in the wizard, hunting for a download
+        // button afterwards is not their job. the koda design setups handle this themselves.
+        if (savedInstanceState == null && !server.isDatabase() && !server.isAutoSetup()
+                && server.getType() != eu.kodanetwork.mchost.model.ServerInstance.Type.PUMPKIN
+                && server.state != ServerInstance.State.ONLINE
+                && server.state != ServerInstance.State.STARTING
+                && !hasLocalServerJar()) {
+            h.postDelayed(() -> {
+                if (isFinishing() || isDestroyed() || server == null) return;
+                if (!hasLocalServerJar()) downloadJar();
+            }, 900);
+        }
         
         Intent si = new Intent(this, KodaServerService.class);
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(si);
@@ -652,11 +666,17 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     // ── Tabs ─────────────────────────────────────────────────────────────────
 
+    /** vanilla has no plugin loader, so the plugins tab and everything behind it is pointless. */
+    private boolean hasPluginsTab() {
+        return server != null && !server.isDatabase()
+                && server.getType() != eu.kodanetwork.mchost.model.ServerInstance.Type.VANILLA;
+    }
+
     private void setupTabs() {
         tabs.addTab(tabs.newTab().setText(R.string.tab_dashboard));
         tabs.addTab(tabs.newTab().setText(R.string.tab_console));
         tabs.addTab(tabs.newTab().setText(R.string.tab_files));
-        if (!server.isDatabase()) {
+        if (hasPluginsTab()) {
             String pluginTabName = "Plugins";
             if (server != null && (server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.FABRIC || 
                                    server.getType() == eu.kodanetwork.mchost.model.ServerInstance.Type.FORGE || 
@@ -1371,11 +1391,11 @@ public class ServerDetailActivity extends AppCompatActivity {
         // a tab switch brings the bar back
         setHeadersCollapsed(false, getResources().getDisplayMetrics().density);
         for (View extensionPanel : extensionTabPanels) animatePanel(extensionPanel, false);
-        int targetSettings = server.isDatabase() ? 3 : 4;
+        int targetSettings = hasPluginsTab() ? 4 : 3;
         animatePanel(pDash, i == 0);
         animatePanel(pConsole, i == 1);
         animatePanel(pFiles, i == 2);
-        if (pPlugins != null) animatePanel(pPlugins, !server.isDatabase() && i == 3);
+        if (pPlugins != null) animatePanel(pPlugins, hasPluginsTab() && i == 3);
         animatePanel(pSettings, i == targetSettings);
         if (i == 2) refreshFiles();
     }
@@ -3693,6 +3713,12 @@ public class ServerDetailActivity extends AppCompatActivity {
                     pbDl.setVisibility(View.VISIBLE);
                     eu.kodanetwork.mchost.util.ModrinthHelper.autoDownload(p.id, server, new eu.kodanetwork.mchost.util.ModrinthHelper.DownloadCallback() {
                         @Override public void onProgress(int percent) {}
+                        @Override public void onDependencies(java.util.List<String> names) {
+                            android.widget.Toast.makeText(ServerDetailActivity.this,
+                                    getString(R.string.sd_toast_dependencies_installed,
+                                            android.text.TextUtils.join(", ", names)),
+                                    android.widget.Toast.LENGTH_LONG).show();
+                        }
                         @Override public void onSuccess(java.io.File file) {
                             pbDl.setVisibility(View.GONE);
                             btnDl.setVisibility(View.VISIBLE);
@@ -5628,8 +5654,9 @@ public class ServerDetailActivity extends AppCompatActivity {
             switchForceGamemode.setChecked("true".equalsIgnoreCase(props.getProperty("force-gamemode", "false")));
         }
         if (etMotd != null) {
+            // the file keeps section signs, the field works with ampersands
             String motd = props.getProperty("motd", server.getMotd() != null ? server.getMotd() : "");
-            etMotd.setText(motd);
+            etMotd.setText(eu.kodanetwork.mchost.util.MinecraftColors.toAmpersand(motd));
         }
 
         int viewDist = 10;
@@ -5659,7 +5686,11 @@ public class ServerDetailActivity extends AppCompatActivity {
             java.util.Map<String, String> updates = new java.util.HashMap<>();
             updates.put("max-players", etMaxPlayers.getText().toString());
             updates.put("difficulty", difficulties[spinnerDifficulty.getSelectedItemPosition()]);
-            if (etMotd != null) updates.put("motd", etMotd.getText().toString());
+            // vanilla and paper only read section signs, so the typed ampersand codes and
+            // hex values are turned into the form the server actually understands
+            if (etMotd != null) updates.put("motd",
+                    eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(
+                            etMotd.getText().toString(), serverSupportsHexColor()));
             if (spinnerGamemode != null && spinnerGamemode.getSelectedItemPosition() >= 0) {
                 updates.put("gamemode", gamemodes[spinnerGamemode.getSelectedItemPosition()]);
             }
@@ -6059,6 +6090,48 @@ public class ServerDetailActivity extends AppCompatActivity {
         
         eu.kodanetwork.mchost.util.SheetFix.apply(dialog);
         dialog.show();
+    }
+
+    /** true when the server is 1.16 or newer and therefore understands the hex wire. */
+    private boolean serverSupportsHexColor() {
+        String v = server == null ? "" : server.getVersion();
+        try {
+            String[] parts = v.split("\\.");
+            if (parts.length < 2) return true;
+            int minor = Integer.parseInt(parts[1]);
+            if (Integer.parseInt(parts[0]) > 1) return true;      // the 26.x scheme
+            return minor >= 16;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /** true when a jar already sits in the server folder, in versions/ or one level deeper. */
+    private boolean hasLocalServerJar() {
+        java.io.File dir = new java.io.File(server.getServerDir());
+        java.io.File[] root = dir.listFiles((d, name) -> name.endsWith(".jar"));
+        if (root != null && root.length > 0) return true;
+        java.io.File versions = new java.io.File(dir, "versions");
+        java.io.File[] vdirs = versions.listFiles();
+        if (vdirs != null) {
+            for (java.io.File v : vdirs) {
+                java.io.File[] jars = v.listFiles((d, name) -> name.endsWith(".jar"));
+                if (jars != null && jars.length > 0) return true;
+            }
+        }
+        java.io.File[] subs = dir.listFiles(java.io.File::isDirectory);
+        if (subs != null) {
+            for (java.io.File sub : subs) {
+                String n = sub.getName().toLowerCase();
+                if (n.equals("plugins") || n.equals("mods") || n.equals("libraries") || n.equals("logs")
+                        || n.equals("cache") || n.equals("world") || n.startsWith("world_") || n.equals(".sys")) {
+                    continue;
+                }
+                java.io.File[] jars = sub.listFiles((d, name) -> name.endsWith(".jar"));
+                if (jars != null && jars.length > 0) return true;
+            }
+        }
+        return false;
     }
 
     private void downloadJar() {

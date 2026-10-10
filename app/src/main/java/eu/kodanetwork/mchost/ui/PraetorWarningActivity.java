@@ -179,6 +179,8 @@ public class PraetorWarningActivity extends Activity {
             btnAction.setText(actionStr != null ? actionStr : "UNDERSTOOD");
             btnAction.setOnClickListener(v -> {
                 HapticUtil.forceVibrate(this, 80);
+                // callers that need an answer before they continue get one (the import flow does)
+                setResult(RESULT_OK);
                 finish();
             });
         }

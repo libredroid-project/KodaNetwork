@@ -16,8 +16,11 @@
  * SPDX-FileCopyrightText: 2026 KodaHosting
  * SPDX-License-Identifier: GPL-3.0-only
  */
-// Copyright (c) 2026 KodaHosting
+// the playit agent token is shared tunnel infrastructure. it used to go out to
+// anyone who sent the public anon key as a Bearer header (the check only looked
+// at whether the headers existed), so a verified device token is required now.
 import { corsHeaders } from "../_shared/cors.ts";
+import { adminClient, jsonError, verifyDeviceToken } from "../_shared/deviceAuth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -26,22 +29,23 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization")?.replace("Bearer ", "");
   const apikey = req.headers.get("apikey");
   if (!authHeader || !apikey) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonError("unauthorized", 401);
   }
 
   try {
-    const playitToken = Deno.env.get("PLAYIT_AGENT_TOKEN") ?? "";
     const body = await req.json();
+    const supabaseAdmin = adminClient();
+
+    const { app_uuid, device_token } = body;
+    if (!(await verifyDeviceToken(supabaseAdmin, app_uuid, device_token))) {
+      return jsonError("unauthorized", 401);
+    }
+
+    const playitToken = Deno.env.get("PLAYIT_AGENT_TOKEN") ?? "";
     const serverId = String(body.serverId ?? "");
     const port = Number(body.port ?? 25565);
     if (!serverId) {
-      return new Response(JSON.stringify({ error: "missing_server_id" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("missing_server_id", 400);
     }
 
     return new Response(
@@ -54,9 +58,6 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: "internal_error", detail: String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonError(String(e), 500);
   }
 });

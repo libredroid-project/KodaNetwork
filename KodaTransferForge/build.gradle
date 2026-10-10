@@ -1,0 +1,25 @@
+plugins {
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'java'
+}
+
+version = project.mod_version
+group = 'eu.kodanetwork'
+
+java {
+    // minecraft 1.20 runs on java 17
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+minecraft {
+    // official mojang names, same as the fabric and neoforge builds
+    mappings channel: 'official', version: project.minecraft_version
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

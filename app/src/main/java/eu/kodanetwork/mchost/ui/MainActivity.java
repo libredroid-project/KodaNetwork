@@ -542,6 +542,10 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQ_RECOVERY_ZIP) {
             handleRecoveryZipResult(resultCode, data);
         }
+        if (requestCode == REQ_IMPORT_SETTINGS) {
+            refresh();
+            promptNextZipImport();
+        }
     }
 
     private void refresh() {
@@ -707,8 +711,17 @@ public class MainActivity extends AppCompatActivity {
 
                 // ban status
                 if (!uuid.isEmpty()) {
+                    // the full hwid travels along since 2026-10-10: the server only
+                    // hands the device token back to the phone the row belongs to (or
+                    // to a caller that already has the token), so a public app_uuid
+                    // list is not enough to take over an account any more
+                    String hwidForBan = "";
+                    try {
+                        hwidForBan = eu.kodanetwork.mchost.security.HWIDManager.getDeviceHWID(this);
+                    } catch (Exception ignored) {
+                    }
                     okhttp3.RequestBody body = okhttp3.RequestBody.create(
-                            "{\"p_app_uuid\":\"" + uuid + "\"}",
+                            "{\"p_app_uuid\":\"" + uuid + "\",\"p_hwid\":\"" + hwidForBan + "\"}",
                             okhttp3.MediaType.parse("application/json")
                     );
                     okhttp3.Request userReq = new okhttp3.Request.Builder()
@@ -1708,6 +1721,7 @@ public class MainActivity extends AppCompatActivity {
     // HWID continuity + P.R.A.E.T.O.R. recovery (2026-09-18)
 
     private static final int REQ_RECOVERY_ZIP = 9104;
+    private static final int REQ_IMPORT_SETTINGS = 9105;
     private final java.util.ArrayDeque<String[]> pendingZipImports = new java.util.ArrayDeque<>();
     private String zipImportTargetId = null;
 
@@ -2117,19 +2131,60 @@ public class MainActivity extends AppCompatActivity {
         zipImportTargetId = null;
         final android.net.Uri uri = data.getData();
         final java.io.File targetDir = new java.io.File(new java.io.File(getFilesDir(), "servers"), targetId);
+
+        // importing on top of an existing folder is worth one question
+        int existing = countEntries(targetDir);
+        if (existing > 0) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle(R.string.import_pick_overwrite_title)
+                    .setMessage(getString(R.string.import_pick_overwrite_body, existing))
+                    .setPositiveButton(R.string.import_pick_overwrite_yes, (dd, w) -> startRecoveryExtract(uri, targetDir))
+                    .setNegativeButton(R.string.import_pick_cancel, (dd, w) -> promptNextZipImport())
+                    .show();
+            return;
+        }
+        startRecoveryExtract(uri, targetDir);
+    }
+
+    /** unpacks the ZIP and only calls it a success when files really landed on the disk. */
+    private void startRecoveryExtract(android.net.Uri uri, java.io.File targetDir) {
         new Thread(() -> {
             boolean ok = extractRecoveryZip(uri, targetDir);
+            int files = countFilesRecursive(targetDir);
             runOnUiThread(() -> {
-                if (ok) {
-                    android.widget.Toast.makeText(this,
-                            getString(R.string.praetor_recovery_imported_one, targetDir.getName()),
-                            android.widget.Toast.LENGTH_SHORT).show();
-                } else {
-                    android.widget.Toast.makeText(this, R.string.praetor_recovery_zip_failed, android.widget.Toast.LENGTH_LONG).show();
+                if (!ok || files == 0) {
+                    android.widget.Toast.makeText(this, R.string.import_pick_empty_zip,
+                            android.widget.Toast.LENGTH_LONG).show();
+                    promptNextZipImport();
+                    return;
                 }
-                promptNextZipImport();
+                android.widget.Toast.makeText(this,
+                        getString(R.string.praetor_recovery_imported_one, targetDir.getName()),
+                        android.widget.Toast.LENGTH_SHORT).show();
+                // everything about this server is set on its own screen, not later in the settings
+                android.content.Intent intent = new android.content.Intent(this,
+                        eu.kodanetwork.mchost.ui.ImportServerActivity.class);
+                intent.putExtra(eu.kodanetwork.mchost.ui.ImportServerActivity.EXTRA_SERVER_ID, targetDir.getName());
+                eu.kodanetwork.mchost.model.ServerInstance imported = repo.byId(targetDir.getName());
+                if (imported != null) intent.putExtra(eu.kodanetwork.mchost.ui.ImportServerActivity.EXTRA_LABEL, imported.getName());
+                startActivityForResult(intent, REQ_IMPORT_SETTINGS);
             });
         }).start();
+    }
+
+    private int countEntries(java.io.File dir) {
+        java.io.File[] files = dir.listFiles();
+        return files == null ? 0 : files.length;
+    }
+
+    private int countFilesRecursive(java.io.File dir) {
+        int count = 0;
+        java.io.File[] files = dir.listFiles();
+        if (files == null) return 0;
+        for (java.io.File f : files) {
+            count += f.isDirectory() ? countFilesRecursive(f) : 1;
+        }
+        return count;
     }
 
     /** unpacks a ZIP with a zip-slip guard (pattern from CreateServerActivity.extractZip). */

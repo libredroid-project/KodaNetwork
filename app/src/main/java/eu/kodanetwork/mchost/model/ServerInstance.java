@@ -36,10 +36,13 @@ public class ServerInstance {
     private int       ramMB;
     private int       port;
     private String    subdomain;
+    /** file name of the jar this server launches, empty means the app picks one itself. */
+    private String    launcherJar = "";
     private String    serverDir;
     private long      lastActive;
     private String    dbUsername = "admin";
-    private String    dbPassword = java.util.UUID.randomUUID().toString().substring(0, 12);
+    // 24 hex chars of uuid randomness, the old 12 was on the short side for a db credential
+    private String    dbPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 24);
 
     private int       maxPlayers = 20;
     private Gamemode   gamemode   = Gamemode.survival;
@@ -195,6 +198,7 @@ public class ServerInstance {
         j.put("pregenerateDone", pregenerateDone);
         j.put("lastBackupAt", lastBackupAt);
         j.put("consoleAutoScroll", consoleAutoScroll);
+        j.put("launcherJar", launcherJar == null ? "" : launcherJar);
         if (state == State.HIBERNATED) {
             j.put("isHibernated", true);
         }
@@ -254,6 +258,7 @@ public class ServerInstance {
         s.pregenerateDone   = j.optBoolean("pregenerateDone", false);
         s.lastBackupAt      = j.optLong("lastBackupAt", 0L);
         s.consoleAutoScroll = j.optBoolean("consoleAutoScroll", true);
+        s.launcherJar       = j.optString("launcherJar", "");
         if (j.optBoolean("isHibernated", false)) {
             s.state = State.HIBERNATED;
         }
@@ -291,6 +296,10 @@ public class ServerInstance {
     public int    getPort()                    { return port; }
     public String getSubdomain()               { return subdomain == null ? "" : subdomain; }
     public void   setSubdomain(String v)       { subdomain = sanitize(v); }
+
+    /** the jar this server starts, "" means the launcher picks one from the folder. */
+    public String getLauncherJar()             { return launcherJar == null ? "" : launcherJar; }
+    public void   setLauncherJar(String v)     { launcherJar = v == null ? "" : v.trim(); }
     public int    getMaxPlayers()              { return maxPlayers; }
     public void   setMaxPlayers(int v)         { maxPlayers = v; }
     public Gamemode getGamemode()              { return gamemode; }

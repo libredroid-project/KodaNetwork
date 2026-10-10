@@ -51,6 +51,7 @@ public class CrashFixer {
             case "FIX_PERMISSIONS":  return fixPermissions(srv);
             case "REDOWNLOAD_JAR":  return flagRedownloadJar(srv);
             case "REDOWNLOAD_JRE":  return flagRedownloadJre(ctx, srv);
+            case "INSTALL_MISSING_MODS": return installMissingMods(srv);
             default:               return new FixResult(false, "Unknown fix: " + fixAction);
         }
     }
@@ -173,6 +174,65 @@ public class CrashFixer {
         return deleted > 0
             ? new FixResult(true, "Deleted " + deleted + " JAR(s). Server will re-download on next start.")
             : new FixResult(false, "No JAR files found to delete.");
+    }
+
+    /**
+     * reads the server log, collects the mod ids the loader complained about and
+     * installs them from modrinth. the restart stays the user's call like every other fix.
+     */
+    private static FixResult installMissingMods(ServerInstance srv) {
+        String log = readLogTail(srv, 500_000);
+        if (log.isEmpty()) return new FixResult(false, "No server log found");
+
+        java.util.Set<String> ids = new java.util.LinkedHashSet<>();
+        java.util.regex.Matcher forge = java.util.regex.Pattern
+                .compile("(?i)Mod ID:\\s*'?([A-Za-z0-9_.-]+)'?").matcher(log);
+        while (forge.find()) ids.add(forge.group(1));
+        java.util.regex.Matcher fabric = java.util.regex.Pattern
+                .compile("(?i)of mod\\s+\"?([A-Za-z0-9_.-]+)\"?\\s+which is missing").matcher(log);
+        while (fabric.find()) ids.add(fabric.group(1));
+        java.util.regex.Matcher fabricShort = java.util.regex.Pattern
+                .compile("(?i)mod\\s+\"?([A-Za-z0-9_.-]+)\"?\\s+is missing").matcher(log);
+        while (fabricShort.find()) ids.add(fabricShort.group(1));
+        if (ids.isEmpty()) return new FixResult(false, "No missing mod id found in the log");
+
+        java.util.List<String> installed = new java.util.ArrayList<>();
+        java.util.List<String> unknown = new java.util.ArrayList<>();
+        for (String id : ids) {
+            if (installed.size() >= 8) break;             // keep the repair short
+            String projectId = ModrinthHelper.searchProjectIdForMod(id, srv);
+            if (projectId == null) { unknown.add(id); continue; }
+            File jar = ModrinthHelper.autoDownloadSync(projectId, srv);
+            if (jar != null) installed.add(id); else unknown.add(id);
+        }
+        if (installed.isEmpty()) {
+            return new FixResult(false, unknown.isEmpty()
+                    ? "Nothing to install"
+                    : "Not found on Modrinth: " + String.join(", ", unknown));
+        }
+        String msg = "Installed: " + String.join(", ", installed);
+        if (!unknown.isEmpty()) msg += " (not found: " + String.join(", ", unknown) + ")";
+        return new FixResult(true, msg);
+    }
+
+    /** the tail of the server log, empty when there is none. */
+    private static String readLogTail(ServerInstance srv, int maxChars) {
+        File log = new File(srv.getServerDir(), "server.log");
+        if (!log.exists()) {
+            File latest = new File(srv.getServerDir(), "logs/latest.log");
+            if (latest.exists()) log = latest;
+        }
+        if (!log.exists()) return "";
+        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(log, "r")) {
+            long len = raf.length();
+            long start = Math.max(0, len - maxChars);
+            byte[] buf = new byte[(int) (len - start)];
+            raf.seek(start);
+            raf.readFully(buf);
+            return new String(buf, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /** deletes the jre directory so the next start downloads it again. */

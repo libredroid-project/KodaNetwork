@@ -16,13 +16,26 @@
  * SPDX-FileCopyrightText: 2026 KodaHosting
  * SPDX-License-Identifier: GPL-3.0-only
  */
-// Copyright (c) 2026 KodaHosting
+// forgot-password mail. two things were wrong: an unknown address answered with
+// "User with this email not found" (a free account-enumeration oracle) and there
+// was no throttle, so anyone could pump reset mails through the Resend account.
+// every outcome now answers the same generic body, and one address can only get
+// one mail per cooldown window.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const COOLDOWN_SECONDS = 300
+
+function genericOk() {
+  return new Response(
+    JSON.stringify({ ok: true, message: 'If an account exists for this address, a reset mail is on its way.' }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+  )
 }
 
 serve(async (req) => {
@@ -32,49 +45,66 @@ serve(async (req) => {
 
   try {
     const { email } = await req.json()
-    if (!email) {
-      throw new Error('Email is required')
+    if (!email || typeof email !== 'string') {
+      return genericOk()
+    }
+    const clean = email.trim().toLowerCase()
+    if (!clean.includes('@')) {
+      return genericOk()
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    
+
     // supabase admin client, needed to mint the recovery link
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-    
-    // generate the recovery link
+
+    // one mail per address per window, the table is service-role only
+    const { data: last } = await supabaseAdmin
+      .from('password_reset_requests')
+      .select('last_sent_at')
+      .eq('email', clean)
+      .maybeSingle()
+    const lastSent = last?.last_sent_at ? new Date(last.last_sent_at).getTime() : 0
+    if (lastSent > 0 && Date.now() - lastSent < COOLDOWN_SECONDS * 1000) {
+      return genericOk()
+    }
+    await supabaseAdmin
+      .from('password_reset_requests')
+      .upsert({ email: clean, last_sent_at: new Date().toISOString() })
+
+    // generate the recovery link. an unknown address fails HERE and nobody may
+    // learn that from the answer, so the error is swallowed and the same generic
+    // body goes back
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
-      email: email,
+      email: clean,
     })
 
-    if (linkError) {
-      throw linkError;
-    }
+    if (!linkError && linkData) {
+      // swap the default localhost:3000 url for the custom Koda one
+      let actionLink = linkData.properties.action_link;
+      actionLink = actionLink.replace('http://localhost:3000', 'https://host.kodanetwork.eu/reset');
 
-    // swap the default localhost:3000 url for the custom Koda one
-    let actionLink = linkData.properties.action_link;
-    actionLink = actionLink.replace('http://localhost:3000', 'https://host.kodanetwork.eu/reset');
-    
-    // fallback for when the redirect is already customised or localhost is gone
-    if (!actionLink.includes('host.kodanetwork.eu')) {
+      // fallback for when the redirect is already customised or localhost is gone
+      if (!actionLink.includes('host.kodanetwork.eu')) {
         const urlObj = new URL(actionLink);
         actionLink = `https://host.kodanetwork.eu/reset${urlObj.hash}`;
-    }
+      }
 
-    // now send it through Resend
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')!
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${resendApiKey}`
-      },
-      body: JSON.stringify({
-        from: 'KodaNetwork <noreply@kodanetwork.eu>',
-        to: email,
-        subject: 'Password Reset - KodaNetwork',
-        html: `
+      // now send it through Resend
+      const resendApiKey = Deno.env.get('RESEND_API_KEY')!
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendApiKey}`
+        },
+        body: JSON.stringify({
+          from: 'KodaNetwork <noreply@kodanetwork.eu>',
+          to: clean,
+          subject: 'Password Reset - KodaNetwork',
+          html: `
           <div style="background-color: #0d0d12; color: white; font-family: sans-serif; padding: 40px; text-align: center;">
             <h1 style="color: #FF6B00; letter-spacing: 2px;">P.R.A.E.T.O.R.</h1>
             <p style="color: #8A8A9A; margin-bottom: 30px;">SECURITY OVERRIDE PROTOCOL INITIATED</p>
@@ -83,19 +113,13 @@ serve(async (req) => {
             <p style="color: #555; font-size: 12px; margin-top: 40px;">If you did not request this, you can safely ignore this email.</p>
           </div>
         `
+        })
       })
-    })
+    }
 
-    const resData = await resendRes.json()
-
-    return new Response(
-      JSON.stringify(resData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-    )
+    return genericOk()
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 },
-    )
+    // never leak details here either
+    return genericOk()
   }
 })

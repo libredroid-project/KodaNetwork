@@ -137,8 +137,15 @@ public class WelcomeActivity extends AppCompatActivity {
         }
         try {
             String uuid = prefs();
+            // the full hwid goes along from the first call on, so the server can
+            // recognise this phone again after a reinstall (see rpc_get_is_banned)
+            String hwid = "";
+            try {
+                hwid = eu.kodanetwork.mchost.security.HWIDManager.getDeviceHWID(this);
+            } catch (Exception ignored) {
+            }
             String resp = rpc("/rest/v1/rpc/rpc_get_is_banned",
-                    "{\"p_app_uuid\":\"" + uuid + "\"}");
+                    "{\"p_app_uuid\":\"" + uuid + "\",\"p_hwid\":\"" + hwid + "\"}");
             JSONObject obj = new JSONObject(resp);
             if (obj.has("device_token")) {
                 String token = obj.getString("device_token");

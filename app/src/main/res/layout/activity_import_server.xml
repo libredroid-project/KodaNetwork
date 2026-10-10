@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!-- the screen an import lands on: what was found, plus software, version, server file and RAM -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#080808">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="50dp"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:background="#0C0C0C" android:paddingStart="16dp" android:paddingEnd="16dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_import_screen_back" style="@style/KodaButton.Outline"
+            android:layout_width="wrap_content" android:layout_height="32dp"
+            android:text="@string/import_screen_back" android:textSize="10sp"/>
+        <TextView android:id="@+id/tv_import_screen_title"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="@string/import_screen_title"
+            android:textColor="#F0F0F0" android:textSize="12sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:singleLine="true" android:ellipsize="end"
+            android:paddingStart="8dp" android:paddingEnd="8dp"/>
+        <View android:layout_width="70dp" android:layout_height="1dp"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FF6B00"/>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:background="#050505"
+        android:clipToPadding="false">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
+
+            <!-- what the app found in the imported folder -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@drawable/cell_bg"
+                android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_detected"
+                    android:textColor="#FF6B00" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
+                <TextView android:id="@+id/tv_import_screen_summary"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="#F2EFE9" android:textSize="14sp"
+                    android:fontFamily="@font/font_koda"/>
+                <TextView android:id="@+id/tv_import_screen_warnings"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#FF8C38" android:textSize="11sp"
+                    android:lineSpacingMultiplier="1.25"
+                    android:fontFamily="@font/font_koda"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <!-- software -->
+            <LinearLayout android:id="@+id/row_import_type"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:orientation="vertical"
+                android:background="@drawable/cell_bg" android:padding="14dp"
+                android:clickable="true" android:focusable="true">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_type_label"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
+                <TextView android:id="@+id/tv_import_type_value"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textColor="#F2EFE9" android:textSize="15sp"
+                    android:fontFamily="@font/font_koda"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_type_hint"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda"/>
+            </LinearLayout>
+
+            <!-- minecraft version -->
+            <LinearLayout android:id="@+id/row_import_version"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:orientation="vertical"
+                android:background="@drawable/cell_bg" android:padding="14dp"
+                android:clickable="true" android:focusable="true">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_version_label"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
+                <TextView android:id="@+id/tv_import_version_value"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textColor="#F2EFE9" android:textSize="15sp"
+                    android:fontFamily="@font/font_koda"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_version_hint"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda"/>
+            </LinearLayout>
+
+            <!-- server file -->
+            <LinearLayout android:id="@+id/row_import_file"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:orientation="vertical"
+                android:background="@drawable/cell_bg" android:padding="14dp"
+                android:clickable="true" android:focusable="true">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_file_label"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
+                <TextView android:id="@+id/tv_import_file_value"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textColor="#FF6B00" android:textSize="15sp"
+                    android:fontFamily="@font/font_koda"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_file_hint"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda"/>
+            </LinearLayout>
+
+            <!-- memory -->
+            <LinearLayout android:id="@+id/row_import_ram"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:orientation="vertical"
+                android:background="@drawable/cell_bg" android:padding="14dp"
+                android:clickable="true" android:focusable="true">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_ram_label"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
+                <TextView android:id="@+id/tv_import_ram_value"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textColor="#F2EFE9" android:textSize="15sp"
+                    android:fontFamily="@font/font_koda"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/import_screen_ram_hint"
+                    android:textColor="#888899" android:textSize="11sp"
+                    android:fontFamily="@font/font_koda"/>
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_import_screen_save" style="@style/KodaButton"
+                android:layout_width="match_parent" android:layout_height="52dp"
+                android:layout_marginTop="20dp"
+                android:text="@string/import_screen_save"/>
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:layout_marginBottom="20dp"
+                android:text="@string/import_screen_note"
+                android:textColor="#888899" android:textSize="11sp"
+                android:lineSpacingMultiplier="1.3"
+                android:fontFamily="@font/font_koda"/>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

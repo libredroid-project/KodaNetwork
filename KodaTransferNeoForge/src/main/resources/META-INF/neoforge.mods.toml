@@ -1,0 +1,26 @@
+# Copyright (c) 2026 KodaHosting
+#
+# This file is part of KodaHosting (KodaNetwork).
+# KodaHosting is free software, licensed under the GNU General Public License v3.
+# See the LICENSE file for the full text, SPDX-License-Identifier: GPL-3.0-only
+
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "GPL-3.0-only"
+
+[[mods]]
+modId = "koda_transfer"
+version = "${file.jarVersion}"
+displayName = "KodaTransfer"
+authors = "libredroid"
+description = '''
+KodaHosting helper for the phone hosted servers: keeps accepts-transfers on,
+answers /khub and writes the world map the app draws while pre-generating.
+'''
+
+[[dependencies.koda_transfer]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "SERVER"

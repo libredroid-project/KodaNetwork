@@ -239,7 +239,8 @@
             </LinearLayout>
 
             <!-- pre-generate the world (chunky) on the first start -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            <LinearLayout android:id="@+id/row_pregenerate"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:gravity="center_vertical"
                 android:layout_marginBottom="16dp">
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
@@ -256,6 +257,37 @@
                     android:id="@+id/switch_pregenerate"
                     android:layout_width="wrap_content" android:layout_height="wrap_content"
                     app:useMaterialThemeColors="false" app:thumbTint="@color/switch_thumb" app:trackTint="@color/switch_track" />
+            </LinearLayout>
+
+            <!-- unfolds under the pre-generation switch: radius and what it costs, kept as
+                 plain as the ram slider below -->
+            <LinearLayout android:id="@+id/layout_pregen_options"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginBottom="20dp"
+                android:visibility="gone">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="@string/pregen_radius_label"
+                        android:textColor="#F0F0F0" android:textSize="11sp"
+                        android:fontFamily="@font/font_koda" android:letterSpacing="0.1"/>
+                    <TextView android:id="@+id/tv_pregen_inline_radius"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:textColor="#F0F0F0" android:textSize="16sp"
+                        android:fontFamily="@font/font_koda" android:textStyle="bold"/>
+                </LinearLayout>
+                <SeekBar android:id="@+id/sb_pregen_inline"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="19" android:progress="3"
+                    android:progressTint="#FF6B00" android:thumbTint="#FF8C38"
+                    android:progressBackgroundTint="#1A1A24"
+                    android:layout_marginBottom="2dp"/>
+                <TextView android:id="@+id/tv_pregen_inline_estimate"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:textColor="#888899" android:textSize="10sp"
+                    android:lineSpacingMultiplier="1.25"
+                    android:fontFamily="@font/font_koda"/>
             </LinearLayout>
 
 

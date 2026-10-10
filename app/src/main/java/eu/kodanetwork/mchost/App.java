@@ -69,13 +69,8 @@ public class App extends Application implements Application.ActivityLifecycleCal
             );
             return cachedPrefs;
         } catch (java.security.GeneralSecurityException se) {
-            // emulators often carry a broken keystore and land right here
-            if (eu.kodanetwork.mchost.security.AntiTamperSystem.isEmulator()) {
-                eu.kodanetwork.mchost.security.AntiTamperSystem.executeLocalEmulatorBan(context);
-            } else {
-                // tamper. root or adb rewrote the file and the MAC no longer checks out
-                eu.kodanetwork.mchost.security.AntiTamperSystem.executePermanentBan(context, "FILE_TAMPER_DETECTED");
-            }
+            // a keystore error here is usually a broken rom or storage, not tampering,
+            // so it only gets logged and the fallback prefs below carry on
             android.util.Log.e("KodaNetwork", "Security Warning: Falling back to unencrypted SharedPreferences (KeyStore error)", se);
             if (Looper.myLooper() == Looper.getMainLooper()) {
                 android.widget.Toast.makeText(context, "Security Warning: Device does not support encrypted storage.", android.widget.Toast.LENGTH_LONG).show();

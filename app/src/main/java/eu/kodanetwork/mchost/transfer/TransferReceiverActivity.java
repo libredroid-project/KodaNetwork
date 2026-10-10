@@ -489,6 +489,15 @@ public class TransferReceiverActivity extends AppCompatActivity {
     private boolean importPack(TransferSession.Pack p) {
         try {
             ServerInstance s = ServerInstance.fromJson(p.instance);
+            // the sender controls this json, and the id becomes a folder name and lands
+            // in a shell script, so anything odd in it gets swapped for a fresh uuid
+            if (s.getId() == null || !s.getId().matches("[A-Za-z0-9._-]{1,64}")) {
+                s.setId(UUID.randomUUID().toString());
+            }
+            String launcherJar = s.getLauncherJar();
+            if (launcherJar.contains("/") || launcherJar.contains("\\") || launcherJar.contains("..")) {
+                s.setLauncherJar(null);
+            }
             // fresh id when this device somehow already knows that uuid
             if (repo.byId(s.getId()) != null) s.setId(UUID.randomUUID().toString());
             // same for the port, a server already living here may sit on it

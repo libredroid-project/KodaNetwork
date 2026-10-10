@@ -349,5 +349,7 @@
                 android:resource="@xml/file_paths"/>
         </provider>
 
+        <activity android:name=".ui.ImportServerActivity" android:exported="false" />
+        <activity android:name=".ui.PregenerationActivity" android:exported="false" />
     </application>
 </manifest>

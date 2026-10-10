@@ -31,8 +31,8 @@ android {
         applicationId "eu.kodanetwork.mchost"
         minSdk 26
         targetSdk 36
-        versionCode 8514
-        versionName "v0.136beta"
+        versionCode 8515
+        versionName "v0.137beta"
         // instance specific gate (the kodadash beta for example): pass -PKODADASH_ACCOUNT=... at build time
         buildConfigField "String", "KODADASH_ACCOUNT", "\"" + (project.findProperty('KODADASH_ACCOUNT') ?: '') + "\""
         ndkVersion "27.0.12077973"

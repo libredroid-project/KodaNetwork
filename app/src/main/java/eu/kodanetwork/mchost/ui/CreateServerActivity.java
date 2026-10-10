@@ -113,6 +113,25 @@ public class CreateServerActivity extends AppCompatActivity {
     private android.widget.NumberPicker npServerType;
     private View layoutNameSection, layoutTypeSection, layoutVersionSection, layoutSetupSection;
     private MaterialButton btnCreate, btnImport, btnImportZip;
+
+    // import scanning: what the picked ZIP or folder holds, and which file should start
+    // the imported server. the app guesses, the user confirms right here in this form.
+    private String pickedLauncherJar = "";
+    private final java.util.List<String> importJars = new java.util.ArrayList<>();
+    private final java.util.List<String> importWarnings = new java.util.ArrayList<>();
+    private boolean importHasWorld = false;
+    /** true once the import PRAETOR check has been answered. */
+    private boolean importConfirmed = false;
+    private static final int REQ_IMPORT_CONFIRM = 9110;
+    /** the inline radius block under the pre-generation switch. */
+    private android.view.View pregenOptions;
+    private android.widget.SeekBar pregenSlider;
+    private android.widget.TextView pregenRadiusText, pregenEstimateText;
+    private static final int PREGEN_STEP = 250;
+    private static final int PREGEN_STEPS = 20;      // 250 .. 5000 blocks
+    private int importModCount = 0;
+    private int importPluginCount = 0;
+    private android.widget.TextView tvImportWarn;
     private android.widget.ImageButton btnBack;
     private com.google.android.material.switchmaterial.SwitchMaterial swUseNative;
     private android.widget.RadioGroup rgSetupType;
@@ -341,6 +360,9 @@ public class CreateServerActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
         btnImport.setOnClickListener(v -> importLauncher.launch(null));
         btnImportZip.setOnClickListener(v -> zipLauncher.launch(new String[]{"application/zip"}));
+
+        // the import card and the file picker are gone on purpose: the PRAETOR check before
+        // the import reports what was found, and the launcher picks the jar itself
         
         boolean devTermux = eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("dev_termux_fallback", false);
         if (!devTermux) {
@@ -392,7 +414,7 @@ public class CreateServerActivity extends AppCompatActivity {
         setupThemeColors();
         
         String email = eu.kodanetwork.mchost.App.getPrefs(this).getString("account_email", "");
-        if ("karolbrz11212@gmail.com".equalsIgnoreCase(email)) {
+        if (eu.kodanetwork.mchost.util.OwnerCheck.isOwnerEmail(email)) {
             android.widget.RadioButton rbAi = findViewById(R.id.rb_setup_ai);
             if (rbAi != null) rbAi.setVisibility(View.VISIBLE);
         }
@@ -495,13 +517,179 @@ public class CreateServerActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 createServer();
             }
+        } else if (requestCode == REQ_IMPORT_CONFIRM) {
+            // only the PRAETOR "yes" continues the import, backing out leaves the form as is
+            if (resultCode == RESULT_OK) {
+                createServer();
+            } else {
+                importConfirmed = false;
+            }
         }
+    }
+
+    /**
+     * hides the whole pre-generation row when chunky has no build for the chosen software
+     * and minecraft version, and switches it off if it was already on.
+     */
+    private void updatePregenerationAvailability() {
+        View row = findViewById(R.id.row_pregenerate);
+        android.widget.CompoundButton sw = findViewById(R.id.switch_pregenerate);
+        if (row == null) return;
+        boolean supported = ServerInstance.Type.class != null
+                && eu.kodanetwork.mchost.util.VersionCatalog.chunkySupports(TYPE_VALS[selectedTypeIndex], selectedVersion);
+        row.setVisibility(supported ? View.VISIBLE : View.GONE);
+        if (!supported) {
+            if (sw != null && sw.isChecked()) sw.setChecked(false);
+            if (pregenOptions != null) pregenOptions.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * the radius slider that unfolds under the pre-generation switch, with the same estimate
+     * the PRAETOR screen used to show: chunks, storage and a rough runtime.
+     */
+    private void setupPregenSlider() {
+        android.widget.CompoundButton sw = findViewById(R.id.switch_pregenerate);
+        pregenOptions = findViewById(R.id.layout_pregen_options);
+        pregenSlider = findViewById(R.id.sb_pregen_inline);
+        pregenRadiusText = findViewById(R.id.tv_pregen_inline_radius);
+        pregenEstimateText = findViewById(R.id.tv_pregen_inline_estimate);
+        if (sw == null || pregenOptions == null || pregenSlider == null) return;
+
+        int saved = eu.kodanetwork.mchost.App.getPrefs(this).getInt("pregenerate_radius", 1000);
+        pregenSlider.setMax(PREGEN_STEPS - 1);
+        pregenSlider.setProgress(Math.max(0, Math.min(PREGEN_STEPS - 1, saved / PREGEN_STEP - 1)));
+        pregenSlider.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(android.widget.SeekBar bar, int progress, boolean fromUser) {
+                updatePregenEstimate((progress + 1) * PREGEN_STEP);
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar bar) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar bar) {
+                HapticUtil.forceVibrate(CreateServerActivity.this, 30);
+                eu.kodanetwork.mchost.App.getPrefs(CreateServerActivity.this).edit()
+                        .putInt("pregenerate_radius", (bar.getProgress() + 1) * PREGEN_STEP).apply();
+            }
+        });
+
+        sw.setOnCheckedChangeListener((button, checked) -> {
+            HapticUtil.forceVibrate(this, 40);
+            pregenOptions.setVisibility(checked ? View.VISIBLE : View.GONE);
+            if (checked) updatePregenEstimate((pregenSlider.getProgress() + 1) * PREGEN_STEP);
+        });
+        pregenOptions.setVisibility(sw.isChecked() ? View.VISIBLE : View.GONE);
+        updatePregenEstimate((pregenSlider.getProgress() + 1) * PREGEN_STEP);
+    }
+
+    private void updatePregenEstimate(int radius) {
+        if (pregenRadiusText != null) {
+            pregenRadiusText.setText(getString(R.string.pregen_radius_value, radius));
+        }
+        if (pregenEstimateText == null) return;
+        long perSide = Math.max(1, (2L * radius) / 16);
+        long chunks = perSide * perSide;
+        double diskGb = chunks * 0.20d / 1024d;
+        double hours = chunks / 3600d / 4d;
+        String time = hours < 1
+                ? getString(R.string.pregen_minutes, Math.max(1, (int) Math.round(hours * 60)))
+                : getString(R.string.pregen_hours, hours);
+        pregenEstimateText.setText(getString(R.string.pregen_estimate_inline,
+                chunks, String.format(java.util.Locale.US, "%.1f", diskGb), time));
+    }
+
+    /** is the pre-generate switch on in the form right now. */
+    private boolean pregenWanted() {
+        android.widget.CompoundButton sw = findViewById(R.id.switch_pregenerate);
+        return sw != null && sw.isChecked();
+    }
+
+    /** true when the import brought a jar the app could start. */
+    private boolean importHasServerFile() {
+        for (String jar : importJars) {
+            if (!jar.contains("installer")) return true;
+        }
+        return false;
+    }
+
+    /**
+     * the text of the PRAETOR check before an import runs: what was recognized, and when
+     * nothing launchable came along, that the software gets downloaded on the first start.
+     */
+    private String buildImportConfirmText() {
+        String software = getSelectedTypeName() + (selectedVersion.isEmpty() ? "" : " " + selectedVersion);
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        lines.add(software);
+        if (importHasServerFile()) {
+            for (String jar : importJars) {
+                if (!jar.contains("installer")) { lines.add(jar); break; }
+            }
+            if (importHasWorld) lines.add(getString(R.string.import_warn_world_present));
+            if (importModCount > 0) lines.add(importModCount + " mods");
+            if (importPluginCount > 0) lines.add(importPluginCount + " plugins");
+            // whatever the scan noticed missing belongs in front of the user too
+            updateImportScanUi();
+            for (String warning : importWarnings) lines.add("\u26a0 " + warning);
+            return android.text.TextUtils.join("\n", lines) + "\n\n" + getString(R.string.import_confirm_body);
+        }
+        return getString(R.string.import_confirm_body_missing, software);
+    }
+
+    /** clears everything the previous pick left behind. */
+    private void resetImportScan() {
+        importConfirmed = false;
+        importJars.clear();
+        importWarnings.clear();
+        importHasWorld = false;
+        importModCount = 0;
+        importPluginCount = 0;
+        pickedLauncherJar = "";
+    }
+
+    /**
+     * reads one name out of the imported ZIP or folder. entry names are all we have
+     * before the files are copied, so this only believes the names.
+     */
+    private void noteImportName(String name, boolean directory) {
+        if (name == null || name.isEmpty()) return;
+        String n = name.toLowerCase();
+        if (directory) {
+            if (n.endsWith("mods")) importModCount++;
+            if (n.endsWith("plugins")) importPluginCount++;
+            return;
+        }
+        if (n.endsWith("level.dat")) importHasWorld = true;
+        if (!n.endsWith(".jar")) return;
+        String base = n.substring(n.lastIndexOf('/') + 1);
+        if (base.contains("installer")) {
+            importJars.add(base);
+            return;
+        }
+        if (eu.kodanetwork.mchost.util.ServerImportInspector.typeForJarName(base) == null) return;
+        if (!importJars.contains(base)) importJars.add(base);
+    }
+
+    /** keeps the warnings of the scan, the summary lives in the PRAETOR check now. */
+    private void updateImportScanUi() {
+        importWarnings.clear();
+        boolean onlyInstaller = !importJars.isEmpty() && importJars.stream().allMatch(j -> j.contains("installer"));
+        if (importJars.isEmpty()) importWarnings.add(getString(R.string.import_warn_no_file));
+        else if (onlyInstaller) importWarnings.add(getString(R.string.import_warn_installer_only));
+        if (!importHasWorld) importWarnings.add(getString(R.string.import_warn_no_world));
+    }
+
+    /** the software name of the current pick, for the summary line. */
+    private String getSelectedTypeName() {
+        try {
+            int idx = npServerType.getValue();
+            if (idx >= 0 && idx < TYPE_VALS.length) return TYPE_VALS[idx].name();
+        } catch (Exception ignored) {}
+        return "";
     }
 
     private void handleImportZipUri(android.net.Uri uri) {
         sourceUri = uri;
         getContentResolver().takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
         isZipImport = true;
+        resetImportScan();
         
         executor.submit(() -> {
             String detectedName = "ImportedServer";
@@ -530,6 +718,7 @@ public class CreateServerActivity extends AppCompatActivity {
                 
                 while ((entry = zis.getNextEntry()) != null) {
                     String n = entry.getName().toLowerCase();
+                    noteImportName(entry.getName(), entry.isDirectory());
                     if (n.contains("purpur.yml")) detectedType = ServerInstance.Type.PURPUR;
 
                     if (n.endsWith(".jar")) {
@@ -574,6 +763,7 @@ public class CreateServerActivity extends AppCompatActivity {
         sourceUri = uri;
         getContentResolver().takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
         isZipImport = false;
+        resetImportScan();
         DocumentFile root = DocumentFile.fromTreeUri(this, uri);
         if (root == null || !root.isDirectory()) return;
 
@@ -600,6 +790,7 @@ public class CreateServerActivity extends AppCompatActivity {
             for (DocumentFile f : files) {
                 if (f.getName() == null) continue;
                 String n = f.getName().toLowerCase();
+                noteImportName(f.getName(), f.isDirectory());
                 if (n.contains("purpur.yml")) detectedType = ServerInstance.Type.PURPUR;
 
                 if (n.endsWith(".jar")) {
@@ -649,6 +840,8 @@ public class CreateServerActivity extends AppCompatActivity {
                 
                 rgSetupType.check(R.id.rb_setup_manual);
                 enterImportMode();
+                // the type and version land in the form with a delay, so the summary follows after
+                mainHandler.postDelayed(this::updateImportScanUi, 900);
                 Toast.makeText(this, "Detected: " + fType + " " + (fVersion!=null?fVersion:"?"), Toast.LENGTH_LONG).show();
             });
         });
@@ -744,7 +937,17 @@ public class CreateServerActivity extends AppCompatActivity {
         if (npServerType != null) {
             npServerType.setMinValue(0);
             npServerType.setMaxValue(TYPE_NAMES.length - 1);
-            npServerType.setDisplayedValues(TYPE_NAMES);
+            String[] wheelNames = TYPE_NAMES.clone();
+            for (int i = 0; i < TYPE_VALS.length; i++) {
+                if (TYPE_VALS[i] == ServerInstance.Type.PUMPKIN) {
+                    wheelNames[i] = TYPE_NAMES[i] + " (" + getString(R.string.pumpkin_coming_soon_short) + ")";
+                }
+            }
+            npServerType.setDisplayedValues(wheelNames);
+
+        // turning pre-generation on unfolds the radius slider right below the switch,
+        // like the RAM slider, no extra screen for it
+        setupPregenSlider();
             npServerType.setValue(0);
             npServerType.setWrapSelectorWheel(true);
             npServerType.setOnValueChangedListener((picker, oldVal, newVal) -> {
@@ -782,9 +985,23 @@ public class CreateServerActivity extends AppCompatActivity {
         if (layoutThemeColor != null && !supportsAutoDesign) {
             layoutThemeColor.setVisibility(View.GONE);
         }
+        // pumpkin is bundled but not working yet, tell that instead of failing later on start
+        boolean pumpkin = type == ServerInstance.Type.PUMPKIN;
+        if (tvTypeUnsupported != null) {
+            tvTypeUnsupported.setVisibility(pumpkin ? View.VISIBLE : View.GONE);
+            if (pumpkin) tvTypeUnsupported.setText(R.string.pumpkin_coming_soon);
+        }
+        if (btnCreate != null) {
+            btnCreate.setEnabled(!pumpkin);
+            btnCreate.setAlpha(pumpkin ? 0.5f : 1f);
+        }
+        // pre-generation runs chunky, and chunky does not exist for every software or version.
+        // where it cannot run, the option is not there at all.
+        updatePregenerationAvailability();
+
         // Forge / NeoForge work through the embedded JVM installer now, nothing is unsupported
         boolean unsupported = false;
-        if (tvTypeUnsupported != null) {
+        if (tvTypeUnsupported != null && !pumpkin) {
             tvTypeUnsupported.setVisibility(View.GONE);
         }
         if (layoutVersionSection != null) layoutVersionSection.setVisibility(View.VISIBLE);
@@ -1128,6 +1345,7 @@ public class CreateServerActivity extends AppCompatActivity {
             selectedVersion = versions.get(0);
             if (tvVersionSelected != null) tvVersionSelected.setText(selectedVersion);
             if (updateDevJava != null) updateDevJava.run();
+            updatePregenerationAvailability();
         }
     }
 
@@ -1186,6 +1404,7 @@ public class CreateServerActivity extends AppCompatActivity {
                     selectedVersion = picked;
                     if (tvVersionSelected != null) tvVersionSelected.setText(picked);
                     if (updateDevJava != null) updateDevJava.run();
+                    updatePregenerationAvailability();
                 });
     }
 
@@ -1722,6 +1941,19 @@ public class CreateServerActivity extends AppCompatActivity {
                     eu.kodanetwork.mchost.ui.CrisisSupportActivity.REQ_CRISIS);
             return;
         }
+        // an import gets one PRAETOR check of its own: does the app look at the right
+        // software, and when the import brought no server file, is downloading one okay
+        if (sourceUri != null && !importConfirmed) {
+            importConfirmed = true;
+            android.content.Intent w = new android.content.Intent(this,
+                    eu.kodanetwork.mchost.ui.PraetorWarningActivity.class);
+            w.putExtra(eu.kodanetwork.mchost.ui.PraetorWarningActivity.EXTRA_REASON, buildImportConfirmText());
+            w.putExtra(eu.kodanetwork.mchost.ui.PraetorWarningActivity.EXTRA_ACTION, getString(
+                    importHasServerFile() ? R.string.import_confirm_action : R.string.import_confirm_action_download));
+            startActivityForResult(w, REQ_IMPORT_CONFIRM);
+            return;
+        }
+
         int port = 30000 + new java.util.Random().nextInt(10000);
         String version = selectedVersion != null && !selectedVersion.isEmpty() ? selectedVersion : "1.21.4";
         ServerInstance.Type type = TYPE_VALS[selectedTypeIndex];
@@ -1816,6 +2048,8 @@ public class CreateServerActivity extends AppCompatActivity {
 
 
                 if (sourceUri != null) {
+                    // whatever the user picked in the import form is what the launcher uses later
+                    s.setLauncherJar(pickedLauncherJar);
                     mainHandler.post(() -> {
                         if (loadingText != null) loadingText.setText(isZipImport ? "Extracting ZIP..." : "Importing files...");
                     });
@@ -1921,7 +2155,15 @@ public class CreateServerActivity extends AppCompatActivity {
                     }).start();
                     eu.kodanetwork.mchost.App.getPrefs(this).edit().putLong("last_server_create_time", System.currentTimeMillis()).apply();
                     if (loadingOverlay != null) loadingOverlay.setVisibility(android.view.View.GONE);
-                    android.content.Intent i = new android.content.Intent(this, ServerDetailActivity.class);
+                    android.content.Intent i;
+                    if (s.isPregenerate()) {
+                        // pre-generation has its own screen: it shows chunky live while the
+                        // server runs, so the owner watches the world grow instead of a dashboard
+                        i = new android.content.Intent(this, eu.kodanetwork.mchost.ui.PregenerationActivity.class);
+                        i.putExtra(eu.kodanetwork.mchost.ui.PregenerationActivity.EXTRA_SERVER_ID, id);
+                    } else {
+                        i = new android.content.Intent(this, ServerDetailActivity.class);
+                    }
                     // modpack: auto_setup fetches the fabric jar and starts the server afterwards
                     i.putExtra("id", id);
                     i.putExtra("auto_setup", sourceUri == null && (s.isAutoSetup() || modpackServer));

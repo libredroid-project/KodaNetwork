@@ -246,7 +246,7 @@ public final class BackupManager {
             byte[] buffer = new byte[16384];
             while ((entry = zip.getNextEntry()) != null) {
                 File out = new File(serverDir, entry.getName());
-                if (!out.getCanonicalPath().startsWith(serverDir.getCanonicalPath())) {
+                if (!out.getCanonicalPath().startsWith(serverDir.getCanonicalPath() + File.separator)) {
                     Log.w(TAG, "Skipping entry outside the server folder: " + entry.getName());
                     continue;
                 }

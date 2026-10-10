@@ -279,7 +279,14 @@ public class AiHelper {
                         + "\nLAST LOG LINES:\n" + logTail));
         body.put("messages", msgs);
 
-        String key = eu.kodanetwork.mchost.security.PraetorSecurity.getOpenRouterKey();
+        // the call goes through our own edge function since 2026-10-10: the key used
+        // to sit obfuscated inside the APK (a 30 second unzip and xor), so it lives
+        // server side now and only a verified device gets an answer
+        String aiProxyUrl = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                + "/functions/v1/ai-proxy";
+        String aiAnonKey = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
+        String aiAppUuid = eu.kodanetwork.mchost.App.getPrefs(ctx).getString("app_uuid", "");
+        String aiDeviceToken = eu.kodanetwork.mchost.App.getPrefs(ctx).getString("device_token", "");
         long deadline = System.currentTimeMillis() + 150_000L; // hard budget for the whole chain
         java.util.List<String> failures = new java.util.ArrayList<>();
         for (String model : MODELS) {
@@ -299,10 +306,13 @@ public class AiHelper {
                 }
                 body.put("model", model); // THE model of this step. missing once, and every request went to gemma
                 okhttp3.Request req = new okhttp3.Request.Builder()
-                        .url("https://openrouter.ai/api/v1/chat/completions")
+                        .url(aiProxyUrl)
                         .post(okhttp3.RequestBody.create(body.toString(),
                                 okhttp3.MediaType.parse("application/json; charset=utf-8")))
-                        .header("Authorization", "Bearer " + key)
+                        .header("apikey", aiAnonKey)
+                        .header("Authorization", "Bearer " + aiAnonKey)
+                        .header("x-koda-app-uuid", aiAppUuid)
+                        .header("x-koda-device-token", aiDeviceToken)
                         .build();
                 try (okhttp3.Response r = httpClient.newCall(req).execute()) {
                     int code = r.code();

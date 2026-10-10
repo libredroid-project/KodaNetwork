@@ -14,6 +14,11 @@
 -keep class eu.kodanetwork.mchost.security.PraetorSecurity { *; }
 -keep class eu.kodanetwork.mchost.service.IsolatedJvmService { *; }
 
+# PraetorSecurity.cpp looks this class and method up by name from native code
+-keep class eu.kodanetwork.mchost.security.AntiTamperSystem {
+    public static void executePermanentBanNative(java.lang.String);
+}
+
 # Aggressive obfuscation
 -repackageclasses ''
 -allowaccessmodification

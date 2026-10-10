@@ -121,9 +121,14 @@ public class CrashAnalyzer {
 
         // ── mod loader crashes ──────────────────────────────────────
         p.add(new CrashPattern("(?i)Missing or unsupported mandatory dependencies", "MOD_CRASH",
-                "Mod dependencies missing or wrong version — install/update the listed mods", null, null));
+                "Mod dependencies missing or wrong version, the listed mods get installed automatically",
+                "Install the missing mods from Modrinth", "INSTALL_MISSING_MODS"));
         p.add(new CrashPattern("(?i)Missing Mods?:|(?i)missing mods.*\\[", "MOD_CRASH",
-                "Required mods missing — install the mods listed in the log", null, null));
+                "Required mods missing, they get installed automatically",
+                "Install the missing mods from Modrinth", "INSTALL_MISSING_MODS"));
+        p.add(new CrashPattern("(?i)which is missing!|(?i)requires .{0,60}of mod .{0,40}missing", "MOD_CRASH",
+                "A mod wants another mod that is not installed",
+                "Install the missing mods from Modrinth", "INSTALL_MISSING_MODS"));
         p.add(new CrashPattern("(?i)Duplicate mods found", "MOD_CRASH",
                 "Duplicate mods — the same mod exists twice in the mods folder; remove one copy", null, null));
         p.add(new CrashPattern("(?i)mods\\.toml", "MOD_CRASH",
@@ -135,7 +140,8 @@ public class CrashAnalyzer {
         p.add(new CrashPattern("(?i)FMLCommonSetupEvent.*error|(?i)cpw\\.mods\\.fml.*crash", "MOD_CRASH",
                 "Forge mod loading crashed — remove/update the mod named in the stack trace", null, null));
         p.add(new CrashPattern("(?i)Incompatible mod set", "MOD_CRASH",
-                "Fabric reports an incompatible mod set — check mod versions against the loader", null, null));
+                "Fabric reports an incompatible mod set, check the mod versions against the loader",
+                "Install the missing mods from Modrinth", "INSTALL_MISSING_MODS"));
         p.add(new CrashPattern("(?i)not a valid (mod|jar) file", "MOD_CRASH",
                 "A file in the mods folder is not a valid mod — remove it", null, null));
 

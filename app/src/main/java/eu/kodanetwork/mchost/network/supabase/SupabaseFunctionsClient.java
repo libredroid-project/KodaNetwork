@@ -65,6 +65,9 @@ public class SupabaseFunctionsClient {
     public ProvisionResponse provisionJava(String userJwt, String arch) throws IOException {
         Map<String, Object> body = new HashMap<>();
         body.put("arch", arch);
+        // the function only hands signed URLs to a verified device (and only for
+        // allowlisted arch values)
+        body.putAll(deviceAuth);
         Response<Map<String, Object>> response = api.callFunction(
             "provision-java",
             anonKey,
@@ -86,6 +89,9 @@ public class SupabaseFunctionsClient {
         Map<String, Object> body = new HashMap<>();
         body.put("serverId", serverId);
         body.put("port", port);
+        // the playit agent token is infrastructure, so the function only answers
+        // a verified device now
+        body.putAll(deviceAuth);
         Response<Map<String, Object>> response = api.callFunction(
             "bootstrap-playit",
             anonKey,
@@ -150,6 +156,9 @@ public class SupabaseFunctionsClient {
         Map<String, Object> body = new HashMap<>();
         body.put("host", host);
         body.put("base_domain", baseDomain);
+        // without the device auth the function answers 401, the checks are free to
+        // abuse for anyone with the anon key otherwise
+        body.putAll(deviceAuth);
         Response<Map<String, Object>> response = api.callFunction(
             "check-server-name",
             anonKey,

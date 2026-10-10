@@ -1,7 +1,20 @@
 /*
  * Copyright (c) 2026 KodaHosting
- * Triple-Licensed under GPL-3.0 / LOPL v1.0 PREVIEW / Commercial License
- * (see LICENSE, LOPL_v1.0_PREVIEW.md, COMMERCIAL-LICENSE.md)
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 #include <jni.h>
 #include <string>
@@ -13,6 +26,8 @@
 #include <vector>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <cerrno>
+#include <cstring>
 
 #define LOG_TAG "EmbeddedJVM_C"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -58,6 +73,22 @@ Java_eu_kodanetwork_mchost_service_IsolatedJvmService_startEmbeddedJvmNative(
     std::string tmp_dir = std::string(work_dir) + "/tmp";
     mkdir(tmp_dir.c_str(), 0777);
     setenv("TMPDIR", tmp_dir.c_str(), 1);
+
+    // the console writes every command into this fifo, so the server's stdin has to be it.
+    // without this the embedded jvm reads whatever the app process has as stdin, which is
+    // nothing, and every typed command disappears.
+    std::string stdin_fifo = std::string(work_dir) + "/in.fifo";
+    int fifo_fd = open(stdin_fifo.c_str(), O_RDONLY);
+    if (fifo_fd >= 0) {
+        if (dup2(fifo_fd, STDIN_FILENO) < 0) {
+            LOGE("could not hand the console fifo to stdin: %s", strerror(errno));
+        } else {
+            LOGI("stdin reads the console fifo %s", stdin_fifo.c_str());
+        }
+        if (fifo_fd != STDIN_FILENO) close(fifo_fd);
+    } else {
+        LOGE("console fifo %s not open: %s", stdin_fifo.c_str(), strerror(errno));
+    }
 
     JNIEnv* vmEnv = nullptr;
 
