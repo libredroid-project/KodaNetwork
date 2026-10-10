@@ -20,9 +20,14 @@
 -- in the supabase dashboard), reads are public but only for published releases.
 -- the bot announces new rows and fills in announced_at afterwards.
 --
---   INSERT INTO releases (version_code, version_name, title, changelog, download_url, is_published)
---   VALUES (8511, 'v0.133beta', 'KodaDash Update', E'* Neu: ...\n* Fix: ...', 'https://...', true);
---   UPDATE app_settings SET value = '{"ts": 8511}'::jsonb WHERE key = 'latest_app_version';
+-- two changelogs per release (2026-10-10): changelog_short is the keyword list the app
+-- shows in the update screen (it must stay small, the screen is a dialog), changelog
+-- keeps the full text for the website, discord and the archive. the app falls back to
+-- the long one when the short one is empty.
+--
+--   INSERT INTO releases (version_code, version_name, title, changelog, changelog_short, download_url, is_published)
+--   VALUES (8515, 'v0.137beta', 'Pre-generation, import and hardening', E'* Neu: ...\n* Fix: ...', E'* Neu: ...', 'https://...', true);
+--   UPDATE app_settings SET value = '{"ts": 8515}'::jsonb WHERE key = 'latest_app_version';
 
 CREATE TABLE IF NOT EXISTS public.releases (
     id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,12 +36,16 @@ CREATE TABLE IF NOT EXISTS public.releases (
     channel            text    NOT NULL DEFAULT 'stable',   -- stable | beta
     title              text,
     changelog          text    NOT NULL,
+    changelog_short    text,
     download_url       text,
     is_published       boolean NOT NULL DEFAULT false,
     announced_at       timestamptz,                          -- the discord bot stamps this
     discord_message_id text,
     created_at         timestamptz NOT NULL DEFAULT now()
 );
+
+-- databases created before 2026-10-10 need the second column
+ALTER TABLE public.releases ADD COLUMN IF NOT EXISTS changelog_short text;
 
 CREATE INDEX IF NOT EXISTS releases_published_idx
     ON public.releases (is_published, version_code DESC);
@@ -51,12 +60,15 @@ CREATE POLICY "Published releases are readable" ON public.releases
 GRANT SELECT ON public.releases TO anon, authenticated;
 
 -- the single entry point the app needs: the newest published release.
+-- the returns table grew changelog_short, and postgres refuses a plain replace
+-- across a changed return type, so the old signature goes first.
+DROP FUNCTION IF EXISTS public.rpc_get_latest_release(text);
 CREATE OR REPLACE FUNCTION public.rpc_get_latest_release(p_channel text DEFAULT NULL)
 RETURNS TABLE(version_code integer, version_name text, channel text, title text,
-              changelog text, download_url text, released_at timestamptz)
+              changelog text, changelog_short text, download_url text, released_at timestamptz)
 LANGUAGE sql SECURITY DEFINER SET search_path = public AS $fn$
     SELECT r.version_code, r.version_name::text, r.channel::text, r.title::text,
-           r.changelog::text, r.download_url::text, r.created_at
+           r.changelog::text, r.changelog_short::text, r.download_url::text, r.created_at
       FROM public.releases r
      WHERE r.is_published
        AND (p_channel IS NULL OR r.channel = p_channel)
@@ -65,12 +77,13 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public AS $fn$
 $fn$;
 
 -- also the older releases, for /changelog in discord and the website list.
+DROP FUNCTION IF EXISTS public.rpc_get_releases(integer);
 CREATE OR REPLACE FUNCTION public.rpc_get_releases(p_limit integer DEFAULT 10)
 RETURNS TABLE(version_code integer, version_name text, channel text, title text,
-              changelog text, download_url text, released_at timestamptz)
+              changelog text, changelog_short text, download_url text, released_at timestamptz)
 LANGUAGE sql SECURITY DEFINER SET search_path = public AS $fn$
     SELECT r.version_code, r.version_name::text, r.channel::text, r.title::text,
-           r.changelog::text, r.download_url::text, r.created_at
+           r.changelog::text, r.changelog_short::text, r.download_url::text, r.created_at
       FROM public.releases r
      WHERE r.is_published
      ORDER BY r.version_code DESC

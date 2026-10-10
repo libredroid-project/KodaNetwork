@@ -991,7 +991,11 @@ public class MainActivity extends AppCompatActivity {
 
                     org.json.JSONObject release = rows.getJSONObject(0);
                     String title = release.optString("title", "");
-                    String changelog = release.optString("changelog", "");
+                    // the update dialog only shows the keyword list so it stays small.
+                    // the full text sits in the same row (changelog) for the website
+                    // and the archive; old rows without the short list fall back to it
+                    String changelog = release.optString("changelog_short", "");
+                    if (changelog.isEmpty()) changelog = release.optString("changelog", "");
                     String version = release.optString("version_name", "");
                     if (changelog.isEmpty()) return;
 
