@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "automations": [
+    {
+      "id": "crash-watch",
+      "name": "Crash warning",
+      "when": {
+        "type": "log_match",
+        "server": "*",
+        "pattern": "(?i)(crash|exception|out of memory)"
+      },
+      "then": [
+        {
+          "type": "notify",
+          "title": "Crash on {server}",
+          "text": "{line}"
+        },
+        {
+          "type": "http",
+          "method": "POST",
+          "url": "https://discord.com/api/webhooks/REPLACE_WITH_YOUR_WEBHOOK",
+          "body": { "content": "**{server}** reported: {line}" }
+        }
+      ]
+    }
+  ]
+}

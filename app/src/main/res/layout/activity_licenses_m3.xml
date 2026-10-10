@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/colorSurface"
+        android:paddingHorizontal="16dp"
+        android:elevation="4dp">
+        <TextView
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:text="←"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Legal &amp; Licenses"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="18sp"
+            android:fontFamily="@font/font_koda"
+            android:layout_marginStart="16dp"/>
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp"
+        android:clipToPadding="false"
+        android:scrollbarStyle="outsideOverlay">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- ToS and privacy policy sit on top, above the licence list -->
+            <LinearLayout
+                android:id="@+id/ll_legal_top_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="This application uses the following open-source software and components:"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- the open source licences, filled in at runtime -->
+            <LinearLayout
+                android:id="@+id/ll_licenses_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,636 @@
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>KodaDash</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ---------- Login ---------- -->
+<div id="login-screen">
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="brand-dot"><img src="logo.png" alt="KodaDash"></div>
+            <h1>KodaDash</h1>
+        </div>
+        <p class="sub">Remote control for your KodaHosting server</p>
+
+        <form id="login-form">
+            <div class="field">
+                <label for="token-input">Access token</label>
+                <input type="password" id="token-input" class="input" placeholder="Paste your dashboard token" autocomplete="off">
+            </div>
+            <div class="field hidden" id="password-group">
+                <label for="password-input">Dashboard password</label>
+                <input type="password" id="password-input" class="input" placeholder="Secondary password" autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-filled btn-block" id="login-btn">Connect</button>
+            <p class="small" id="login-error" style="margin-top:12px;color:var(--md-error)"></p>
+        </form>
+        <p class="small muted" style="margin-top:20px">
+            You can also open this page with <span class="mono">?token=...</span> to sign in automatically.
+        </p>
+        <a class="login-github" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>Open source on GitHub
+        </a>
+    </div>
+</div>
+
+<!-- ---------- App ---------- -->
+<div id="app">
+    <div class="scrim" id="scrim"></div>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-dot"><img src="logo.png" alt="KodaDash"></div>
+            <div style="min-width:0">
+                <div class="name" id="server-name">Server</div>
+                <div class="sub">KodaDash</div>
+            </div>
+            <button class="icon-btn" id="mobile-menu-close" aria-label="Close menu">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+
+        <div class="nav-section">Monitor</div>
+        <div class="nav-item active" data-tab="overview">
+            <svg class="icon"><use href="icons.svg#i-dashboard"></use></svg>
+            <span>Overview</span>
+        </div>
+        <div class="nav-item" data-tab="console">
+            <svg class="icon"><use href="icons.svg#i-terminal"></use></svg>
+            <span>Console</span>
+        </div>
+        <div class="nav-item" data-tab="players">
+            <svg class="icon"><use href="icons.svg#i-group"></use></svg>
+            <span>Players</span>
+            <span class="badge hidden" id="player-count-badge">0</span>
+        </div>
+
+        <div class="nav-section">Manage</div>
+        <div class="nav-item" data-tab="files">
+            <svg class="icon"><use href="icons.svg#i-folder"></use></svg>
+            <span>Files</span>
+        </div>
+        <div class="nav-item" data-tab="plugins">
+            <svg class="icon"><use href="icons.svg#i-extension"></use></svg>
+            <span>Plugins</span>
+        </div>
+        <div class="nav-item" data-tab="settings">
+            <svg class="icon"><use href="icons.svg#i-tune"></use></svg>
+            <span>Settings</span>
+        </div>
+
+        <div class="nav-section">Info</div>
+        <a class="nav-item" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
+            <span class="nav-github"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg></span>
+            <span>Source code</span>
+        </a>
+        <a class="nav-item" href="https://host.kodanetwork.eu/licenses.html" target="_blank" rel="noopener">
+            <svg class="icon"><use href="icons.svg#i-label"></use></svg>
+            <span>Licenses</span>
+        </a>
+        <a class="nav-item" href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">
+            <svg class="icon"><use href="icons.svg#i-content_copy"></use></svg>
+            <span>Legal</span>
+        </a>
+
+        <div class="sidebar-footer">
+            <div class="nav-item danger" id="logout-btn">
+                <svg class="icon"><use href="icons.svg#i-logout"></use></svg>
+                <span>Sign out</span>
+            </div>
+            <div id="connection-status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Not connected</span>
+            </div>
+        </div>
+    </aside>
+
+    <main id="main-content">
+        <header class="mobile-header">
+            <button class="icon-btn" id="mobile-menu-btn" aria-label="Open menu">
+                <svg class="icon"><use href="icons.svg#i-menu"></use></svg>
+            </button>
+            <span class="title" id="mobile-title">KodaDash</span>
+        </header>
+
+        <!-- ===== Overview ===== -->
+        <section class="tab-content active" id="tab-overview">
+            <!-- hero card: the one thing you want to know first -->
+            <div class="hero-card">
+                <div class="hero-main">
+                    <div class="hero-top">
+                        <span class="status-pill" id="hero-status"><span class="dot"></span><span id="hero-status-text">Connecting</span></span>
+                        <span class="hero-version" id="hero-version">--</span>
+                    </div>
+                    <h1 class="hero-title" id="hero-motd">Loading server...</h1>
+                    <div class="hero-meta">
+                        <span class="hero-chip" id="hero-address" title="Copy address">
+                            <svg class="icon icon-sm"><use href="icons.svg#i-dns"></use></svg>
+                            <span id="hero-address-text">--</span>
+                        </span>
+                        <span class="hero-chip">
+                            <svg class="icon icon-sm"><use href="icons.svg#i-group"></use></svg>
+                            <span id="hero-players">0 / 0</span>
+                        </span>
+                        <span class="hero-chip">
+                            <svg class="icon icon-sm"><use href="icons.svg#i-schedule"></use></svg>
+                            <span id="hero-uptime">--</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="hero-actions">
+                    <button class="btn btn-tonal btn-sm" id="hero-restart">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-restart_alt"></use></svg> Restart
+                    </button>
+                    <button class="btn btn-outlined btn-sm" id="hero-stop">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-stop_circle"></use></svg> Stop
+                    </button>
+                </div>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card tone-brand">
+                    <div class="stat-head">
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-bolt"></use></svg></span>
+                        <span>TPS</span>
+                    </div>
+                    <div class="stat-value" id="stat-tps">--</div>
+                    <div class="stat-foot" id="stat-tps-foot">ticks per second</div>
+                    <canvas class="sparkline" id="spark-tps" width="300" height="48"></canvas>
+                </div>
+                <div class="stat-card tone-tertiary">
+                    <div class="stat-head">
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-memory"></use></svg></span>
+                        <span>Memory</span>
+                    </div>
+                    <div class="stat-value" id="stat-ram">--</div>
+                    <div class="stat-foot" id="stat-ram-foot">of allocated</div>
+                    <div class="progress"><span id="stat-ram-bar" style="width:0%"></span></div>
+                    <canvas class="sparkline" id="spark-ram" width="300" height="48"></canvas>
+                </div>
+                <div class="stat-card tone-success">
+                    <div class="stat-head">
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-group"></use></svg></span>
+                        <span>Players</span>
+                        <span class="stat-badge hidden" id="stat-players-badge">0</span>
+                    </div>
+                    <div class="stat-value" id="stat-players">--</div>
+                    <div class="stat-foot" id="stat-players-foot">online now</div>
+                    <div class="player-peek" id="player-peek"></div>
+                </div>
+                <div class="stat-card tone-secondary">
+                    <div class="stat-head">
+                        <span class="stat-icon"><svg class="icon icon-sm"><use href="icons.svg#i-schedule"></use></svg></span>
+                        <span>Uptime</span>
+                    </div>
+                    <div class="stat-value" id="stat-uptime">--</div>
+                    <div class="stat-foot">since last start</div>
+                </div>
+            </div>
+
+            <div class="overview-columns">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2 class="card-title">Online players</h2>
+                        <button class="btn btn-text btn-sm" id="peek-all-players">View all</button>
+                    </div>
+                    <div class="player-list" id="overview-players"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title-row">
+                        <h2 class="card-title">Latest output</h2>
+                        <button class="btn btn-text btn-sm" id="peek-console">Open console</button>
+                    </div>
+                    <div class="console-peek" id="overview-console"></div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+                <h2 class="card-title">Server information</h2>
+                <div class="info-grid">
+                    <div class="info-row"><span class="k">Version</span><span class="v" id="info-version">--</span></div>
+                    <div class="info-row"><span class="k">MOTD</span><span class="v" id="info-motd">--</span></div>
+                    <div class="info-row"><span class="k">World</span><span class="v" id="info-world">--</span></div>
+                    <div class="info-row"><span class="k">Gamemode</span><span class="v" id="info-gamemode">--</span></div>
+                    <div class="info-row"><span class="k">Difficulty</span><span class="v" id="info-difficulty">--</span></div>
+                    <div class="info-row"><span class="k">Online mode</span><span class="v" id="info-onlinemode">--</span></div>
+                    <div class="info-row"><span class="k">Port</span><span class="v" id="info-port">--</span></div>
+                </div>
+            </div>
+
+            <div class="card" id="overview-metrics-card" style="margin-bottom:16px">
+                <div class="card-title-row">
+                    <h2 class="card-title">Last hour</h2>
+                    <span class="muted small" id="metrics-note">recording…</span>
+                </div>
+                <div class="metric-charts">
+                    <div class="metric-chart">
+                        <div class="metric-head"><span>TPS</span><span class="metric-now" id="metric-tps-now">--</span></div>
+                        <svg class="metric-svg" id="chart-tps" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+                    </div>
+                    <div class="metric-chart">
+                        <div class="metric-head"><span>Memory</span><span class="metric-now" id="metric-ram-now">--</span></div>
+                        <svg class="metric-svg" id="chart-ram" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+                    </div>
+                    <div class="metric-chart">
+                        <div class="metric-head"><span>Players</span><span class="metric-now" id="metric-players-now">--</span></div>
+                        <svg class="metric-svg" id="chart-players" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Server control</h2>
+                <p class="card-sub" id="action-status">Restart or shut down the server with a countdown for all players.</p>
+                <div class="row" style="margin-top:16px">
+                    <button class="btn btn-tonal" id="btn-restart">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-restart_alt"></use></svg>
+                        Restart
+                    </button>
+                    <button class="btn btn-outlined" id="btn-stop">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-stop_circle"></use></svg>
+                        Stop
+                    </button>
+                    <button class="btn btn-danger hidden" id="btn-cancel-action">Cancel countdown</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Device &amp; host</h2>
+                <p class="card-sub" id="device-kernel"></p>
+                <div class="info-columns">
+                    <div>
+                        <div class="info-column-title">Device</div>
+                        <div class="info-grid" id="device-device"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">System</div>
+                        <div class="info-grid" id="device-system"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">Memory</div>
+                        <div class="info-grid" id="device-memory"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">Storage</div>
+                        <div class="info-grid" id="device-disk"></div>
+                    </div>
+                    <div>
+                        <div class="info-column-title">Runtime</div>
+                        <div class="info-grid" id="device-runtime"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== Console ===== -->
+        <section class="tab-content" id="tab-console">
+            <h1 class="page-title">Console</h1>
+            <p class="page-sub">Live server output and command input</p>
+
+            <div class="console-toolbar">
+                <button class="chip selected" data-level="ALL">All</button>
+                <button class="chip" data-level="INFO">Info</button>
+                <button class="chip" data-level="WARN">Warn</button>
+                <button class="chip" data-level="ERROR">Error</button>
+                <span class="spacer"></span>
+                <div class="row" style="gap:6px">
+                    <input type="text" id="console-search" class="input" placeholder="Search…" style="width:180px;padding:8px 12px">
+                    <button class="icon-btn" id="search-prev" aria-label="Previous match">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-chevron_left"></use></svg>
+                    </button>
+                    <span class="small muted mono" id="search-count">0/0</span>
+                    <button class="icon-btn" id="search-next" aria-label="Next match">
+                        <svg class="icon icon-sm"><use href="icons.svg#i-chevron_right"></use></svg>
+                    </button>
+                </div>
+                <button class="chip selected" id="follow-toggle" title="Auto-scroll to new lines">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-expand_more"></use></svg>
+                    Follow
+                </button>
+                <button class="icon-btn" id="console-copy" title="Copy visible output">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-content_copy"></use></svg>
+                </button>
+                <button class="icon-btn" id="console-download" title="Download full log">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-download"></use></svg>
+                </button>
+                <button class="icon-btn" id="console-clear" title="Clear view">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-delete"></use></svg>
+                </button>
+            </div>
+
+            <div id="console-output"></div>
+
+            <form class="console-input-row" id="console-form">
+                <input type="text" id="console-input" class="input" placeholder="Type a command and press Enter (arrow up/down for history, Tab to complete)">
+                <button type="submit" class="btn btn-filled">Send</button>
+            </form>
+        </section>
+
+        <!-- ===== Players ===== -->
+        <section class="tab-content" id="tab-players">
+            <h1 class="page-title">Players</h1>
+            <p class="page-sub">Online players, stats and moderation</p>
+            <div class="toolbar">
+                <button class="btn btn-tonal btn-sm" id="players-refresh">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-refresh"></use></svg>
+                    Refresh
+                </button>
+            </div>
+            <div class="list" id="players-list"></div>
+        </section>
+
+        <!-- ===== Files ===== -->
+        <section class="tab-content" id="tab-files">
+            <h1 class="page-title">Files</h1>
+            <p class="page-sub">Browse and edit your server files</p>
+
+            <div class="toolbar">
+                <button class="btn btn-tonal btn-sm" id="new-file-btn">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-add"></use></svg>
+                    New file
+                </button>
+                <button class="btn btn-tonal btn-sm" id="new-folder-btn">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-add"></use></svg>
+                    New folder
+                </button>
+                <button class="btn btn-outlined btn-sm" id="upload-btn">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-upload"></use></svg>
+                    Upload
+                </button>
+                <input type="file" id="upload-input" class="hidden">
+                <span class="spacer"></span>
+                <button class="icon-btn" id="refresh-files-btn" title="Refresh">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-refresh"></use></svg>
+                </button>
+            </div>
+
+            <div class="breadcrumb" id="files-breadcrumb"></div>
+            <div class="file-list" id="files-list"></div>
+        </section>
+
+        <!-- ===== Plugins ===== -->
+        <section class="tab-content" id="tab-plugins">
+            <h1 class="page-title">Plugins</h1>
+            <p class="page-sub">Installed plugins and Modrinth search</p>
+
+            <div class="toolbar">
+                <button class="btn btn-tonal btn-sm" id="plugins-refresh">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-refresh"></use></svg>
+                    Refresh
+                </button>
+                <span class="spacer"></span>
+                <button class="btn btn-filled btn-sm" id="open-modrinth">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-search"></use></svg>
+                    Search Modrinth
+                </button>
+            </div>
+
+            <div class="list" id="plugins-list"></div>
+        </section>
+
+        <!-- ===== Settings ===== -->
+        <section class="tab-content" id="tab-settings">
+            <h1 class="page-title">Settings</h1>
+            <p class="page-sub">server.properties</p>
+
+            <div class="notice notice-warn hidden" id="settings-restart-notice" style="margin-bottom:16px">
+                <svg class="icon icon-sm"><use href="icons.svg#i-warning"></use></svg>
+                <span>Some changes only take effect after a restart (see the Overview tab).</span>
+            </div>
+
+            <div class="toolbar">
+                <input type="text" id="settings-search" class="input" placeholder="Filter settings…" style="max-width:280px">
+                <span class="spacer"></span>
+                <button class="btn btn-filled btn-sm" id="settings-save">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-save"></use></svg>
+                    Save changes
+                </button>
+            </div>
+
+            <div id="settings-tools"></div>
+            <div id="settings-sections"></div>
+        </section>
+
+        <!-- ---------- Footer: same notices and links as the main site ---------- -->
+        <footer class="dash-footer">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-brand">
+                        <div class="brand-dot"><img src="logo.png" alt="KodaDash"></div>
+                        <div>
+                            <div class="footer-title">KodaDash</div>
+                            <div class="muted small">Remote control panel for your KodaHosting server</div>
+                        </div>
+                    </div>
+                    <p class="footer-note">
+                        <strong>About this dashboard.</strong> Parts of this interface (layout, wording and the
+                        legal documents linked below) were drafted with the assistance of an AI language model and
+                        reviewed by the developer. The KodaHosting app, its server-hosting logic, the networking
+                        infrastructure and the KodaDash plugin itself are written by the developer. Legal
+                        responsibility for all content rests with the developer and their legal guardians.
+                    </p>
+                </div>
+                <div class="footer-col">
+                    <h4>Tabs</h4>
+                    <button type="button" class="footer-link" data-footer-tab="overview">Overview</button>
+                    <button type="button" class="footer-link" data-footer-tab="console">Console</button>
+                    <button type="button" class="footer-link" data-footer-tab="players">Players</button>
+                    <button type="button" class="footer-link" data-footer-tab="files">Files</button>
+                    <button type="button" class="footer-link" data-footer-tab="plugins">Plugins</button>
+                    <button type="button" class="footer-link" data-footer-tab="settings">Settings</button>
+                </div>
+                <div class="footer-col">
+                    <h4>Open source</h4>
+                    <a class="footer-github" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>Source code on GitHub
+                    </a>
+
+                    <h4 style="margin-top:14px">KodaHosting</h4>
+                    <a href="https://host.kodanetwork.eu/index.html" target="_blank" rel="noopener">Main page</a>
+                    <a href="https://host.kodanetwork.eu/dashboard" target="_blank" rel="noopener">Account dashboard</a>
+                    <a href="https://host.kodanetwork.eu/licenses.html" target="_blank" rel="noopener">Licenses</a>
+                    <a href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">Terms of Service</a>
+                    <a href="https://host.kodanetwork.eu/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+                    <a href="https://host.kodanetwork.eu/impressum.txt" target="_blank" rel="noopener">Impressum</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; 2026 KodaHosting</span>
+                <span id="footer-version">KodaDash</span>
+            </div>
+        </footer>
+    </main>
+</div>
+
+<!-- ---------- Editor modal ---------- -->
+<div class="modal-overlay" id="editor-overlay">
+    <div class="modal fullscreen">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-edit"></use></svg>
+            <h2 id="editor-filename">file</h2>
+            <button class="btn btn-outlined btn-sm" id="editor-download">Download</button>
+            <button class="btn btn-filled btn-sm" id="editor-save-btn">Save</button>
+            <button class="icon-btn" id="editor-close-btn" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;padding:0 24px 24px;flex:1;min-height:0">
+            <div class="notice notice-warn hidden" id="editor-warning" style="margin-bottom:12px">
+                <svg class="icon icon-sm"><use href="icons.svg#i-warning"></use></svg>
+                <span id="editor-warning-text"></span>
+            </div>
+            <div id="monaco-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ---------- Player modal ---------- -->
+<div class="modal-overlay" id="player-overlay">
+    <div class="modal wide">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-person"></use></svg>
+            <h2 id="player-modal-title">Player</h2>
+            <button class="icon-btn" id="player-modal-close" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+        <div class="modal-body" id="player-modal-body"></div>
+        <div class="modal-footer" id="player-modal-actions"></div>
+    </div>
+</div>
+
+<!-- ---------- Automation: add/edit a scheduled job ---------- -->
+<div class="modal-overlay" id="schedule-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-schedule"></use></svg>
+            <h2 id="schedule-title">Scheduled job</h2>
+            <button class="icon-btn" id="schedule-close" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>What should happen?</label>
+                <div class="chip-row" id="schedule-type"></div>
+            </div>
+            <div class="field hidden" id="schedule-value-field">
+                <label for="schedule-value">Message or command</label>
+                <input type="text" id="schedule-value" class="input" placeholder="e.g. Restart in 5 minutes (&amp;e for colour)">
+            </div>
+            <div class="field">
+                <label>When?</label>
+                <div class="chip-row" id="schedule-mode"></div>
+            </div>
+            <div class="field hidden" id="schedule-time-field">
+                <label for="schedule-time">Time of day (HH:MM, server time)</label>
+                <input type="text" id="schedule-time" class="input" value="04:00" style="max-width:140px">
+            </div>
+            <div class="field hidden" id="schedule-interval-field">
+                <label for="schedule-interval">Every N minutes</label>
+                <input type="number" id="schedule-interval" class="input" value="180" min="1" max="10080" style="max-width:140px">
+            </div>
+            <label class="switch-row">
+                <input type="checkbox" id="schedule-empty">
+                <span>Only run while no players are online</span>
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-text" id="schedule-cancel">Cancel</button>
+            <button class="btn btn-filled" id="schedule-submit">Save job</button>
+        </div>
+    </div>
+</div>
+
+<!-- ---------- Generic choice dialog ---------- -->
+<div class="modal-overlay" id="choice-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-tune"></use></svg>
+            <h2 id="choice-title">Choose</h2>
+        </div>
+        <div class="modal-body">
+            <p class="muted" id="choice-message" style="margin-bottom:12px"></p>
+            <div class="chip-row" id="choice-options"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-text" id="choice-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ---------- Confirm / prompt modal ---------- -->
+<div class="modal-overlay" id="dialog-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <svg class="icon" id="dialog-icon"><use href="icons.svg#i-warning"></use></svg>
+            <h2 id="dialog-title">Are you sure?</h2>
+        </div>
+        <div class="modal-body">
+            <p class="muted" id="dialog-message" style="margin-bottom:16px"></p>
+            <div class="field hidden" id="dialog-input-group">
+                <label for="dialog-input" id="dialog-input-label">Value</label>
+                <input type="text" id="dialog-input" class="input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-text" id="dialog-cancel">Cancel</button>
+            <button class="btn btn-filled" id="dialog-confirm">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- ---------- Modrinth modal ---------- -->
+<div class="modal-overlay" id="modrinth-overlay">
+    <div class="modal wide">
+        <div class="modal-header">
+            <svg class="icon"><use href="icons.svg#i-search"></use></svg>
+            <h2>Search Modrinth</h2>
+            <button class="icon-btn" id="modrinth-close" aria-label="Close">
+                <svg class="icon"><use href="icons.svg#i-close"></use></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="row" style="margin-bottom:16px">
+                <input type="text" id="modrinth-query" class="input" placeholder="e.g. EssentialsX, WorldEdit…" style="flex:1">
+                <button class="btn btn-filled" id="modrinth-search-btn">Search</button>
+            </div>
+            <div class="list" id="modrinth-results"></div>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- monaco editor, bundled locally so the dashboard also works without internet -->
+<script src="monaco/vs/loader.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

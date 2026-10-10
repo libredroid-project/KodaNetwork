@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "automations": [
+    {
+      "id": "lab-crash-watch",
+      "name": "Crash watch (Koda Lab)",
+      "when": { "type": "log_match", "server": "*", "pattern": "(?i)(crash|exception|out of memory)" },
+      "then": [
+        { "type": "notify", "title": "Koda Lab: crash on {server}", "text": "{line}" }
+      ]
+    },
+    {
+      "id": "lab-nightly-save",
+      "name": "Nightly save (Koda Lab)",
+      "when": { "type": "schedule", "mode": "daily", "time": "03:00" },
+      "then": [
+        { "type": "console_command", "command": "save-all" }
+      ]
+    },
+    {
+      "id": "lab-started-announce",
+      "name": "Announce start (Koda Lab)",
+      "when": { "type": "server_state", "state": "started" },
+      "then": [
+        { "type": "toast", "text": "{server} is up" }
+      ]
+    }
+  ]
+}

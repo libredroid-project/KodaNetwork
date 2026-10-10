@@ -1,0 +1,28 @@
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M19,9h-4V3H9v6H5l7,7 7,-7zM5,18v2h14v-2H5z"/>
+</vector>

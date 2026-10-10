@@ -1,0 +1,12 @@
+Redis
+
+Redis is licensed under the GNU Affero General Public License v3 (AGPL-3.0).
+
+Redis changed its licence in 7.4 from BSD-3-Clause to RSALv2/SSPL and switched to
+AGPL-3.0 with Redis 8.0. The build bundled with this app is covered by the AGPL-3.0.
+
+The full licence text is included as agpl_v3.txt. AGPL-3.0 section 13 requires that users
+who interact with the software over a network are offered the corresponding source code;
+the sources are available from https://github.com/redis/redis.
+
+Copyright (c) 2006-2024, Salvatore Sanfilippo and Redis contributors.

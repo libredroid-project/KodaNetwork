@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!-- one file in the trash: name plus restore and delete -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_trash_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#E8E2D6"
+            android:textSize="13sp"
+            android:maxLines="1"
+            android:ellipsize="middle" />
+
+        <TextView
+            android:id="@+id/tv_trash_meta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#8A8A9A"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_trash_restore"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:minWidth="0dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/jars_restore"
+        android:textColor="#FFB68C"
+        android:textSize="11sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_trash_delete"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:minWidth="0dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/jars_delete_forever"
+        android:textColor="#FF8A80"
+        android:textSize="11sp" />
+</LinearLayout>

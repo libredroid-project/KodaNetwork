@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!--
+  first setup: text based, one step at a time. no cinematic animation, just honest words,
+  legal acceptance, background permissions, old-server recovery, nickname and an
+  optional account step. the cards appear one after another.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#171114"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:id="@+id/welcome_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="48dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/welcome_title"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="24dp"
+            android:background="#FF6B00" />
+
+        <!-- step 1: welcome -->
+        <LinearLayout
+            android:id="@+id/step_welcome"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_intro"
+                android:textColor="#C9BFB8"
+                android:textSize="14sp"
+                android:lineSpacingMultiplier="1.4"
+                android:fontFamily="@font/font_koda" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_welcome_next"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="20dp"
+                android:text="@string/welcome_continue"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+
+        <!-- step 2: legal, ToS and privacy -->
+        <LinearLayout
+            android:id="@+id/step_legal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_legal_title"
+                android:textColor="#FF6B00"
+                android:textSize="11sp"
+                android:letterSpacing="0.1"
+                android:fontFamily="@font/font_koda" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:minHeight="180dp"
+                android:layout_marginTop="10dp"
+                android:background="#241C18"
+                android:padding="14dp">
+
+                <TextView
+                    android:id="@+id/tv_legal_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#C9BFB8"
+                    android:textSize="12sp"
+                    android:lineSpacingMultiplier="1.3" />
+            </ScrollView>
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cb_legal_accept"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/welcome_legal_checkbox"
+                android:textColor="#E8E2D6"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_legal_accept"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="12dp"
+                android:enabled="false"
+                android:alpha="0.4"
+                android:text="@string/welcome_legal_accept"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+
+        <!-- step 3: background, battery and notifications -->
+        <LinearLayout
+            android:id="@+id/step_background"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_background_title"
+                android:textColor="#FF6B00"
+                android:textSize="11sp"
+                android:letterSpacing="0.1"
+                android:fontFamily="@font/font_koda" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/welcome_background_text"
+                android:textColor="#C9BFB8"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.35"
+                android:fontFamily="@font/font_koda" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_battery"
+                style="@style/KodaButton.Outline"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="14dp"
+                android:text="@string/welcome_battery_button"
+                android:textSize="12sp"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_background_skip"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp"
+                android:text="@string/welcome_skip"
+                android:textColor="#8A8A9A"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- step 4: pull servers out of an older install -->
+        <LinearLayout
+            android:id="@+id/step_recovery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_recovery_title"
+                android:textColor="#FF6B00"
+                android:textSize="11sp"
+                android:letterSpacing="0.1"
+                android:fontFamily="@font/font_koda" />
+
+            <TextView
+                android:id="@+id/tv_recovery_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/welcome_recovery_checking"
+                android:textColor="#C9BFB8"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.35"
+                android:fontFamily="@font/font_koda" />
+
+            <LinearLayout
+                android:id="@+id/ll_recovery_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginTop="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_recovery_import"
+                    style="@style/KodaButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:text="@string/welcome_recovery_import"
+                    android:textSize="13sp"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_recovery_delete"
+                    style="@style/KodaButton.Outline"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/welcome_recovery_delete"
+                    android:textSize="12sp"
+                    app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_recovery_next"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp"
+                android:text="@string/welcome_continue"
+                android:textColor="#FFB68C"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- step 5: nickname -->
+        <LinearLayout
+            android:id="@+id/step_nickname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_nickname_title"
+                android:textColor="#FF6B00"
+                android:textSize="11sp"
+                android:letterSpacing="0.1"
+                android:fontFamily="@font/font_koda" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/welcome_nickname_text"
+                android:textColor="#C9BFB8"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.35"
+                android:fontFamily="@font/font_koda" />
+
+            <EditText
+                android:id="@+id/et_nickname"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="#241C18"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:inputType="textPersonName"
+                android:maxLength="20"
+                android:hint="@string/welcome_nickname_hint"
+                android:textColorHint="#8A8A9A" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_nickname_next"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="14dp"
+                android:text="@string/welcome_continue"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+
+        <!-- step 6: account, can be skipped -->
+        <LinearLayout
+            android:id="@+id/step_account"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_account_title"
+                android:textColor="#FF6B00"
+                android:textSize="11sp"
+                android:letterSpacing="0.1"
+                android:fontFamily="@font/font_koda" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/welcome_account_text"
+                android:textColor="#C9BFB8"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.35"
+                android:fontFamily="@font/font_koda" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_account_login"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="14dp"
+                android:text="@string/welcome_account_login"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_account_register"
+                style="@style/KodaButton.Outline"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/welcome_account_register"
+                android:textSize="12sp"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_account_skip"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp"
+                android:text="@string/welcome_account_skip"
+                android:textColor="#8A8A9A"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- step 7: done -->
+        <LinearLayout
+            android:id="@+id/step_done"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_done_text"
+                android:textColor="#C9BFB8"
+                android:textSize="14sp"
+                android:lineSpacingMultiplier="1.4"
+                android:fontFamily="@font/font_koda" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_done"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="20dp"
+                android:text="@string/welcome_start"
+                android:textSize="14sp"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

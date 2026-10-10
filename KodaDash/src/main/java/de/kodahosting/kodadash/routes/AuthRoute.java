@@ -1,0 +1,83 @@
+/*
+ * Copyright (c) 2026 KodaHosting
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+package de.kodahosting.kodadash.routes;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.sun.net.httpserver.HttpExchange;
+import de.kodahosting.kodadash.KodaDash;
+import de.kodahosting.kodadash.server.RouteHandler;
+
+import java.io.IOException;
+
+/**
+ * the login for the KodaDash API.
+ * this route does not check pre-auth, it is the endpoint that hands it out.
+ */
+public class AuthRoute extends RouteHandler {
+
+    public AuthRoute(KodaDash plugin) {
+        super(plugin);
+    }
+
+    @Override
+    protected boolean requireAuth() {
+        return false;
+    }
+
+    @Override
+    protected void handlePost(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+
+            if (!json.has("token")) {
+                sendError(exchange, 400, "Missing token");
+                return;
+            }
+
+            String token = json.get("token").getAsString();
+            String password = json.has("password") ? json.get("password").getAsString() : null;
+            String ipAddress = exchange.getRemoteAddress().getAddress().getHostAddress();
+
+            boolean isValid = plugin.getAuthManager().validate(token, password, ipAddress);
+
+            if (!isValid) {
+                sendError(exchange, 401, "Invalid credentials");
+                return;
+            }
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            response.addProperty("serverName", plugin.getServer().getName() + " " + plugin.getServer().getVersion());
+            response.addProperty("hasPassword", plugin.getAuthManager().hasPassword());
+
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("Auth error: " + e.getMessage());
+            sendError(exchange, 400, "Invalid JSON format");
+        }
+    }
+}

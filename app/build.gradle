@@ -1,0 +1,139 @@
+/*
+ * Copyright (c) 2026 KodaHosting
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+apply from: 'database-wx.gradle'
+
+android {
+    namespace 'eu.kodanetwork.mchost'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "eu.kodanetwork.mchost"
+        minSdk 26
+        targetSdk 36
+        versionCode 8514
+        versionName "v0.136beta"
+        // instance specific gate (the kodadash beta for example): pass -PKODADASH_ACCOUNT=... at build time
+        buildConfigField "String", "KODADASH_ACCOUNT", "\"" + (project.findProperty('KODADASH_ACCOUNT') ?: '') + "\""
+        ndkVersion "27.0.12077973"
+        ndk {
+            // arm64 only, every termux binary, mariadb and redis in here is arm64 only
+            abiFilters 'arm64-v8a'
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17"
+                // bundle_libs already brings its own libc++_shared.so (NDK r28) for the
+                // termux binaries, so the stl is linked statically: that keeps the older
+                // ndk copy out of the apk and dodges the mergeDebugNativeLibs clash.
+                arguments "-DANDROID_STL=c++_static"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('release.keystore')
+            storePassword project.findProperty("KEYSTORE_PW") ?: System.getenv("KEYSTORE_PW") ?: ""
+            keyAlias 'release'
+            keyPassword project.findProperty("KEY_PW") ?: System.getenv("KEY_PW") ?: ""
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+        aidl true
+    }
+
+    aaptOptions {
+        noCompress 'gz', 'xz', 'tar', 'proot', 'zip'
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.lifecycle:lifecycle-service:2.7.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+    // App extensions: WebViewAssetLoader + WebMessageListener for the sandboxed extension host
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'com.squareup.retrofit2:retrofit:2.11.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.11.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+    implementation 'org.json:json:20231013'
+    implementation 'org.tukaani:xz:1.9'
+    implementation 'org.apache.commons:commons-compress:1.27.1'
+    // RAR extraction in the file browser (UnRAR license, see assets/licenses/unrar_license.txt)
+    implementation 'com.github.junrar:junrar:8.1.1'
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    implementation 'com.google.android.play:app-update:2.1.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'androidx.lifecycle:lifecycle-process:2.7.0'
+    implementation 'com.google.android.play:integrity:1.3.0'
+    implementation 'com.scottyab:rootbeer-lib:0.1.1'
+    implementation 'com.github.Dimezis:BlurView:version-2.0.3'
+    implementation 'com.airbnb.android:lottie:6.7.1'
+
+    // JVM unit tests: extension manifest validation
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
+}

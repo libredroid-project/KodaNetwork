@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <!-- marks a view as already styled by ThemeHelper, so it only happens once -->
+    <item name="tag_themed" type="id" />
+    <!-- keeps the full text of a tutorial card while the typewriter eats through it -->
+    <item name="tw_text" type="id" />
+    <!-- marker: SleekTouch owns this view's OnTouchListener (click + visuals + haptic),
+         so HapticUtil.applyHapticsToView must not overwrite it. -->
+    <item name="sleek_touch_tag" type="id" />
+</resources>

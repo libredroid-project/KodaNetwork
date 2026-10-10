@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <dimen name="mao_space_xs">4dp</dimen>
+    <dimen name="mao_space_sm">8dp</dimen>
+    <dimen name="mao_space_md">12dp</dimen>
+    <dimen name="mao_space_lg">16dp</dimen>
+    <dimen name="mao_space_xl">24dp</dimen>
+
+    <dimen name="mao_radius_none">0dp</dimen>
+    <dimen name="mao_radius_sm">8dp</dimen>
+    <dimen name="mao_radius_md">12dp</dimen>
+    <dimen name="mao_radius_lg">16dp</dimen>
+    <dimen name="mao_radius_xl">24dp</dimen>
+
+    <dimen name="mao_btn_height">48dp</dimen>
+
+    <string name="mao_brand_title">KODAHOSTING</string>
+    <string name="mao_brand_subtitle">MOBILE SERVER HOSTING</string>
+</resources>

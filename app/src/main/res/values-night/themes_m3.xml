@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <!-- dark scheme for the material 3 theme. the actual colors live in
+         values/colors_m3.xml, this file only points the roles at them. -->
+    <style name="Theme.KodaNetwork.Material3" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/m3_dark_primary</item>
+        <item name="colorOnPrimary">@color/m3_dark_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/m3_dark_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/m3_dark_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/m3_dark_secondary</item>
+        <item name="colorOnSecondary">@color/m3_dark_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/m3_dark_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/m3_dark_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/m3_dark_tertiary</item>
+        <item name="colorOnTertiary">@color/m3_dark_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_dark_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/m3_dark_onTertiaryContainer</item>
+        <item name="colorError">@color/m3_dark_error</item>
+        <item name="colorOnError">@color/m3_dark_onError</item>
+        <item name="colorErrorContainer">@color/m3_dark_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/m3_dark_onErrorContainer</item>
+        <item name="android:colorBackground">@color/m3_dark_background</item>
+        <item name="colorOnBackground">@color/m3_dark_onBackground</item>
+        <item name="colorSurface">@color/m3_dark_surface</item>
+        <item name="colorOnSurface">@color/m3_dark_onSurface</item>
+        <item name="colorSurfaceVariant">@color/m3_dark_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_dark_onSurfaceVariant</item>
+        <item name="colorSurfaceDim">@color/m3_dark_surfaceDim</item>
+        <item name="colorSurfaceBright">@color/m3_dark_surfaceBright</item>
+        <item name="colorSurfaceContainerLowest">@color/m3_dark_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/m3_dark_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/m3_dark_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/m3_dark_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/m3_dark_surfaceContainerHighest</item>
+        <item name="colorOutline">@color/m3_dark_outline</item>
+        <item name="colorOutlineVariant">@color/m3_dark_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/m3_dark_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/m3_dark_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/m3_dark_inversePrimary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

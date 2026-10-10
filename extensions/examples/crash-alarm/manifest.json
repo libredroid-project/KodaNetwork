@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "eu.kodahosting.example.crash-alarm",
+  "name": "Crash Alarm",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "author": "KodaHosting",
+  "description": "Watches the console and sends a webhook when a server reports a crash.",
+  "license": "GPL-3.0-or-later",
+  "source_url": "https://github.com/libredroid-project/KodaNetwork",
+  "minAppVersion": 8514,
+  "permissions": ["console.read", "notifications", "http:discord.com"],
+  "automations": "automations.json"
+}

@@ -1,0 +1,98 @@
+/*
+ * Copyright (c) 2026 KodaHosting
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+// Copyright (c) 2026 KodaHosting
+import { corsHeaders } from "../_shared/cors.ts";
+import { validateHost } from "../_shared/validation.ts";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+
+  const authHeader = req.headers.get("Authorization")?.replace("Bearer ", "");
+  const apikey = req.headers.get("apikey");
+  if (!authHeader || !apikey) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const body = await req.json();
+    const host = String(body.host ?? "").toLowerCase();
+
+    if (!host) {
+      return new Response(JSON.stringify({ error: "missing_parameters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const validationError = validateHost(host);
+    if (validationError) {
+      return new Response(JSON.stringify({ error: validationError }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const apiKeyPrefix = Deno.env.get("IONOS_API_PREFIX") ?? "";
+    const apiSecret = Deno.env.get("IONOS_API_SECRET") ?? "";
+    const fullApiKey = `${apiKeyPrefix}.${apiSecret}`;
+    const domain = String(body.base_domain || "kodanetwork.eu").toLowerCase();
+    
+    // 1. get the zone id
+    const zonesRes = await fetch("https://api.hosting.ionos.com/dns/v1/zones", {
+      headers: { "X-API-Key": fullApiKey }
+    });
+    const zonesData = await zonesRes.json();
+    const zone = (zonesData as any[])?.find((z: any) => z.name === domain);
+    if (!zone) throw new Error(`Zone ${domain} not found`);
+    const zoneId = zone.id;
+
+    const fqdn = `${host}.${domain}`;
+    
+    // 2. is there already an A record for this subdomain?
+    const res = await fetch(`https://api.hosting.ionos.com/dns/v1/zones/${zoneId}?recordName=${fqdn}&recordType=A`, {
+      headers: { "X-API-Key": fullApiKey }
+    });
+    
+    let isTaken = false;
+    if (res.ok) {
+        const existing = await res.json();
+        const records = Array.isArray(existing.records) ? existing.records : [];
+        if (records.length > 0) {
+            isTaken = true;
+        }
+    }
+
+    return new Response(JSON.stringify({ 
+        status: isTaken ? "taken" : "allowed",
+        host
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: "internal_error", detail: e.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

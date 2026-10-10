@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "id": "eu.kodahosting.example.language-polish",
+  "name": "Polski",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "author": "KodaHosting",
+  "description": "Polish language pack for the app. Partial by design, missing texts stay in the app language.",
+  "license": "GPL-3.0-or-later",
+  "source_url": "https://github.com/libredroid-project/KodaNetwork",
+  "minAppVersion": 8514,
+  "contributes": {
+    "languages": [
+      { "code": "pl", "name": "Polski", "file": "lang/pl.json" }
+    ]
+  }
+}

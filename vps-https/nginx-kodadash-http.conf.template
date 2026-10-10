@@ -1,0 +1,15 @@
+# Port 80 for one dashboard host: the ACME challenge keeps working (certificate renewal) and
+# browsers are sent to the encrypted version. Generated - do not edit by hand.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {SERVER_NAME};
+
+    location /.well-known/acme-challenge/ {
+        root {WEBROOT};
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}

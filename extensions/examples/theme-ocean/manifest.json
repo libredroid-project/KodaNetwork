@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "eu.kodahosting.example.ocean-theme",
+  "name": "Ocean Theme",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "author": "KodaHosting",
+  "description": "Teal accent for Material 3, hides the GitHub button and adds three console quick commands.",
+  "license": "GPL-3.0-or-later",
+  "source_url": "https://github.com/libredroid-project/KodaNetwork",
+  "minAppVersion": 8514,
+  "contributes": {
+    "themes": [
+      { "id": "ocean", "name": "Ocean", "color": "#006874" }
+    ],
+    "ui": {
+      "hide": ["btn_github_main"],
+      "console_chips": ["/tps", "/list", "time set day"]
+    }
+  }
+}

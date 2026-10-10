@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- dark base, it shows on the top/left as the shadow -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#373737" />
+        </shape>
+    </item>
+    
+    <!-- bright edge on the bottom/right, that is what makes it a slot -->
+    <item android:bottom="2dp" android:right="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+    
+    <!-- the slot fill, inset by 2dp -->
+    <item android:bottom="2dp" android:right="2dp" android:top="2dp" android:left="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#8B8B8B" />
+        </shape>
+    </item>
+</layer-list>

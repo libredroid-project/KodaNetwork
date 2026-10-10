@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!-- blocking screen while the shared tunnel server is overloaded (InfraOverloadActivity).
+     the branding block (P.R.A.E.T.O.R. wordmark, subtitle, divider) has to match the other
+     P.R.A.E.T.O.R. screens: space_grotesk_bold 36sp with the hex letter colours, subtitle 10sp
+     #8A8A9A, divider 40x2dp in #FF6B00. below the divider the brand and the real info. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="#141011" android:fillViewport="true">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:gravity="center_horizontal"
+        android:paddingStart="28dp" android:paddingEnd="28dp"
+        android:paddingTop="64dp" android:paddingBottom="48dp">
+
+        <!-- P.R.A.E.T.O.R. wordmark: same letters, colours and font as everywhere else in the app -->
+        <TextView android:id="@+id/praetorTitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/praetor_title"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            android:textColor="#FF3333" android:textSize="36sp" android:textStyle="bold"
+            android:gravity="center"/>
+
+        <TextView android:id="@+id/praetorSubtitle"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/praetor_subtitle"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:textColor="#8A8A9A" android:textSize="10sp" android:textStyle="bold"
+            android:gravity="center" android:layout_marginTop="8dp"/>
+
+        <View android:layout_width="40dp" android:layout_height="2dp"
+            android:background="#FF6B00"
+            android:layout_marginTop="24dp" android:layout_marginBottom="20dp"/>
+
+        <!-- below the line: brand first, then the stuff that matters -->
+        <TextView android:id="@+id/brandName"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/brand_kodahosting"
+            android:fontFamily="@font/font_koda"
+            android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold"
+            android:letterSpacing="0.12" android:layout_marginBottom="24dp"/>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/overload_headline" android:textColor="#FFFFFF"
+            android:textSize="24sp" android:fontFamily="@font/font_koda" android:textStyle="bold"
+            android:gravity="center" android:layout_marginBottom="14dp"/>
+
+        <TextView android:id="@+id/overloadReasonText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#FFB68C" android:textSize="15sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:lineSpacingExtra="4dp" android:layout_marginBottom="18dp"/>
+
+        <TextView android:id="@+id/overloadValuesText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#B5B5B8" android:textSize="13sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:lineSpacingExtra="3dp" android:layout_marginBottom="14dp"/>
+
+        <TextView android:id="@+id/overloadSinceText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#888899" android:textSize="13sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:layout_marginBottom="24dp"/>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#2E241E" android:layout_marginBottom="22dp"/>
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/overload_explanation" android:textColor="#B5B5B8"
+            android:textSize="13sp" android:fontFamily="@font/font_koda"
+            android:lineSpacingExtra="4dp" android:layout_marginBottom="22dp"/>
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/overload_retry" android:textColor="#FFB68C"
+            android:textSize="13sp" android:fontFamily="@font/font_koda" android:gravity="center"/>
+
+        <TextView android:id="@+id/overloadLimitsText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textColor="#5B4032" android:textSize="11sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"
+            android:layout_marginTop="28dp"/>
+    </LinearLayout>
+</ScrollView>

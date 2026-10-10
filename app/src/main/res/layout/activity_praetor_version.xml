@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!--
+  P.R.A.E.T.O.R. screen for a minecraft version change. copied from activity_praetor_confirm,
+  so same background, card, wordmark, warning icon and buttons.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#A6000000"
+    android:gravity="center"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_dialog_custom"
+        android:padding="16dp"
+        android:gravity="center">
+
+        <!-- title: P.R.A.E.T.O.R., colours get set in code like on the other screens -->
+        <TextView
+            android:id="@+id/tv_praetor_title"
+            android:maxLines="1"
+            app:autoSizeTextType="uniform"
+            app:autoSizeMinTextSize="14sp"
+            app:autoSizeMaxTextSize="36sp"
+            app:autoSizeStepGranularity="2sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            android:text="@string/praetor_title"
+            android:textColor="#FF3333"
+            android:textSize="36sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_praetor_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:text="@string/praetor_version_subtitle"
+            android:textColor="#8A8A9A"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.18" />
+
+        <TextView
+            android:layout_width="40dp"
+            android:layout_height="2dp"
+            android:background="#FF6B00"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:id="@+id/tv_change_headline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="@string/praetor_version_upgrade" />
+
+        <TextView
+            android:id="@+id/tv_change_versions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/font_koda_mono"
+            android:textColor="#FFB68C"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tv_warning_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:text="⚠"
+            android:textColor="#FF3333"
+            android:textSize="48sp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_change_reason"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/space_grotesk_regular"
+                    app:fontFamily="@font/space_grotesk_regular"
+                    android:lineSpacingMultiplier="1.25"
+                    android:textColor="#C9BFB8"
+                    android:textSize="13.5sp" />
+
+                <TextView
+                    android:id="@+id/tv_change_backup_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:fontFamily="@font/space_grotesk_regular"
+                    app:fontFamily="@font/space_grotesk_regular"
+                    android:lineSpacingMultiplier="1.25"
+                    android:textColor="#8A8A9A"
+                    android:textSize="12.5sp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <TextView
+            android:id="@+id/tv_change_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:textColor="#FFB68C"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/layout_buttons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_confirm"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                style="@style/KodaButton.Danger"
+                android:fontFamily="@font/space_grotesk_regular"
+                app:fontFamily="@font/space_grotesk_regular"
+                android:text="@string/praetor_version_confirm_upgrade"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_without_backup"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="8dp"
+                style="@style/KodaButton"
+                android:fontFamily="@font/space_grotesk_regular"
+                app:fontFamily="@font/space_grotesk_regular"
+                android:text="@string/praetor_version_without_backup"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cancel"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                style="@style/KodaButton.Outline"
+                android:fontFamily="@font/space_grotesk_regular"
+                app:fontFamily="@font/space_grotesk_regular"
+                android:text="@string/cancel" />
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

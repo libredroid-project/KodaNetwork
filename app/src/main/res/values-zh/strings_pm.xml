@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <string name="pm_heal">治疗 (Heal)</string>
+    <string name="pm_feed">喂食 (Feed)</string>
+    <string name="pm_starve">饥饿 (Starve)</string>
+    <string name="pm_kill">击杀 (Kill)</string>
+    <string name="pm_wipe">清除数据 (Wipe)</string>
+    <string name="pm_wipe_title">清除玩家数据</string>
+    <string name="pm_wipe_desc">你确定吗？这会踢出玩家并删除他们的物品栏和统计数据。</string>
+    <string name="pm_whitelisted">白名单 (Whitelisted)</string>
+    <string name="pm_inventory">物品栏 (Inventory)</string>
+    <string name="pm_deaths">死亡次数:</string>
+    <string name="pm_blocks_mined">挖掘方块数:</string>
+    <string name="pm_hours_played">游玩时长 (小时):</string>
+    <string name="pm_mobs_killed">击杀怪物数:</string>
+    <string name="pm_damage_taken">承受伤害:</string>
+    <string name="pm_online">(在线)</string>
+    <string name="pm_offline">(离线)</string>
+    <string name="pm_wiped_toast">玩家数据已清除</string>
+    <string name="pm_action_toast">已对玩家执行操作</string>
+</resources>

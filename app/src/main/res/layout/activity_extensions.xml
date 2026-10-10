@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!-- extension hub: same top bar as the debug log screen, below it the installed/discover pill and the list -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#080808">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="50dp"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:background="#0C0C0C" android:paddingStart="16dp" android:paddingEnd="16dp">
+        <ImageButton android:id="@+id/btn_back_ext"
+            android:layout_width="40dp" android:layout_height="40dp"
+            android:src="@android:drawable/ic_media_previous"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="#FF6B00"/>
+        <TextView
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="@string/ext_title"
+            android:textColor="#F0F0F0" android:textSize="12sp"
+            android:fontFamily="@font/font_koda" android:gravity="center"/>
+        <ImageButton android:id="@+id/btn_add_ext"
+            android:layout_width="40dp" android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_input_add"
+            android:tint="#FF6B00"
+            android:contentDescription="@string/ext_add_file"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FF6B00"/>
+
+    <LinearLayout android:id="@+id/ll_ext_content"
+        android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:orientation="vertical"
+        android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="12dp">
+
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1" android:layout_marginTop="12dp">
+
+            <ScrollView android:id="@+id/sv_ext_installed"
+                android:layout_width="match_parent" android:layout_height="match_parent"
+                android:background="#080808"
+                android:clipToPadding="false" android:paddingBottom="20dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tv_ext_empty"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp" android:text="@string/ext_empty"
+                        android:textColor="#8A8A9A" android:textSize="12sp"
+                        android:visibility="gone"/>
+                    <LinearLayout android:id="@+id/ll_extensions"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical"/>
+                </LinearLayout>
+            </ScrollView>
+
+            <ScrollView android:id="@+id/sv_ext_store"
+                android:layout_width="match_parent" android:layout_height="match_parent"
+                android:background="#080808" android:visibility="gone"
+                android:clipToPadding="false" android:paddingBottom="20dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tv_ext_store_empty"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp" android:text="@string/ext_store_soon"
+                        android:textColor="#8A8A9A" android:textSize="12sp"/>
+                    <LinearLayout android:id="@+id/ll_ext_store"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical"/>
+                </LinearLayout>
+            </ScrollView>
+        </FrameLayout>
+    </LinearLayout>
+</LinearLayout>

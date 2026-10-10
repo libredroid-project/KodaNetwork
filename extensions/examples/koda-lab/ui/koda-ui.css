@@ -1,0 +1,178 @@
+/*
+ * Copyright (c) 2026 KodaHosting
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+/* Koda UI: the exact colours and shapes the app uses, so an extension screen
+   blends in with the rest of KodaHosting. copy this file into your extension
+   and use the variables, or read the same values at runtime via koda.theme(). */
+
+:root {
+  --koda-orange: #FF6B00;
+  --koda-brown: #241C18;
+  --koda-bg: #080808;
+  --koda-panel: #12121A;
+  --koda-cell: #1A1A24;
+  --koda-text: #F0F0F0;
+  --koda-text-soft: #B7AE9F;
+  --koda-text-dim: #8A8A9A;
+  --koda-online: #69781D;
+  --koda-error: #FF3344;
+  --koda-radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--koda-bg);
+  color: var(--koda-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+}
+
+body { display: flex; flex-direction: column; }
+
+/* ── Text tabs with the sliding orange line, like the app ───────── */
+.tabs {
+  display: flex;
+  position: relative;
+  flex: 0 0 auto;
+  border-bottom: 1px solid #1E1E26;
+}
+.tabs button {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--koda-text-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 14px 4px 12px;
+  cursor: pointer;
+}
+.tabs button.active { color: var(--koda-orange); }
+.tabs .line {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: var(--koda-orange);
+  border-radius: 1.5px;
+  transition: transform .18s ease, width .18s ease;
+}
+
+main { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+h1, h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--koda-orange);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+h2 { margin-top: 18px; font-size: 11px; }
+
+.card {
+  background: var(--koda-cell);
+  border-radius: var(--koda-radius);
+  padding: 12px;
+  margin: 0 0 8px;
+}
+
+.row { display: flex; align-items: center; gap: 8px; }
+.row + .row { margin-top: 8px; }
+.grow { flex: 1; min-width: 0; }
+.wrap { flex-wrap: wrap; }
+
+.mono {
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+.dim { color: var(--koda-text-dim); font-size: 12px; }
+.soft { color: var(--koda-text-soft); }
+.meta { color: var(--koda-orange); font-size: 12px; }
+.err { color: var(--koda-error); }
+.ok { color: var(--koda-online); }
+
+select, input, textarea, button {
+  background: var(--koda-cell);
+  color: var(--koda-text);
+  border: 1px solid #262630;
+  border-radius: var(--koda-radius);
+  padding: 10px 12px;
+  font: inherit;
+}
+textarea { width: 100%; min-height: 90px; font-family: ui-monospace, monospace; font-size: 12px; }
+button.primary {
+  background: var(--koda-orange);
+  border-color: var(--koda-orange);
+  color: #000;
+  font-weight: 600;
+}
+button.ghost { background: var(--koda-brown); border-color: #33291F; }
+button:active { transform: scale(0.98); }
+label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--koda-orange); }
+
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: #262630;
+  color: var(--koda-text-soft);
+}
+.badge.online { background: rgba(105,120,29,.25); color: #C6DC5A; }
+.badge.busy { background: rgba(255,107,0,.18); color: var(--koda-orange); }
+.badge.dead { background: rgba(255,51,68,.15); color: #FF8A94; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--koda-cell); border-radius: var(--koda-radius); padding: 10px; }
+.stat .k { font-size: 11px; color: var(--koda-text-dim); letter-spacing: .06em; }
+.stat .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+
+pre.log {
+  margin: 0;
+  padding: 10px;
+  background: #050505;
+  color: #E0E0E0;
+  border-radius: var(--koda-radius);
+  max-height: 46vh;
+  overflow: auto;
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.test { border-bottom: 1px solid #1E1E26; padding: 8px 0; }
+.test:last-child { border-bottom: none; }
+.test .name { font-weight: 600; }
+.test .result { font-size: 11.5px; }
+.pass { color: #C6DC5A; }
+.fail { color: #FF8A94; }
+
+.swatch { width: 16px; height: 16px; border-radius: 50%; display: inline-block; vertical-align: -3px; margin-right: 6px; }

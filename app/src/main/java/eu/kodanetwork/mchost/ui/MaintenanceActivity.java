@@ -1,0 +1,54 @@
+/*
+ * Copyright (c) 2026 KodaHosting
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+package eu.kodanetwork.mchost.ui;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+import eu.kodanetwork.mchost.R;
+
+public class MaintenanceActivity extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
+        super.onCreate(savedInstanceState);
+        setContentView(eu.kodanetwork.mchost.util.Material3ThemeHelper.isM3Enabled(this)
+                ? R.layout.activity_maintenance_m3 : R.layout.activity_maintenance);
+
+        TextView reasonText = findViewById(R.id.maintenanceReasonText);
+        TextView durationText = findViewById(R.id.maintenanceDurationText);
+
+        Intent intent = getIntent();
+        String reason = intent.getStringExtra("reason");
+        int duration = intent.getIntExtra("duration", 60);
+
+        if (reason != null && !reason.isEmpty()) {
+            reasonText.setText(reason);
+        }
+        durationText.setText("Estimated duration: " + duration + " minutes");
+    }
+
+    @Override
+    public void onBackPressed() {
+        // block back here, otherwise the maintenance screen can be dodged
+        // moveTaskToBack(true);
+    }
+}

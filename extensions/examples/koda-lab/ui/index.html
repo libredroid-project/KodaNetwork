@@ -1,0 +1,159 @@
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Koda Lab</title>
+  <link rel="stylesheet" href="koda-ui.css">
+</head>
+<body>
+  <nav class="tabs" id="tabs">
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="servers">Servers</button>
+    <button data-tab="console">Console</button>
+    <button data-tab="storage">Storage</button>
+    <button data-tab="tests">Self-Test</button>
+    <div class="line" id="tabLine"></div>
+  </nav>
+
+  <main>
+    <!-- ── OVERVIEW ─────────────────────────────────────────────── -->
+    <section class="panel active" id="panel-overview">
+      <h1>Koda Lab</h1>
+      <div class="dim">Test bench for the KodaHosting extension API.</div>
+
+      <h2>Environment</h2>
+      <div class="card">
+        <div class="row"><span class="grow soft">koda.api</span><span class="mono" id="envApi">–</span></div>
+        <div class="row"><span class="grow soft">koda.version</span><span class="mono" id="envVersion">–</span></div>
+        <div class="row"><span class="grow soft">koda.locale()</span><span class="mono" id="envLocale">–</span></div>
+        <div class="row"><span class="grow soft">koda.theme()</span><span class="mono" id="envTheme">–</span></div>
+      </div>
+
+      <h2>Live data</h2>
+      <div class="grid">
+        <div class="stat"><div class="k">SERVERS</div><div class="v" id="statServers">–</div></div>
+        <div class="stat"><div class="k">STORAGE KEYS</div><div class="v" id="statKeys">–</div></div>
+        <div class="stat"><div class="k">STORAGE USED</div><div class="v" id="statBytes">–</div></div>
+        <div class="stat"><div class="k">CONSOLE LINES</div><div class="v" id="statLines">–</div></div>
+      </div>
+
+      <h2>UI helpers</h2>
+      <div class="card">
+        <div class="row wrap">
+          <button class="primary" id="btnToast">koda.ui.toast()</button>
+          <button class="ghost" id="btnConfirm">koda.ui.confirm()</button>
+        </div>
+        <div class="mono dim" id="uiResult" style="margin-top:8px"></div>
+      </div>
+
+      <h2>Contributed by this extension</h2>
+      <div class="card">
+        <div class="row"><span class="grow soft">Themes</span><span class="mono">Lab Cyan, Lab Magenta</span></div>
+        <div class="row"><span class="grow soft">Language pack</span><span class="mono">Español (demo)</span></div>
+        <div class="row"><span class="grow soft">Hidden UI</span><span class="mono">btn_github_main</span></div>
+        <div class="row"><span class="grow soft">Console chips</span><span class="mono">/tps, /list, time set day, weather clear</span></div>
+        <div class="row"><span class="grow soft">Automations</span><span class="mono">3 rules (engine: next phase)</span></div>
+        <div class="dim" style="margin-top:8px">Apply them in the app: extensions hub, long press this entry or use the "..."
+          menu inside this screen (Actions).</div>
+      </div>
+    </section>
+
+    <!-- ── SERVERS ──────────────────────────────────────────────── -->
+    <section class="panel" id="panel-servers">
+      <h1>Servers</h1>
+      <div class="row">
+        <button class="primary grow" id="btnReloadServers">koda.servers.list()</button>
+      </div>
+      <div id="serverList"></div>
+      <h2>Raw bridge log</h2>
+      <pre class="log" id="bridgeLog">(every call is logged here)</pre>
+    </section>
+
+    <!-- ── CONSOLE ──────────────────────────────────────────────── -->
+    <section class="panel" id="panel-console">
+      <h1>Console</h1>
+      <div class="card">
+        <div class="row">
+          <select class="grow" id="consoleServer"></select>
+          <select id="consoleLines">
+            <option value="50">50</option>
+            <option value="200" selected>200</option>
+            <option value="1000">1000</option>
+          </select>
+        </div>
+        <div class="row">
+          <input class="grow" id="consoleSearch" placeholder="filter lines...">
+          <button class="ghost" id="btnConsolePause">Pause</button>
+          <button class="ghost" id="btnConsoleCopy">Copy</button>
+        </div>
+        <div class="row wrap">
+          <label><input type="checkbox" id="consoleAuto" checked> auto-refresh (2s)</label>
+          <label><input type="checkbox" id="consoleStrip" checked> strip colour codes</label>
+        </div>
+      </div>
+      <div class="dim mono" id="consoleStatus">idle</div>
+      <pre class="log" id="consoleOut">Select a server to see its console.</pre>
+    </section>
+
+    <!-- ── STORAGE ──────────────────────────────────────────────── -->
+    <section class="panel" id="panel-storage">
+      <h1>Storage</h1>
+      <div class="row">
+        <input class="grow" id="storeKey" placeholder="key">
+        <button class="primary" id="btnStoreSet">set</button>
+      </div>
+      <textarea id="storeValue" placeholder='value as JSON ({"hello":"world"})'></textarea>
+      <div class="row wrap">
+        <button class="ghost" id="btnStoreGet">get</button>
+        <button class="ghost" id="btnStoreRemove">remove</button>
+        <button class="ghost" id="btnStoreKeys">keys()</button>
+        <button class="ghost" id="btnStoreQuota">fill until quota error</button>
+        <button class="ghost" id="btnStoreClear">clear all</button>
+      </div>
+      <div class="dim mono" id="storeStatus" style="margin-top:8px"></div>
+      <h2>Contents</h2>
+      <div id="storeList"></div>
+      <h2>Export / import</h2>
+      <textarea id="storeDump" placeholder="dump JSON here, then Import"></textarea>
+      <div class="row wrap">
+        <button class="ghost" id="btnStoreExport">export</button>
+        <button class="ghost" id="btnStoreImport">import</button>
+      </div>
+    </section>
+
+    <!-- ── SELF-TEST ────────────────────────────────────────────── -->
+    <section class="panel" id="panel-tests">
+      <h1>Self-Test</h1>
+      <div class="dim">Runs every bridge call and shows the raw result. Exactly what this extension system can do today.</div>
+      <div class="row" style="margin:10px 0">
+        <button class="primary grow" id="btnRunTests">Run all tests</button>
+        <button class="ghost" id="btnStress">Stress</button>
+      </div>
+      <div class="card" id="testResults"><div class="dim">No tests run yet.</div></div>
+      <h2>Stress result</h2>
+      <div class="card"><div class="mono dim" id="stressResult">–</div></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the KodaHosting VPS monitor every minute
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+AccuracySec=5s
+Unit=koda-vps-monitor.service
+
+[Install]
+WantedBy=timers.target

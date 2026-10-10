@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "eu.kodahosting.example.live-log",
+  "name": "Live Log",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "author": "KodaHosting",
+  "description": "Shows the console of your server live, refreshed every two seconds.",
+  "license": "GPL-3.0-or-later",
+  "source_url": "https://github.com/libredroid-project/KodaNetwork",
+  "minAppVersion": 8514,
+  "permissions": ["servers.read", "console.read", "storage"],
+  "ui": { "entry": "ui/index.html", "title": "Live Log" }
+}

@@ -1,0 +1,667 @@
+/*
+ * Copyright (c) 2026 KodaHosting
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+package de.kodahosting.kodadash.routes;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.sun.net.httpserver.HttpExchange;
+import de.kodahosting.kodadash.KodaDash;
+import de.kodahosting.kodadash.server.RouteHandler;
+import org.bukkit.BanList;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+
+import org.bukkit.Statistic;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+
+import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+
+/**
+ * everything under /api/players, the path suffix decides which action runs.
+ */
+public class PlayersRoute extends RouteHandler {
+
+    public PlayersRoute(KodaDash plugin) {
+        super(plugin);
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        try {
+            // CORS, the dashboard runs on another origin
+            String origin = plugin.getConfig().getString("cors-origins", "*");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", origin);
+            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Token, X-Dashboard-Password");
+
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            // token check before any action runs
+            if (!plugin.getAuthManager().authenticate(exchange)) {
+                sendError(exchange, 401, "Unauthorized");
+                return;
+            }
+
+            String path = exchange.getRequestURI().getPath();
+            String method = exchange.getRequestMethod();
+
+            if (("GET".equalsIgnoreCase(method) && (path.equals("/api/players") || path.equals("/api/players/")))
+                    || ("GET".equalsIgnoreCase(method) && path.endsWith("/enderchest"))) {
+                if (path.endsWith("/enderchest")) {
+                    handleEnderChest(exchange);
+                } else {
+                    handleGet(exchange);
+                }
+            } else if ("POST".equalsIgnoreCase(method)) {
+                if (path.endsWith("/kick")) {
+                    handleKick(exchange);
+                } else if (path.endsWith("/ban")) {
+                    handleBan(exchange);
+                } else if (path.endsWith("/unban")) {
+                    handleUnban(exchange);
+                } else if (path.endsWith("/message")) {
+                    handleMessage(exchange);
+                } else if (path.endsWith("/move-item")) {
+                    handleMoveItem(exchange);
+                } else if (path.endsWith("/heal")) {
+                    handleSimpleAction(exchange, "heal");
+                } else if (path.endsWith("/feed")) {
+                    handleSimpleAction(exchange, "feed");
+                } else if (path.endsWith("/starve")) {
+                    handleSimpleAction(exchange, "starve");
+                } else if (path.endsWith("/kill")) {
+                    handleSimpleAction(exchange, "kill");
+                } else if (path.endsWith("/op")) {
+                    handleSimpleAction(exchange, "op");
+                } else if (path.endsWith("/deop")) {
+                    handleSimpleAction(exchange, "deop");
+                } else if (path.endsWith("/wipe")) {
+                    handleSimpleAction(exchange, "wipe");
+                } else if (path.endsWith("/whitelist")) {
+                    handleSimpleAction(exchange, "whitelist");
+                } else if (path.endsWith("/unwhitelist")) {
+                    handleSimpleAction(exchange, "unwhitelist");
+                } else if (path.endsWith("/gamemode")) {
+                    handleGamemode(exchange);
+                } else if (path.endsWith("/teleport")) {
+                    handleTeleport(exchange);
+                } else if (path.endsWith("/xp")) {
+                    handleXp(exchange);
+                } else if (path.endsWith("/advancements")) {
+                    handleAdvancements(exchange);
+                } else {
+                    sendError(exchange, 404, "Unknown player action");
+                }
+            } else {
+                sendError(exchange, 405, "Method Not Allowed");
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Players route error: " + e.getMessage());
+            try {
+                sendError(exchange, 500, "Internal Server Error");
+            } catch (IOException ignored) {}
+        }
+    }
+
+    @Override
+    protected void handleGet(HttpExchange exchange) throws IOException {
+        try {
+            Future<JsonArray> future = Bukkit.getScheduler().callSyncMethod(plugin, new Callable<JsonArray>() {
+                @Override
+                public JsonArray call() throws Exception {
+                    JsonArray playersArray = new JsonArray();
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        JsonObject pJson = new JsonObject();
+                        pJson.addProperty("name", player.getName());
+                        pJson.addProperty("uuid", player.getUniqueId().toString());
+                        pJson.addProperty("health", player.getHealth());
+                        pJson.addProperty("gamemode", player.getGameMode().name());
+                        pJson.addProperty("world", player.getWorld().getName());
+                        pJson.addProperty("isOp", player.isOp());
+                        
+                        // stats, they can be turned off on the server
+                        JsonObject stats = new JsonObject();
+                        try {
+                            stats.addProperty("deaths", player.getStatistic(Statistic.DEATHS));
+                            stats.addProperty("mobsKilled", player.getStatistic(Statistic.MOB_KILLS));
+                            stats.addProperty("damageTaken", player.getStatistic(Statistic.DAMAGE_TAKEN));
+                            
+                            int playTime = 0;
+                            try {
+                                playTime = player.getStatistic(Statistic.valueOf("PLAY_ONE_MINUTE"));
+                            } catch (IllegalArgumentException e) {
+                                try {
+                                    playTime = player.getStatistic(Statistic.valueOf("PLAY_ONE_TICK"));
+                                } catch (IllegalArgumentException e2) {}
+                            }
+                            stats.addProperty("playTimeHours", playTime / (20 * 60 * 60)); // ticks to hours for the UI
+                        } catch (Exception e) {
+                            // statistics disabled or unreadable, then the fields just stay empty
+                        }
+                        pJson.add("stats", stats);
+                        
+                        // inventory, the dashboard draws it as a slot grid
+                        JsonObject inv = new JsonObject();
+                        PlayerInventory playerInv = player.getInventory();
+                        inv.add("armor", serializeItems(playerInv.getArmorContents()));
+                        inv.add("main", serializeItems(playerInv.getContents()));
+                        // slot view for the dashboard: 0-8 hotbar, 9-35 main, 36-39 armor,
+                        // 40 offhand. bukkit indexes, so the UI moves items by index alone.
+                        JsonArray slotArray = new JsonArray();
+                        for (int slot = 0; slot <= 40; slot++) {
+                            JsonObject slotObj = new JsonObject();
+                            slotObj.addProperty("slot", slot);
+                            ItemStack stack = null;
+                            try {
+                                stack = playerInv.getItem(slot);
+                            } catch (Exception ignored) {}
+                            if (stack == null || stack.getType().name().equals("AIR")) {
+                                slotObj.add("item", com.google.gson.JsonNull.INSTANCE);
+                            } else {
+                                JsonObject itemObj = new JsonObject();
+                                itemObj.addProperty("type", stack.getType().name());
+                                itemObj.addProperty("amount", stack.getAmount());
+                                slotObj.add("item", itemObj);
+                            }
+                            slotArray.add(slotObj);
+                        }
+                        inv.add("slots", slotArray);
+                        
+                        String offhandStr = null;
+                        try {
+                            java.lang.reflect.Method m = playerInv.getClass().getMethod("getItemInOffHand");
+                            ItemStack offhand = (ItemStack) m.invoke(playerInv);
+                            if (offhand != null) offhandStr = offhand.getType().name();
+                        } catch (Exception e) {}
+                        
+                        if (offhandStr != null) {
+                            pJson.addProperty("offhand", offhandStr);
+                        } else {
+                            pJson.add("offhand", com.google.gson.JsonNull.INSTANCE);
+                        }
+                        pJson.add("inventory", inv);
+                        
+                        pJson.addProperty("isWhitelisted", player.isWhitelisted());
+                        
+                        playersArray.add(pJson);
+                    }
+                    return playersArray;
+                }
+            });
+
+            JsonArray players = future.get();
+            JsonObject response = new JsonObject();
+            response.add("players", players);
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to get players: " + e.getMessage());
+            sendError(exchange, 500, "Failed to get players");
+        }
+    }
+
+    private void handleKick(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+            if (!json.has("player")) {
+                sendError(exchange, 400, "Missing player name");
+                return;
+            }
+
+            String targetPlayer = json.get("player").getAsString();
+            String reason = json.has("reason") ? json.get("reason").getAsString() : "Kicked from dashboard";
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player p = Bukkit.getPlayer(targetPlayer);
+                if (p != null) {
+                    p.kickPlayer(ChatColor.translateAlternateColorCodes('&', reason));
+                }
+            });
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            sendError(exchange, 400, "Invalid JSON format");
+        }
+    }
+
+    private void handleBan(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+            if (!json.has("player")) {
+                sendError(exchange, 400, "Missing player name");
+                return;
+            }
+
+            String targetPlayer = json.get("player").getAsString();
+            String reason = json.has("reason") ? json.get("reason").getAsString() : "Banned from dashboard";
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Bukkit.getBanList(BanList.Type.NAME).addBan(targetPlayer,
+                        ChatColor.translateAlternateColorCodes('&', reason), null, "KodaDash");
+                Player p = Bukkit.getPlayer(targetPlayer);
+                if (p != null) {
+                    p.kickPlayer(ChatColor.translateAlternateColorCodes('&', reason));
+                }
+            });
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            sendError(exchange, 400, "Invalid JSON format");
+        }
+    }
+
+    private void handleUnban(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+            if (!json.has("player")) {
+                sendError(exchange, 400, "Missing player name");
+                return;
+            }
+
+            String targetPlayer = json.get("player").getAsString();
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Bukkit.getBanList(BanList.Type.NAME).pardon(targetPlayer);
+            });
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            sendError(exchange, 400, "Invalid JSON format");
+        }
+    }
+
+    private void handleMessage(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+            if (!json.has("player") || !json.has("message")) {
+                sendError(exchange, 400, "Missing player or message");
+                return;
+            }
+
+            String targetPlayer = json.get("player").getAsString();
+            String message = json.get("message").getAsString();
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player p = Bukkit.getPlayer(targetPlayer);
+                if (p != null) {
+                    p.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+                }
+            });
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            sendError(exchange, 400, "Invalid JSON format");
+        }
+    }
+
+    /**
+     * swaps two inventory slots of an online player.
+     * the slots are bukkit indexes: 0-8 hotbar, 9-35 main, 36-39 armor, 40 offhand.
+     */
+    private void handleMoveItem(HttpExchange exchange) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+            if (!json.has("player") || !json.has("from") || !json.has("to")) {
+                sendError(exchange, 400, "Missing player, from or to");
+                return;
+            }
+
+            final String targetPlayer = json.get("player").getAsString();
+            final int from = json.get("from").getAsInt();
+            final int to = json.get("to").getAsInt();
+
+            if (from < 0 || from > 40 || to < 0 || to > 40) {
+                sendError(exchange, 400, "Slot out of range (0-40)");
+                return;
+            }
+
+            Future<Boolean> future = Bukkit.getScheduler().callSyncMethod(plugin, new Callable<Boolean>() {
+                @Override
+                public Boolean call() {
+                    Player p = Bukkit.getPlayer(targetPlayer);
+                    if (p == null) return false;
+                    PlayerInventory inv = p.getInventory();
+                    ItemStack source = inv.getItem(from);
+                    ItemStack target = inv.getItem(to);
+                    inv.setItem(from, target);
+                    inv.setItem(to, source);
+                    p.updateInventory();
+                    return true;
+                }
+            });
+
+            boolean moved = future.get();
+            if (!moved) {
+                sendError(exchange, 404, "Player is not online");
+                return;
+            }
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            sendJson(exchange, 200, response);
+        } catch (Exception e) {
+            sendError(exchange, 400, "Could not move the item: " + e.getMessage());
+        }
+    }
+
+    private JsonArray serializeItems(ItemStack[] items) {
+        JsonArray array = new JsonArray();
+        if (items != null) {
+            for (ItemStack item : items) {
+                if (item == null || item.getType().name().equals("AIR")) {
+                    array.add(com.google.gson.JsonNull.INSTANCE);
+                } else {
+                    JsonObject iObj = new JsonObject();
+                    iObj.addProperty("type", item.getType().name());
+                    iObj.addProperty("amount", item.getAmount());
+                    array.add(iObj);
+                }
+            }
+        }
+        return array;
+    }
+
+    private void handleSimpleAction(HttpExchange exchange, String action) throws IOException {
+        String body = readBody(exchange);
+        if (body == null || body.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing request body");
+            return;
+        }
+
+        try {
+            JsonObject json = new JsonParser().parse(body).getAsJsonObject();
+            if (!json.has("player")) {
+                sendError(exchange, 400, "Missing player name");
+                return;
+            }
+
+            String targetPlayer = json.get("player").getAsString();
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player p = Bukkit.getPlayer(targetPlayer);
+                if (p != null) {
+                    switch (action) {
+                        case "heal":
+                            p.setHealth(p.getMaxHealth());
+                            p.setFoodLevel(20);
+                            break;
+                        case "feed":
+                            p.setFoodLevel(20);
+                            break;
+                        case "starve":
+                            p.setFoodLevel(0);
+                            break;
+                        case "kill":
+                            p.setHealth(0);
+                            break;
+                        case "op":
+                            p.setOp(true);
+                            break;
+                        case "deop":
+                            p.setOp(false);
+                            break;
+                        case "wipe":
+                            p.getInventory().clear();
+                            p.getEnderChest().clear();
+                            p.setExp(0);
+                            p.setLevel(0);
+                            p.getActivePotionEffects().forEach(effect -> p.removePotionEffect(effect.getType()));
+                            p.kickPlayer("Your data has been wiped.");
+                            break;
+                        case "whitelist":
+                            p.setWhitelisted(true);
+                            break;
+                        case "unwhitelist":
+                            p.setWhitelisted(false);
+                            break;
+                    }
+                }
+            });
+
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            sendError(exchange, 400, "Invalid JSON format");
+        }
+    }
+
+    /**
+     * sets the gamemode: {"player":"Name","mode":"creative"}.
+     * goes through the API and not the command, so a bad mode comes back as a 400.
+     */
+    private void handleGamemode(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player") || !json.has("mode")) {
+            sendError(exchange, 400, "Missing player or mode");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        String mode = json.get("mode").getAsString().trim().toUpperCase();
+        final org.bukkit.GameMode gameMode;
+        try {
+            gameMode = org.bukkit.GameMode.valueOf(mode);
+        } catch (Exception e) {
+            sendError(exchange, 400, "Unknown gamemode (use survival, creative, adventure or spectator)");
+            return;
+        }
+        boolean ok = runForPlayer(name, new PlayerTask() {
+            @Override
+            public void run(Player player) {
+                player.setGameMode(gameMode);
+            }
+        });
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /**
+     * teleports a player: {"player":"Name","target":"Other"} or {"player":"Name","x":0,"y":64,"z":0}.
+     * it runs as a console command, that is what makes relative coordinates and cross-world work.
+     */
+    private void handleTeleport(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player")) {
+            sendError(exchange, 400, "Missing player name");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        final String command;
+        if (json.has("target") && !json.get("target").getAsString().trim().isEmpty()) {
+            command = "tp " + name + " " + json.get("target").getAsString().trim();
+        } else if (json.has("x") && json.has("y") && json.has("z")) {
+            command = "tp " + name + " " + json.get("x").getAsString() + " "
+                    + json.get("y").getAsString() + " " + json.get("z").getAsString();
+        } else {
+            sendError(exchange, 400, "Missing target or x/y/z");
+            return;
+        }
+        boolean ok = Bukkit.getPlayer(name) != null;
+        if (ok) dispatch(command);
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /**
+     * gives or takes experience: {"player":"Name","amount":100,"type":"points"|"levels"}.
+     * a negative amount takes it away again.
+     */
+    private void handleXp(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player") || !json.has("amount")) {
+            sendError(exchange, 400, "Missing player or amount");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        int amount = json.get("amount").getAsInt();
+        String type = json.has("type") ? json.get("type").getAsString().toLowerCase() : "points";
+        if (!"points".equals(type) && !"levels".equals(type)) {
+            sendError(exchange, 400, "Unknown type (use points or levels)");
+            return;
+        }
+        boolean ok = Bukkit.getPlayer(name) != null;
+        if (ok) dispatch("xp add " + name + " " + amount + " " + type);
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /** wipes a player's advancements: {"player":"Name"}. */
+    private void handleAdvancements(HttpExchange exchange) throws IOException {
+        JsonObject json = readJsonObject(exchange);
+        if (json == null || !json.has("player")) {
+            sendError(exchange, 400, "Missing player name");
+            return;
+        }
+        final String name = json.get("player").getAsString();
+        boolean ok = Bukkit.getPlayer(name) != null;
+        if (ok) dispatch("advancement revoke " + name + " everything");
+        respondAction(exchange, ok, "Player is not online");
+    }
+
+    /** a player's ender chest for the dashboard, 27 slots. an offline name just says offline. */
+    private void handleEnderChest(HttpExchange exchange) throws IOException {
+        String query = exchange.getRequestURI().getQuery();
+        String name = null;
+        if (query != null) {
+            for (String param : query.split("&")) {
+                String[] pair = param.split("=", 2);
+                if (pair.length > 1 && "player".equals(pair[0])) {
+                    name = pair[1];
+                }
+            }
+        }
+        if (name == null || name.trim().isEmpty()) {
+            sendError(exchange, 400, "Missing 'player' parameter");
+            return;
+        }
+        final String target = name.trim();
+        try {
+            Future<JsonObject> future = Bukkit.getScheduler().callSyncMethod(plugin, new Callable<JsonObject>() {
+                @Override
+                public JsonObject call() {
+                    JsonObject result = new JsonObject();
+                    Player player = Bukkit.getPlayer(target);
+                    if (player == null) {
+                        result.addProperty("online", false);
+                        return result;
+                    }
+                    result.addProperty("online", true);
+                    result.addProperty("player", player.getName());
+                    ItemStack[] contents = player.getEnderChest().getContents();
+                    result.add("slots", serializeItems(contents));
+                    result.addProperty("size", contents.length);
+                    return result;
+                }
+            });
+            JsonObject result = future.get(5, java.util.concurrent.TimeUnit.SECONDS);
+            if (!result.get("online").getAsBoolean()) {
+                sendError(exchange, 404, "Player is not online");
+                return;
+            }
+            sendJson(exchange, 200, result);
+        } catch (Exception e) {
+            sendError(exchange, 500, "Could not read the ender chest: " + e.getMessage());
+        }
+    }
+
+    /** for actions that need the main thread and one online player. */
+    private interface PlayerTask {
+        void run(Player player);
+    }
+
+    private boolean runForPlayer(final String name, final PlayerTask task) {
+        if (Bukkit.getPlayer(name) == null) return false;
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                Player player = Bukkit.getPlayer(name);
+                if (player != null) task.run(player);
+            }
+        });
+        return true;
+    }
+
+    /** a console command on the main thread, used by teleport, XP and advancements. */
+    private void dispatch(final String command) {
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            }
+        });
+    }
+
+    private void respondAction(HttpExchange exchange, boolean ok, String errorMessage) throws IOException {
+        if (!ok) {
+            sendError(exchange, 404, errorMessage);
+            return;
+        }
+        JsonObject response = new JsonObject();
+        response.addProperty("success", true);
+        sendJson(exchange, 200, response);
+    }
+}

@@ -1,0 +1,80 @@
+# Copyright (c) 2026 KodaHosting
+#
+# This file is part of KodaHosting (KodaNetwork).
+# KodaHosting is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, version 3 of the License.
+#
+# KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: 2026 KodaHosting
+# SPDX-License-Identifier: GPL-3.0-only
+# KodaLobbyPlugin configuration
+
+# the Supabase anon key, used to fetch the server data
+supabase_anon_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjc2V6cGZycm1weXVhcGJsYnhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDE4MjYsImV4cCI6MjA5MjUxNzgyNn0.rHro6kQpXHAnxEaFxozYzsKY8IHIUlot-7-Q4LNbZT8"
+
+# lobby key for the remote commands (start/stop/plugins/console).
+# it sits in the Supabase table koda_lobby_keys and must be put in here,
+# otherwise the remote commands stay off (that was a security fix).
+lobby_key: ""
+
+# default domain for the server addresses, each server can override it in the db
+default_domain: "kodanetwork.eu"
+
+# menu title, & colour codes work
+menu_title: "&8Server Browser"
+
+# keeps the open inventories up to date on their own
+refresh:
+  enabled: true
+  rate: 200
+
+# custom items in the gui, they come before the dynamic KodaHosting servers
+items:
+  kodasmp_selector:
+    material: NETHERITE_SWORD
+    slot: 11
+    item_flags:
+      - HIDE_ATTRIBUTES
+      - HIDE_ENCHANTS
+    display_name: "&6&lKodaSMP"
+    lore:
+      - " &6Massive &7Clan Wars &6& Survival"
+      - ""
+      - " &6» &7Found your &7Powerful Clan"
+      - " &6» &7Dominate the &7Economy"
+      - " &6» &7Win the &7Great Clan Wars"
+      - ""
+      - " <#a0a0a0>Currently <#00FF00>%bungee_KodaSMP% <#a0a0a0>online!"
+      - ""
+      - " &6&l▶ CLICK TO JOIN THE BATTLE"
+    actions:
+      - '[CLOSE]'
+      - '[MESSAGE] &7Connecting to &6KodaSMP&7...'
+      - '[PLAYER] joinq KodaSMP'
+  xiaobox_selector:
+    material: BEACON
+    slot: 15
+    item_flags:
+      - HIDE_ATTRIBUTES
+    display_name: "&d&lXiaoBox"
+    lore:
+      - " &f The Ultimate &5BoxPvP &f Adventure"
+      - ""
+      - " &5» &7Farm &fRenewing Mines"
+      - " &5» &7Trade for &fCrates & Coins"
+      - " &5» &7Battle the &fServer Elite"
+      - ""
+      - " <#a0a0a0>Currently <#00FF00>%bungee_XiaoBox% <#a0a0a0>fighting!"
+      - ""
+      - " &d&l▶ CLICK TO JOIN THE ARENA"
+    actions:
+      - '[CLOSE]'
+      - '[MESSAGE] &7Entering the &dXiaoBox&7...'
+      - '[PLAYER] joinq XiaoBox'

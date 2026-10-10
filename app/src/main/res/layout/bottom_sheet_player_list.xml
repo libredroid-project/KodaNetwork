@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#0A0807"
+    android:paddingBottom="48dp">
+
+    <!-- sheet title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/players_manage_title"
+        android:textColor="#FF6B00"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.12"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="12dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#222230" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- online players, hidden while nobody is on -->
+            <TextView
+                android:id="@+id/tv_pm_online_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/players_online"
+                android:textColor="#00E676"
+                android:textSize="12sp"
+                android:paddingStart="8dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/container_pm_online"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_rounded_card"
+                android:padding="8dp"
+                android:visibility="gone"/>
+
+            <!-- known offline players, hidden when there are none -->
+            <TextView
+                android:id="@+id/tv_pm_offline_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/players_offline_known"
+                android:textColor="#888899"
+                android:textSize="12sp"
+                android:paddingStart="8dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/container_pm_offline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_rounded_card"
+                android:padding="8dp"
+                android:visibility="gone"/>
+
+            <!-- empty state, only when nobody is online and nobody is known -->
+            <LinearLayout
+                android:id="@+id/container_pm_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="24dp"
+                android:paddingBottom="16dp"
+                android:visibility="gone">
+
+                <com.airbnb.lottie.LottieAnimationView
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    app:lottie_rawRes="@raw/koda_empty"
+                    app:lottie_autoPlay="true"
+                    app:lottie_loop="true"/>
+
+                <TextView
+                    android:id="@+id/tv_pm_empty_hint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/pm_empty_players"
+                    android:textColor="#555566"
+                    android:textSize="13sp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

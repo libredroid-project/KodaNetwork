@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kodanetwork.eu/extensions/manifest.schema.json",
+  "title": "KodaHosting extension manifest",
+  "description": "manifest.json of a .kodaext package. Must match the validation in app/src/main/java/eu/kodanetwork/mchost/extension/ExtensionManifest.java.",
+  "type": "object",
+  "required": ["schema", "id", "name", "version", "versionCode", "license"],
+  "additionalProperties": true,
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9_-]+)+$",
+      "maxLength": 64,
+      "description": "Lowercase reverse-domain identifier, e.g. eu.example.live-log"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 48
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$",
+      "maxLength": 24,
+      "examples": ["1.0.0"]
+    },
+    "versionCode": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Must grow with every update"
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 600
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "examples": ["GPL-3.0-or-later", "MIT"]
+    },
+    "source_url": {
+      "type": "string",
+      "pattern": "^https://",
+      "maxLength": 300
+    },
+    "homepage": {
+      "type": "string",
+      "pattern": "^https://",
+      "maxLength": 300
+    },
+    "minAppVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "App versionCode the extension requires"
+    },
+    "permissions": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "examples": [
+          "storage",
+          "servers.read",
+          "console.read",
+          "console.send",
+          "servers.control",
+          "players.read",
+          "players.actions",
+          "files.read",
+          "notifications",
+          "http:discord.com"
+        ]
+      }
+    },
+    "ui": {
+      "type": "object",
+      "required": ["entry"],
+      "additionalProperties": true,
+      "properties": {
+        "entry": {
+          "type": "string",
+          "pattern": "^[^/\\\\:][^\\\\:]*\\.html$",
+          "maxLength": 200
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 32
+        }
+      }
+    },
+    "automations": {
+      "type": "string",
+      "pattern": "^[^\\\\:]*\\.json$",
+      "maxLength": 200
+    },
+    "contributes": {
+      "type": "object",
+      "description": "What the extension adds to the app itself: language packs, themes, UI tweaks.",
+      "additionalProperties": true,
+      "properties": {
+        "languages": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "required": ["code", "name", "file"],
+            "additionalProperties": false,
+            "properties": {
+              "code": { "type": "string", "pattern": "^[a-z]{2}(-[A-Za-z]{2,4})?$" },
+              "name": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "file": { "type": "string", "pattern": "\\.json$", "maxLength": 200 }
+            }
+          }
+        },
+        "themes": {
+          "type": "array",
+          "maxItems": 8,
+          "description": "Themes the user can switch on individually. 'color' is the accent seed, 'colors' optionally overrides whole roles for a complete retheme.",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "color"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{1,31}$" },
+              "name": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+              "colors": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "primary": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "surface": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "card": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "text": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "text_dim": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "outline": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "online": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                  "error": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+                }
+              }
+            }
+          }
+        },
+        "server_tabs": {
+          "type": "array",
+          "maxItems": 4,
+          "description": "Tabs the extension adds to the server screen. Pages get the server id as #server=<id>.",
+          "items": {
+            "type": "object",
+            "required": ["id", "title"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{1,31}$" },
+              "title": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "entry": { "type": "string", "pattern": "\\.html$", "maxLength": 200 },
+              "target": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{1,31}$" }
+            }
+          }
+        },
+        "settings": {
+          "type": "array",
+          "maxItems": 4,
+          "description": "Rows added to the app's settings screen, each with an info button naming the extension.",
+          "items": {
+            "type": "object",
+            "required": ["title"],
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "subtitle": { "type": "string", "maxLength": 80 },
+              "target": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]{1,31}$",
+                "description": "Appended to the extension URL as #target so the page can open a specific tab"
+              }
+            }
+          }
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hide": {
+              "type": "array",
+              "maxItems": 24,
+              "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,48}$" }
+            },
+            "console_chips": {
+              "type": "array",
+              "maxItems": 16,
+              "items": { "type": "string", "maxLength": 64 }
+            }
+          }
+        }
+      }
+    },
+    "icon": {
+      "type": "string",
+      "maxLength": 200
+    }
+  }
+}

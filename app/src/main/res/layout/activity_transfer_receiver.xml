@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!-- device transfer, receiver side: type the pairing code shown on the old
+     device, then download, decrypt and import the servers. koda dark style. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#171114"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="48dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/transfer_rx_title"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="24dp"
+            android:background="#FF6B00" />
+
+        <TextView
+            android:id="@+id/tv_transfer_rx_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/transfer_rx_intro"
+            android:textColor="#C9BFB8"
+            android:textSize="13sp"
+            android:lineSpacingMultiplier="1.4"
+            android:fontFamily="@font/font_koda" />
+
+        <LinearLayout
+            android:id="@+id/section_rx_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/transfer_rx_code_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_transfer_code"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapCharacters"
+                    android:maxLength="8"
+                    android:letterSpacing="0.2"
+                    android:textSize="22sp"
+                    android:fontFamily="@font/font_koda" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_transfer_search"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="16dp"
+                android:text="@string/transfer_rx_action_search"
+                android:fontFamily="@font/font_koda"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_rx_overview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/transfer_rx_list_label"
+                android:textColor="#FF6B00"
+                android:textSize="11sp"
+                android:letterSpacing="0.1"
+                android:fontFamily="@font/font_koda" />
+
+            <TextView
+                android:id="@+id/tv_transfer_rx_servers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="#C9BFB8"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.5"
+                android:fontFamily="@font/font_koda" />
+
+            <LinearLayout
+                android:id="@+id/ll_transfer_rx_rows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_transfer_start"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="20dp"
+                android:text="@string/transfer_rx_action_start"
+                android:fontFamily="@font/font_koda"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_rx_done"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/transfer_done_title"
+                android:textColor="#8BC34A"
+                android:textSize="11sp"
+                android:letterSpacing="0.1"
+                android:fontFamily="@font/font_koda" />
+
+            <TextView
+                android:id="@+id/tv_transfer_rx_done"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="#C9BFB8"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.4"
+                android:fontFamily="@font/font_koda" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_transfer_rx_done"
+                style="@style/KodaButton"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="20dp"
+                android:text="@string/transfer_action_done"
+                android:fontFamily="@font/font_koda"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

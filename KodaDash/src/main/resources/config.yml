@@ -1,0 +1,121 @@
+# Copyright (c) 2026 KodaHosting
+#
+# This file is part of KodaHosting (KodaNetwork).
+# KodaHosting is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, version 3 of the License.
+#
+# KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: 2026 KodaHosting
+# SPDX-License-Identifier: GPL-3.0-only
+# ============================================
+# KodaDash configuration
+# remote control panel for KodaHosting
+# ============================================
+
+# port for the dashboard, both the HTTP api and the SSE stream use it
+port: 7867
+
+# origins CORS lets in, comma separated
+# * is fine while developing, lock it down to our domain in production
+cors-origins: "https://kodahosting.com,http://localhost:3000"
+
+# auto-generated API token (do not share)
+# the KodaHosting website authenticates with it
+# it is generated automatically on the first startup
+# /kodadash regenerate rolls a new one
+api-token: ""
+
+# optional second password, kept as a bcrypt hash
+# set it with /kodadash setpassword <password>
+# leave it empty and the second password stays off
+password-hash: ""
+
+# rate limiting
+rate-limit:
+  # requests per minute per IP
+  max-requests: 120
+  # login attempts per minute per IP
+  max-auth-attempts: 10
+
+# biggest upload we take, in bytes (10MB)
+max-upload-size: 10485760
+
+# how many console lines stay in memory
+console-buffer-size: 500
+
+# paths the file browser refuses to open, relative to the server dir
+blocked-paths:
+  - "plugins/KodaDash/config.yml"
+  - "whitelist.json"
+  - "banned-players.json"
+  - "banned-ips.json"
+  - "ops.json"
+
+# console commands we refuse to run.
+# leading slashes are stripped, so "/stop" still hits the "stop" entry.
+blocked-commands:
+  - "stop"
+  - "restart"
+  - "reload"
+  - "kodadash"
+  - "op"
+  - "deop"
+  - "ban"
+  - "ban-ip"
+  - "pardon"
+  - "pardon-ip"
+  - "kick"
+  - "save-off"
+  - "save-all"
+  - "whitelist"
+  - "bukkit:reload"
+  - "bukkit:stop"
+  - "minecraft:stop"
+
+# restart/stop from the dashboard on purpose (player countdown and a cancel
+# option). they stay blocked in the console, only this route gets to use them.
+server-actions:
+  enabled: true
+  # seconds between the request and the action, players get a broadcast
+  countdown-seconds: 30
+  # allow "stop" (shuts the server down); restart is always there when enabled
+  allow-stop: true
+
+# live stats for the companion app (plugins/KodaDash/stats.json).
+# the app reads this for the server card, so it does not have to run "tps" in the
+# console every few seconds, which printed a line into the log each time.
+stats-file:
+  enabled: true
+  interval-seconds: 10
+
+# rolling history for the dashboard charts, memory only, one series per server run
+stats-history:
+  enabled: true
+  interval-seconds: 10
+  minutes: 60
+
+# scheduled automation (dashboard -> Settings -> Automation).
+# the jobs live in plugins/KodaDash/schedule.json.
+schedule:
+  enabled: true
+  # the app creates and runs the jobs, it mirrors them here for the dashboard to show
+  # switch this on only when the dashboard itself should run them
+  execute: false
+  # seconds of warning players get before a scheduled restart/stop
+  warn-seconds: 300
+  # countdown used when a scheduled restart/stop actually fires
+  restart-countdown-seconds: 15
+
+# power saving: drop the view distance while nobody is online.
+efficiency:
+  enabled: false
+  idle-minutes: 10
+  view-distance: 4
+  simulation-distance: 4

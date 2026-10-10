@@ -1,0 +1,151 @@
+/*
+ * Copyright (c) 2026 KodaHosting
+ *
+ * This file is part of KodaHosting (KodaNetwork).
+ * KodaHosting is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 3 of the License.
+ *
+ * KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * SPDX-FileCopyrightText: 2026 KodaHosting
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+package eu.kodanetwork.mchost.orchestration;
+
+import android.content.Context;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import eu.kodanetwork.mchost.util.AppLogger;
+
+public class DatabaseOrchestrator {
+    private static final String TAG = "KodaHosting";
+
+    public static void ensureDatabasesExtracted(Context context) {
+        new Thread(() -> {
+            try {
+                extractArchive(context, "mariadb-android-arm64.tar.xz", "mariadb");
+                extractArchive(context, "redis-android-arm64.tar.xz", "redis");
+            } catch (Exception e) {
+                AppLogger.log(TAG, "[DB Setup] ✗ Failed to extract databases: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private static void extractArchive(Context context, String assetName, String destFolder) {
+        File destDir = new File(context.getFilesDir(), destFolder);
+        File readyMarker = new File(destDir, ".symlinks_fixed_3");
+        
+        if (readyMarker.exists()) {
+            AppLogger.log(TAG, "[DB Setup] " + assetName + " already extracted properly.");
+            return;
+        }
+
+        AppLogger.log(TAG, "[DB Setup] Extracting " + assetName + " to " + destDir.getAbsolutePath() + "...");
+        
+        // the old folder is broken or only half there, so start over
+        if (destDir.exists()) {
+            deleteRecursive(destDir);
+        }
+        
+        // system tar is the most reliable way to unpack tar.xz on Android, so the
+        // archive goes to the cache first and then into tar -xf.
+        File tempTar = new File(context.getCacheDir(), assetName);
+        try {
+            try (InputStream is = context.getAssets().open(assetName);
+                 FileOutputStream fos = new FileOutputStream(tempTar)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, read);
+                }
+            }
+
+            destDir.mkdirs();
+            
+            try {
+                eu.kodanetwork.mchost.util.TarXzUtil.extract(tempTar.getAbsolutePath(), destDir.getAbsolutePath());
+                // chmod everything, otherwise the binaries come up permission denied
+                makeExecutableRecursive(destDir);
+                
+                // create symlinks for executables in jniLibs to bypass W^X
+                symlinkNativeLibs(context, destDir);
+                
+                // .ready marker, so the next start skips all of this
+                new File(destDir, ".symlinks_fixed_3").createNewFile();
+                AppLogger.log(TAG, "[DB Setup] ✓ " + assetName + " extracted successfully.");
+
+            } catch (Exception ex) {
+                AppLogger.log(TAG, "[DB Setup] ✗ extraction failed for " + assetName + ": " + ex.getMessage());
+            } finally {
+                tempTar.delete();
+            }
+        } catch (Exception e) {
+            AppLogger.log(TAG, "[DB Setup] ✗ Exception extracting " + assetName + ": " + e.getMessage());
+        } finally {
+            if (tempTar.exists()) tempTar.delete();
+        }
+    }
+
+    private static void deleteRecursive(File file) {
+        if (!file.exists()) return;
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursive(child);
+                }
+            }
+        }
+        file.delete();
+    }
+
+    private static void makeExecutableRecursive(File file) {
+        if (!file.exists()) return;
+        file.setExecutable(true, false);
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    makeExecutableRecursive(child);
+                }
+            }
+        }
+    }
+
+    private static void symlinkNativeLibs(Context context, File destDir) {
+        try {
+            File nativeDir = new File(context.getApplicationInfo().nativeLibraryDir);
+            File binDir = new File(destDir, "usr/bin");
+            if (!binDir.exists()) binDir.mkdirs();
+
+            File[] libs = nativeDir.listFiles();
+            if (libs == null) return;
+
+            for (File lib : libs) {
+                String name = lib.getName();
+                if (name.startsWith("lib") && name.endsWith(".so")) {
+                    String binName = name.substring(3, name.length() - 3);
+                    File linkTarget = new File(binDir, binName);
+                    if (linkTarget.exists()) linkTarget.delete();
+                    try {
+                        android.system.Os.symlink(lib.getAbsolutePath(), linkTarget.getAbsolutePath());
+                    } catch (Exception e) {
+                        AppLogger.log(TAG, "[DB Setup] Failed to symlink " + binName + ": " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            AppLogger.log(TAG, "[DB Setup] Error during symlinking: " + e.getMessage());
+        }
+    }
+}

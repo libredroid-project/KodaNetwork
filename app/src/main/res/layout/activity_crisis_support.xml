@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!--
+  crisis support screen, shown when a server name or MOTD contains phrases that suggest the
+  person is not okay. same blocking style as the overload screen, but calm and warm.
+  the continue button stays disabled for the first seconds so the page cannot be tapped away
+  reflexively. home/recents stay free, nobody is trapped inside the app.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#171114"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="28dp"
+        android:paddingEnd="28dp"
+        android:paddingTop="56dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            android:id="@+id/crisis_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="2"
+            android:gravity="center"
+            android:fontFamily="@font/space_grotesk_bold"
+            app:fontFamily="@font/space_grotesk_bold"
+            android:text="@string/crisis_title"
+            android:textColor="#FFFFFF"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:text="@string/crisis_subtitle"
+            android:textColor="#8A8A9A"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.18" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="#FF6B00" />
+
+        <TextView
+            android:id="@+id/crisis_love_headline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/crisis_love_headline"
+            android:textColor="#FFB68C"
+            android:textSize="17sp"
+            android:lineSpacingMultiplier="1.3" />
+
+        <TextView
+            android:id="@+id/crisis_love_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/crisis_love_text"
+            android:textColor="#B5B5B8"
+            android:textSize="13.5sp"
+            android:lineSpacingMultiplier="1.35" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="&lt;3"
+            android:textColor="#FF9EC6"
+            android:textSize="64sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/crisis_safe_text"
+            android:textColor="#FF9EC6"
+            android:textSize="14sp"
+            android:lineSpacingMultiplier="1.4" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/crisis_help_title"
+            android:textColor="#8A8A9A"
+            android:textSize="11sp"
+            android:letterSpacing="0.1" />
+
+        <TextView
+            android:id="@+id/crisis_hotlines"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/crisis_hotlines"
+            android:textColor="#E8E2D6"
+            android:textSize="13.5sp"
+            android:lineSpacingMultiplier="1.5"
+            android:autoLink="phone|web"
+            android:textColorLink="#FF6B00" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_crisis_call"
+            style="@style/KodaButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/crisis_call"
+            android:textSize="13sp"
+            android:fontFamily="@font/font_koda"
+            app:cornerRadius="12dp" />
+
+<com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_crisis_support"
+            style="@style/KodaButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/crisis_support"
+            android:textColor="#1B1613"
+            android:textSize="13sp"
+            app:strokeColor="#FFB68C"
+            app:strokeWidth="2dp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_crisis_krisenchat"
+            style="@style/KodaButton.Outline"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/crisis_krisenchat"
+            android:textSize="12sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_crisis_findhelp"
+            style="@style/KodaButton.Outline"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/crisis_findhelp"
+            android:textSize="12sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_crisis_discord"
+            style="@style/KodaButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#5865F2"
+            app:rippleColor="#4752C4"
+            android:text="@string/crisis_discord"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            app:cornerRadius="12dp" />
+
+        
+        <TextView
+            android:id="@+id/crisis_countdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:fontFamily="@font/font_koda"
+            android:textColor="#8A8A9A"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_crisis_continue"
+            style="@style/KodaButton.Outline"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="8dp"
+            android:enabled="false"
+            android:alpha="0.4"
+            android:text="@string/crisis_continue"
+            android:textSize="13sp"
+            android:fontFamily="@font/font_koda"
+            app:cornerRadius="12dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/crisis_rename_hint"
+            android:textColor="#6B5E56"
+            android:textSize="11sp" />
+    </LinearLayout>
+</ScrollView>

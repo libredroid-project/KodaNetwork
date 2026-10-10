@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "id": "eu.kodahosting.example.koda-lab",
+  "name": "Koda Lab",
+  "version": "1.2.0",
+  "versionCode": 3,
+  "author": "KodaHosting",
+  "description": "Test bench: exercises every extension API, all contribution types, storage quota and rate limits.",
+  "license": "GPL-3.0-or-later",
+  "source_url": "https://github.com/libredroid-project/KodaNetwork",
+  "minAppVersion": 8514,
+  "icon": "icon.png",
+  "permissions": [
+    "storage",
+    "servers.read",
+    "console.read",
+    "console.send",
+    "servers.control",
+    "players.read",
+    "players.actions",
+    "files.read",
+    "notifications",
+    "http:discord.com"
+  ],
+  "ui": { "entry": "ui/index.html", "title": "Koda Lab" },
+  "contributes": {
+    "languages": [
+      { "code": "es", "name": "Español (demo)", "file": "lang/es.json" }
+    ],
+    "themes": [
+      { "id": "lab-cyan", "name": "Lab Cyan", "color": "#00A8B5" },
+      { "id": "lab-magenta", "name": "Lab Magenta", "color": "#B5006E" },
+      { "id": "lab-midnight", "name": "Lab Midnight", "color": "#00D9FF",
+        "colors": {
+          "primary": "#00D9FF",
+          "surface": "#07070F",
+          "card": "#14141F",
+          "text": "#EDEDF5",
+          "text_dim": "#8C8C9C",
+          "outline": "#2A2A3A",
+          "online": "#3FA34D",
+          "error": "#FF4455"
+        } }
+    ],
+    "server_tabs": [
+      { "id": "lab-server", "title": "Lab", "target": "console" }
+    ],
+    "settings": [
+      { "title": "Koda Lab", "subtitle": "API test bench: every bridge call in one screen", "target": "overview" },
+      { "title": "Koda Lab: Self-Test", "subtitle": "Run the 14 API checks with raw responses", "target": "tests" }
+    ],
+    "ui": {
+      "hide": ["btn_github_main"],
+      "console_chips": ["/tps", "/list", "time set day", "weather clear"]
+    }
+  },
+  "automations": "automations.json"
+}
