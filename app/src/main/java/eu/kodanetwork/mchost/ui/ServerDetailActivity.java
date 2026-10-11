@@ -797,6 +797,62 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
+    /** one in-memory cache, a reopened sheet shows the heads instantly. */
+    private static final java.util.HashMap<String, android.graphics.Bitmap> playerHeadCache = new java.util.HashMap<>();
+
+    /**
+     * loads a player head from minotar, mc-heads as the fallback, and takes the
+     * XML tint OFF the view: that tint is only for the placeholder icon, applied
+     * to the real skin it turns every head into a gray silhouette.
+     */
+    private void loadPlayerHeadImage(String name, android.widget.ImageView target, boolean grayOut) {
+        if (name == null || name.isEmpty() || target == null) return;
+        android.graphics.Bitmap cached = playerHeadCache.get(name.toLowerCase(java.util.Locale.ROOT));
+        if (cached != null) {
+            applyPlayerHead(target, cached, grayOut);
+            return;
+        }
+        new Thread(() -> {
+            android.graphics.Bitmap bmp = null;
+            String[] sources = new String[]{
+                    "https://minotar.net/helm/" + name + "/64.png",
+                    "https://mc-heads.net/avatar/" + name + "/64"};
+            for (String source : sources) {
+                try {
+                    java.net.HttpURLConnection conn =
+                            (java.net.HttpURLConnection) new java.net.URL(source).openConnection();
+                    conn.setConnectTimeout(6000);
+                    conn.setReadTimeout(6000);
+                    try (java.io.InputStream in = conn.getInputStream()) {
+                        bmp = android.graphics.BitmapFactory.decodeStream(in);
+                    }
+                    if (bmp != null) break;
+                } catch (Exception ignored) {
+                }
+            }
+            if (bmp == null) return;
+            final android.graphics.Bitmap loaded = bmp;
+            runOnUiThread(() -> {
+                if (playerHeadCache.size() > 64) playerHeadCache.clear();
+                playerHeadCache.put(name.toLowerCase(java.util.Locale.ROOT), loaded);
+                applyPlayerHead(target, loaded, grayOut);
+            });
+        }, "KodaPlayerHead").start();
+    }
+
+    private void applyPlayerHead(android.widget.ImageView target, android.graphics.Bitmap bmp, boolean grayOut) {
+        if (target == null || bmp == null) return;
+        target.setImageTintList(null);
+        if (grayOut) {
+            android.graphics.ColorMatrix matrix = new android.graphics.ColorMatrix();
+            matrix.setSaturation(0);
+            target.setColorFilter(new android.graphics.ColorMatrixColorFilter(matrix));
+        } else {
+            target.setColorFilter(null);
+        }
+        target.setImageBitmap(bmp);
+    }
+
         private void showPlayerActions() {
         com.google.android.material.bottomsheet.BottomSheetDialog sheet = 
             new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
@@ -822,16 +878,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                     tvName.setText(playerName);
                     
                     android.widget.ImageView ivHead = playerRow.findViewById(R.id.iv_row_player_head);
-                    new Thread(() -> {
-                        try {
-                            java.net.URL url = new java.net.URL("https://minotar.net/helm/" + playerName + "/64.png");
-                            java.io.InputStream in = url.openStream();
-                            final android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeStream(in);
-                            runOnUiThread(() -> {
-                                if (ivHead != null && bmp != null) ivHead.setImageBitmap(bmp);
-                            });
-                        } catch (Exception e) {}
-                    }).start();
+                    loadPlayerHeadImage(playerName, ivHead, false);
                     
                     playerRow.setOnClickListener(v -> {
                         sheet.dismiss();
@@ -881,22 +928,8 @@ public class ServerDetailActivity extends AppCompatActivity {
                                     tvName.setTextColor(0xFF888899); // gray, this one is offline
                                     
                                     android.widget.ImageView ivHead = playerRow.findViewById(R.id.iv_row_player_head);
-                                    // desaturate the head so offline players look gray
-                                    android.graphics.ColorMatrix matrix = new android.graphics.ColorMatrix();
-                                    matrix.setSaturation(0);
-                                    android.graphics.ColorMatrixColorFilter filter = new android.graphics.ColorMatrixColorFilter(matrix);
-                                    ivHead.setColorFilter(filter);
-                                    
-                                    new Thread(() -> {
-                                        try {
-                                            java.net.URL url = new java.net.URL("https://minotar.net/helm/" + offlineName + "/64.png");
-                                            java.io.InputStream in = url.openStream();
-                                            final android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeStream(in);
-                                            runOnUiThread(() -> {
-                                                if (ivHead != null && bmp != null) ivHead.setImageBitmap(bmp);
-                                            });
-                                        } catch (Exception e) {}
-                                    }).start();
+                                    // offline players stay gray, the helper desaturates the head
+                                    loadPlayerHeadImage(offlineName, ivHead, true);
                                     
                                     playerRow.setOnClickListener(v -> {
                                         sheet.dismiss();
