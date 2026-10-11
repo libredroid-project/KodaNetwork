@@ -720,8 +720,14 @@ public class MainActivity extends AppCompatActivity {
                         hwidForBan = eu.kodanetwork.mchost.security.HWIDManager.getDeviceHWID(this);
                     } catch (Exception ignored) {
                     }
+                    // the stored token travels along: the server only echoes it back to
+                    // the device that owns the row, and it stores the hwid while the
+                    // caller is verified, which is what makes reinstalls recoverable
+                    String tokenForBan = eu.kodanetwork.mchost.App.getPrefs(MainActivity.this)
+                            .getString("device_token", "");
                     okhttp3.RequestBody body = okhttp3.RequestBody.create(
-                            "{\"p_app_uuid\":\"" + uuid + "\",\"p_hwid\":\"" + hwidForBan + "\"}",
+                            "{\"p_app_uuid\":\"" + uuid + "\",\"p_hwid\":\"" + hwidForBan
+                                    + "\",\"p_device_token\":\"" + tokenForBan + "\"}",
                             okhttp3.MediaType.parse("application/json")
                     );
                     okhttp3.Request userReq = new okhttp3.Request.Builder()

@@ -41,7 +41,7 @@ CREATE OR REPLACE FUNCTION public.rpc_get_is_banned(
     p_app_uuid text,
     p_hwid text DEFAULT NULL,
     p_device_token text DEFAULT NULL)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions AS $fn$
 DECLARE
   v_banned boolean;
   v_token text;
@@ -69,6 +69,19 @@ BEGIN
     SELECT is_banned, device_token, hwid_full INTO v_banned, v_token, v_hwid
     FROM public.koda_users WHERE app_uuid = p_app_uuid
     ORDER BY created_at DESC LIMIT 1;
+  END IF;
+
+  -- a row without a token holds no credential to protect, so it gets a fresh one
+  -- right here. that is the reset path when a device lost its token (reinstall
+  -- without a backup): the operator clears the token in the panel, the next app
+  -- start heals itself and stores its hwid along the way.
+  IF v_token IS NULL OR v_token = '' THEN
+    UPDATE public.koda_users
+       SET device_token = encode(gen_random_bytes(16), 'hex'),
+           hwid_full = COALESCE(NULLIF(p_hwid, ''), hwid_full)
+     WHERE app_uuid = p_app_uuid AND (device_token IS NULL OR device_token = '')
+    RETURNING device_token, COALESCE(is_banned, false) INTO v_token, v_banned;
+    RETURN jsonb_build_object('banned', COALESCE(v_banned, false), 'device_token', v_token);
   END IF;
 
   -- the device that already holds the token: give it back and remember its hwid
@@ -99,11 +112,13 @@ GRANT EXECUTE ON FUNCTION public.rpc_get_is_banned(text, text, text) TO anon, au
 --    the anon key insert rows with self-chosen is_main/permissions (the lobby
 --    grounds every panel permission on is_main).
 DROP POLICY IF EXISTS "Allow insert for public" ON public.koda_users;
+DROP POLICY IF EXISTS "Authenticated can insert own profile" ON public.koda_users;
 CREATE POLICY "Authenticated can insert own profile" ON public.koda_users
   FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
 
 -- 4) same story for support_reports, reports flow through the RPCs
 DROP POLICY IF EXISTS "Allow anonymous insert reports" ON public.support_reports;
+DROP POLICY IF EXISTS "Authenticated can insert reports" ON public.support_reports;
 CREATE POLICY "Authenticated can insert reports" ON public.support_reports
   FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
 
@@ -191,6 +206,7 @@ GRANT EXECUTE ON FUNCTION public.report_high_risk(text, text, uuid, text, text) 
 --    checked edge function.
 DROP POLICY IF EXISTS "Give users access to own folder" ON storage.objects;
 DROP POLICY IF EXISTS "Public access to support attachments" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can upload support attachments" ON storage.objects;
 CREATE POLICY "Anyone can upload support attachments" ON storage.objects
   FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'support_attachments');
 

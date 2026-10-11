@@ -41,7 +41,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -52,7 +54,19 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class KodaLobbyPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
+public class KodaLobbyPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter, PluginMessageListener {
+
+    /** KodaWatch (Proxy) schickt hier den Server, von dem der Spieler kommt. */
+    public static final String LAST_SERVER_CHANNEL = "kodawatch:lastserver";
+    private final Map<UUID, String> lastServers = new ConcurrentHashMap<>();
+
+    /** KodaWatch (Proxy) schickt hier regelmaessig den Online-Status aller Server. */
+    public static final String STATUS_CHANNEL = "kodawatch:status";
+    /** Server-Name (lower case) -> online? (leer = noch kein Status empfangen) */
+    private final Map<String, Boolean> proxyServerOnline = new ConcurrentHashMap<>();
+    /** Fallback: status.txt des Proxy-Plugins (Proxy + Lobby laufen auf einem Rechner). */
+    private String statusFilePath = "";
+    private volatile long lastStatusFileModified = 0L;
 
     private String menuTitle;
     private final List<String> knownServers = new ArrayList<>();
@@ -102,6 +116,18 @@ public class KodaLobbyPlugin extends JavaPlugin implements Listener, CommandExec
         loadConfiguration();
 
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getMessenger().registerIncomingPluginChannel(this, LAST_SERVER_CHANNEL, this);
+        getServer().getMessenger().registerIncomingPluginChannel(this, STATUS_CHANNEL, this);
+
+        // Datei-Fallback fuer den KodaWatch-Status (siehe readStatusFile)
+        String statusFile = getConfig().getString("kodawatch-status-file", "");
+        if (statusFile == null) statusFile = "";
+        statusFilePath = statusFile.trim();
+        if (!statusFilePath.isEmpty()) {
+            getServer().getScheduler().runTaskTimerAsynchronously(this, this::readStatusFile, 60L, 40L);
+            getLogger().info("KodaWatch status file fallback active: " + statusFilePath);
+        }
+        registerPlaceholders();
         if (getCommand("server") != null) {
             getCommand("server").setExecutor(this);
             getCommand("server").setTabCompleter(this);
@@ -1772,4 +1798,111 @@ public class KodaLobbyPlugin extends JavaPlugin implements Listener, CommandExec
             player.sendMessage(ChatColor.RED + "Transfer failed. Your client may not support transfers (requires 1.20.5+).");
         }
     }
+
+    // ------------------------------------------------------------------ last server (from KodaWatch on the proxy)
+
+    @Override
+    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
+        if (channel.equals(STATUS_CHANNEL)) {
+            applyStatusPayload(new String(message, java.nio.charset.StandardCharsets.UTF_8));
+            return;
+        }
+        if (!channel.equals(LAST_SERVER_CHANNEL)) return;
+        try (java.io.DataInputStream in = new java.io.DataInputStream(new java.io.ByteArrayInputStream(message))) {
+            String server = in.readUTF();
+            if (server != null && !server.isEmpty() && !server.equalsIgnoreCase("NONE")) {
+                lastServers.put(player.getUniqueId(), server);
+            }
+        } catch (Exception ignored) {
+            // malformed message - ignore
+        }
+    }
+
+    /** Server the player was on before joining here ("" when unknown). */
+    public String getLastServer(UUID uuid) {
+        return lastServers.getOrDefault(uuid, "");
+    }
+
+    /** KodaWatch-Status: "KodaSMP=1;SoniicSMP=1;XiaoBox=0" (Plugin-Message ODER status.txt).
+     *  Aenderungen werden einmal geloggt, damit im Lobby-Log sichtbar ist, dass es ankommt. */
+    private void applyStatusPayload(String payload) {
+        if (payload == null) return;
+        try {
+            boolean changed = false;
+            for (String part : payload.trim().split(";")) {
+                int idx = part.indexOf('=');
+                if (idx <= 0) continue;
+                String name = part.substring(0, idx).trim();
+                boolean online = part.substring(idx + 1).trim().equals("1");
+                Boolean previous = proxyServerOnline.put(name.toLowerCase(java.util.Locale.ROOT), online);
+                if (previous == null || previous != online) changed = true;
+            }
+            if (changed) {
+                getLogger().info("KodaWatch status: " + payload.trim());
+            }
+        } catch (Exception ignored) {
+            // malformed payload - ignore
+        }
+    }
+
+    /** Fallback: dieselbe Status-Zeile aus der status.txt des Proxy-Plugins lesen. */
+    private void readStatusFile() {
+        String path = statusFilePath;
+        if (path == null || path.isEmpty()) return;
+        try {
+            java.io.File file = new java.io.File(path);
+            if (!file.isFile()) return;
+            long modified = file.lastModified();
+            if (modified == lastStatusFileModified) return;
+            lastStatusFileModified = modified;
+            applyStatusPayload(java.nio.file.Files.readString(file.toPath(), java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception ignored) {
+            // file unreadable - ignore, the plugin message is the primary path
+        }
+    }
+
+    private void registerPlaceholders() {
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") == null) {
+            getLogger().warning("PlaceholderAPI not found - %kodalobby_lastserver% will not work.");
+            return;
+        }
+        try {
+            new me.clip.placeholderapi.expansion.PlaceholderExpansion() {
+                @Override public String getIdentifier() { return "kodalobby"; }
+                @Override public String getAuthor() { return "KodaNetwork"; }
+                @Override public String getVersion() { return KodaLobbyPlugin.this.getDescription().getVersion(); }
+                @Override public boolean persist() { return true; }
+
+                @Override
+                public String onRequest(OfflinePlayer player, String params) {
+                    if (player == null) return "";
+                    String last = getLastServer(player.getUniqueId());
+                    if (last.isEmpty()) {
+                        // "NONE" statt leer: damit TAB-Bedingungen (%ph%=KodaSMP / %ph%!=NONE) sauber parsen
+                        last = "NONE";
+                    }
+                    if (params.equalsIgnoreCase("lastserver")) return last;
+                    if (params.equalsIgnoreCase("lastserver_lower")) return last.toLowerCase();
+                    // KodaWatch-Status (Channel kodawatch:status):
+                    //   %kodalobby_online_<server>% -> "true"/"false" (leer wenn unbekannt)
+                    //   %kodalobby_status_<server>% -> "online"/"offline"
+                    //   %kodalobby_icon_<server>%   -> farbiges Symbol fuer TAB/Scoreboard
+                    String lower = params.toLowerCase(java.util.Locale.ROOT);
+                    if (lower.startsWith("online_") || lower.startsWith("status_") || lower.startsWith("icon_")) {
+                        String key = lower.substring(lower.indexOf('_') + 1);
+                        Boolean online = proxyServerOnline.get(key);
+                        if (lower.startsWith("online_")) return online == null ? "" : (online ? "true" : "false");
+                        if (lower.startsWith("status_")) return online == null ? "" : (online ? "online" : "offline");
+                        if (online == null) return "";
+                        return online ? "<#00FF79>\u2714" : "<#EE2525>\u2716";
+                    }
+                    return null;
+                }
+            }.register();
+            getLogger().info("PlaceholderAPI expansion registered: %kodalobby_lastserver%");
+        } catch (Throwable t) {
+            getLogger().warning("Could not register placeholders: " + t);
+        }
+    }
+
 }

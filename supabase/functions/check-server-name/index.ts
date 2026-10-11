@@ -24,6 +24,17 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { validateHost } from "../_shared/validation.ts";
 import { adminClient, jsonError, verifyDeviceToken } from "../_shared/deviceAuth.ts";
 
+// legacy callers without a device token (builds before 8515): at most 30 calls per
+// minute per warm instance, that is the brake against scrapers.
+const unverifiedHits: number[] = [];
+function unverifiedAllowed(): boolean {
+  const now = Date.now();
+  while (unverifiedHits.length > 0 && now - unverifiedHits[0] > 60_000) unverifiedHits.shift();
+  if (unverifiedHits.length >= 30) return false;
+  unverifiedHits.push(now);
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
@@ -39,8 +50,15 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = adminClient();
     const { app_uuid, device_token } = body;
-    if (!(await verifyDeviceToken(supabaseAdmin, app_uuid, device_token))) {
-      return jsonError("unauthorized", 401);
+    if (app_uuid || device_token) {
+      // devices that send their token are checked for real
+      if (!(await verifyDeviceToken(supabaseAdmin, app_uuid, device_token))) {
+        return jsonError("unauthorized", 401);
+      }
+    } else if (!unverifiedAllowed()) {
+      // clients before 8515 don't send the device auth yet, and blocking them broke
+      // server creation for every installed build, so they stay allowed (rate limited)
+      return jsonError("rate_limited", 429);
     }
 
     const host = String(body.host ?? "").toLowerCase();
