@@ -1080,16 +1080,13 @@ public class SettingsActivity extends Activity {
                 lp.setMargins(0, 0, 0, 24);
                 accLayout.setLayoutParams(lp);
                 
-                // the mc head
+                // the mc head, now straight from mojang: the old services served the
+                // default steve for real accounts like SDI_0
                 android.widget.ImageView ivHead = new android.widget.ImageView(this);
                 ivHead.setLayoutParams(new LinearLayout.LayoutParams(96, 96));
-                new Thread(() -> {
-                    try {
-                        java.net.URL url = new java.net.URL("https://mc-heads.net/avatar/" + mcName + "/96");
-                        android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeStream(url.openConnection().getInputStream());
-                        runOnUiThread(() -> ivHead.setImageBitmap(bmp));
-                    } catch (Exception ignored) {}
-                }).start();
+                eu.kodanetwork.mchost.util.MinecraftHeadLoader.load(mcName, 96, bmp -> {
+                    if (bmp != null) ivHead.setImageBitmap(bmp);
+                });
                 accLayout.addView(ivHead);
                 
                 // name and role

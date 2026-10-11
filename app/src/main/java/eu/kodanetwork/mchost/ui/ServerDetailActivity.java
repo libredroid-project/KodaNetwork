@@ -797,47 +797,17 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
-    /** one in-memory cache, a reopened sheet shows the heads instantly. */
-    private static final java.util.HashMap<String, android.graphics.Bitmap> playerHeadCache = new java.util.HashMap<>();
-
     /**
-     * loads a player head from minotar, mc-heads as the fallback, and takes the
-     * XML tint OFF the view: that tint is only for the placeholder icon, applied
-     * to the real skin it turns every head into a gray silhouette.
+     * loads a player head through MinecraftHeadLoader (mojang first, the public
+     * services as fallback) and takes the XML tint OFF the view: that tint is only
+     * for the placeholder icon, applied to the real skin it would turn every head
+     * into a gray silhouette.
      */
     private void loadPlayerHeadImage(String name, android.widget.ImageView target, boolean grayOut) {
         if (name == null || name.isEmpty() || target == null) return;
-        android.graphics.Bitmap cached = playerHeadCache.get(name.toLowerCase(java.util.Locale.ROOT));
-        if (cached != null) {
-            applyPlayerHead(target, cached, grayOut);
-            return;
-        }
-        new Thread(() -> {
-            android.graphics.Bitmap bmp = null;
-            String[] sources = new String[]{
-                    "https://minotar.net/helm/" + name + "/64.png",
-                    "https://mc-heads.net/avatar/" + name + "/64"};
-            for (String source : sources) {
-                try {
-                    java.net.HttpURLConnection conn =
-                            (java.net.HttpURLConnection) new java.net.URL(source).openConnection();
-                    conn.setConnectTimeout(6000);
-                    conn.setReadTimeout(6000);
-                    try (java.io.InputStream in = conn.getInputStream()) {
-                        bmp = android.graphics.BitmapFactory.decodeStream(in);
-                    }
-                    if (bmp != null) break;
-                } catch (Exception ignored) {
-                }
-            }
-            if (bmp == null) return;
-            final android.graphics.Bitmap loaded = bmp;
-            runOnUiThread(() -> {
-                if (playerHeadCache.size() > 64) playerHeadCache.clear();
-                playerHeadCache.put(name.toLowerCase(java.util.Locale.ROOT), loaded);
-                applyPlayerHead(target, loaded, grayOut);
-            });
-        }, "KodaPlayerHead").start();
+        eu.kodanetwork.mchost.util.MinecraftHeadLoader.load(name, 64, bmp -> {
+            if (bmp != null) applyPlayerHead(target, bmp, grayOut);
+        });
     }
 
     private void applyPlayerHead(android.widget.ImageView target, android.graphics.Bitmap bmp, boolean grayOut) {
