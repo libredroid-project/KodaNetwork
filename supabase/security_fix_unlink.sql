@@ -49,9 +49,18 @@ BEGIN
 END;
 $fn$;
 
--- unlink: drops the account link of one row (same rules as patch_user_by_id)
+-- unlink: drops the account link of one row (same rules as patch_user_by_id).
+-- CAREFUL with the search_path: the code gets regenerated with gen_random_bytes,
+-- and pgcrypto lives in the "extensions" schema on supabase, NOT in public. with
+-- "SET search_path = public" the function dies inside with
+-- "function gen_random_bytes(integer) does not exist" and postgrest answers the
+-- app with HTTP 404 - that is exactly what happened on 2026-10-11.
 CREATE OR REPLACE FUNCTION public.rpc_unlink_account(p_app_uuid text, p_device_token text, p_target_id uuid)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
 DECLARE v_caller_auth uuid; v_target_auth uuid;
 BEGIN
   IF NOT public.fn_verify_device_token(p_app_uuid, p_device_token) THEN
@@ -67,9 +76,31 @@ BEGIN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
-  UPDATE public.koda_users SET mc_username = NULL, auth_id = NULL WHERE id = p_target_id;
+  -- Vollstaendig trennen: Username, Auth, Rechte, Main-Status, Code regenerieren
+  UPDATE public.koda_users SET
+    mc_username = NULL,
+    auth_id = NULL,
+    permissions = '{}',
+    is_main = false,
+    nickname = NULL,
+    pending_mc_username = NULL,
+    code = upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 8))
+  WHERE id = p_target_id;
+
+  -- Falls der Main-Account entfernt wurde: aeltesten verbleibenden zum Main machen
+  IF EXISTS (SELECT 1 FROM public.koda_users WHERE app_uuid = p_app_uuid AND mc_username IS NOT NULL)
+     AND NOT EXISTS (SELECT 1 FROM public.koda_users WHERE app_uuid = p_app_uuid AND is_main = true AND mc_username IS NOT NULL) THEN
+    UPDATE public.koda_users SET is_main = true
+    WHERE id = (
+      SELECT id FROM public.koda_users
+      WHERE app_uuid = p_app_uuid AND mc_username IS NOT NULL
+      ORDER BY created_at ASC LIMIT 1
+    );
+  END IF;
+
+  RETURN true;
 END;
-$fn$;
+$function$;
 
 GRANT EXECUTE ON FUNCTION public.rpc_unlink_account(text, text, uuid) TO anon, authenticated;
 NOTIFY pgrst, 'reload schema';
