@@ -87,6 +87,15 @@ BEGIN
     WHERE app_uuid = p_new_app_uuid
       AND NOT (is_banned = true AND v_banned = false); -- never lift a ban that is already there
   END IF;
+
+  -- whoever is a PRAETOR stays one. without this the allowlist kept pointing at
+  -- the old app_uuid after a hwid change and the admin screens answered every
+  -- update with 400 Not authorized (hit on 2026-10-11)
+  IF EXISTS (SELECT 1 FROM public.praetor_admins WHERE app_uuid = p_old_app_uuid) THEN
+    DELETE FROM public.praetor_admins WHERE app_uuid = p_old_app_uuid;
+    INSERT INTO public.praetor_admins (app_uuid) VALUES (p_new_app_uuid)
+    ON CONFLICT (app_uuid) DO NOTHING;
+  END IF;
 END;
 $fn$;
 
