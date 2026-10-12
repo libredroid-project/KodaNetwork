@@ -1118,4 +1118,8 @@
     <string name="chat_photo_saved">Zapisano w Pobranych</string>
     <string name="chat_photo_save_failed">Nie udało się zapisać zdjęcia</string>
     <string name="ticket_reply_title">Odpowiedź w Twoim zgłoszeniu</string>
+    <string name="update_notification_title">Dostępna aktualizacja</string>
+    <string name="update_notification_text">Nowsza wersja jest gotowa</string>
+    <string name="crash_notification_title">uległ awarii</string>
+    <string name="crash_notification_text">Serwer zatrzymał się nieoczekiwanie, dotknij aby zobaczyć konsolę</string>
 </resources>

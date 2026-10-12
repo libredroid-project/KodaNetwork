@@ -1179,4 +1179,8 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="chat_photo_saved">In Downloads gespeichert</string>
     <string name="chat_photo_save_failed">Foto konnte nicht gespeichert werden</string>
     <string name="ticket_reply_title">Antwort in deinem Support-Ticket</string>
+    <string name="update_notification_title">Update verfuegbar</string>
+    <string name="update_notification_text">Eine neuere KodaHosting-Version ist da</string>
+    <string name="crash_notification_title">ist abgestuerzt</string>
+    <string name="crash_notification_text">Der Server hat sich unerwartet beendet, tippen fuer die Konsole</string>
 </resources>

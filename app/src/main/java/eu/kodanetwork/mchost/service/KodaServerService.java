@@ -255,7 +255,7 @@ public class KodaServerService extends Service {
         // backups: once an hour we check whether a server is due for its daily backup,
         // and while one runs we keep an eye on the phone's battery and temperature.
         scheduler.scheduleAtFixedRate(this::backupMaintenanceTick, 120, 600, java.util.concurrent.TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::ticketReplyTick, 75, 300, java.util.concurrent.TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::ticketReplyTick, 20, 30, java.util.concurrent.TimeUnit.SECONDS);
 
         // automation: the schedules come from the app and run here, KodaDash only shows them
         scheduler.scheduleAtFixedRate(this::automationTick, 60, 30, java.util.concurrent.TimeUnit.SECONDS);
@@ -3152,6 +3152,8 @@ public class KodaServerService extends Service {
             alertIntent.putExtra("crashReason", s.crashReason);
             alertIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(alertIntent);
+            // die in-app Ansicht erreicht nur den Vordergrund, die Meldung holt den Nutzer auch zurueck
+            notifyCrash(s, s.crashReason);
         }
     }
 
@@ -3229,7 +3231,100 @@ public class KodaServerService extends Service {
     }
 
     private long lastTicketCheck;
+    private long lastUpdateCheck;
     private static final String TICKET_CHANNEL = "koda_tickets";
+    private static final String UPDATE_CHANNEL = "koda_updates";
+
+    /** looks for a newer app version every ten minutes and tells the user once per version. */
+    private void checkForAppUpdate(long now) {
+        if (now - lastUpdateCheck < 10 * 60_000L) return;
+        lastUpdateCheck = now;
+        try {
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(
+                    eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                            + "/rest/v1/app_settings?key=eq.latest_app_version&select=value").openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("apikey", SUPABASE_KEY);
+            conn.setRequestProperty("Authorization", "Bearer " + SUPABASE_KEY);
+            java.io.InputStream in = conn.getInputStream();
+            StringBuilder sb = new StringBuilder();
+            try (java.util.Scanner sc = new java.util.Scanner(in).useDelimiter("\\A")) {
+                if (sc.hasNext()) sb.append(sc.next());
+            }
+            org.json.JSONArray arr = new org.json.JSONArray(sb.toString());
+            if (arr.length() == 0) return;
+            Object value = arr.getJSONObject(0).opt("value");
+            long latest = value instanceof Number ? ((Number) value).longValue() : 0L;
+            if (value instanceof org.json.JSONObject) {
+                latest = ((org.json.JSONObject) value).optLong("ts", 0L);
+            }
+            if (latest <= eu.kodanetwork.mchost.BuildConfig.VERSION_CODE) return;
+            android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
+            if (prefs.getLong("update_notified_version", 0L) >= latest) return;
+            prefs.edit().putLong("update_notified_version", latest).apply();
+            notifyUpdate(latest);
+        } catch (Exception e) {
+            eu.kodanetwork.mchost.util.AppLogger.log("KodaUpdates", "update check failed: " + e.getMessage());
+        }
+    }
+
+    private void notifyUpdate(long versionCode) {
+        try {
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm == null) return;
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(new android.app.NotificationChannel(
+                        UPDATE_CHANNEL, "App updates", android.app.NotificationManager.IMPORTANCE_DEFAULT));
+            }
+            android.content.Intent open = new android.content.Intent(
+                    this, eu.kodanetwork.mchost.ui.MainActivity.class);
+            open.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            android.app.PendingIntent pi = android.app.PendingIntent.getActivity(this, 42, open,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+            android.app.Notification n = new android.app.Notification.Builder(this, UPDATE_CHANNEL)
+                    .setContentTitle(getString(R.string.update_notification_title))
+                    .setContentText(getString(R.string.update_notification_text))
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setAutoCancel(true)
+                    .setContentIntent(pi)
+                    .build();
+            nm.notify(42, n);
+        } catch (Exception e) {
+            eu.kodanetwork.mchost.util.AppLogger.log("KodaUpdates", "notify failed: " + e.getMessage());
+        }
+    }
+
+    /** tells the user that a server died, the tap lands in the console of that server. */
+    private void notifyCrash(eu.kodanetwork.mchost.model.ServerInstance srv, String reason) {
+        try {
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm == null || srv == null) return;
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(new android.app.NotificationChannel(
+                        CARE_CHANNEL, "Server warnings", android.app.NotificationManager.IMPORTANCE_DEFAULT));
+            }
+            android.content.Intent open = new android.content.Intent(
+                    this, eu.kodanetwork.mchost.ui.ServerDetailActivity.class);
+            open.putExtra("id", srv.getId());
+            open.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            android.app.PendingIntent pi = android.app.PendingIntent.getActivity(this,
+                    srv.getId().hashCode(), open,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+            android.app.Notification n = new android.app.Notification.Builder(this, CARE_CHANNEL)
+                    .setContentTitle(srv.getName() + " " + getString(R.string.crash_notification_title))
+                    .setContentText(reason == null ? getString(R.string.crash_notification_text) : reason)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setAutoCancel(true)
+                    .setContentIntent(pi)
+                    .build();
+            nm.notify(("crash_" + srv.getId()).hashCode(), n);
+        } catch (Exception e) {
+            eu.kodanetwork.mchost.util.AppLogger.log("KodaCrash", "notify failed: " + e.getMessage());
+        }
+    }
+
 
     /**
      * looks for fresh answers from the team and posts a notification for them, at most
@@ -3238,8 +3333,9 @@ public class KodaServerService extends Service {
      */
     private void ticketReplyTick() {
         long now = System.currentTimeMillis();
-        if (now - lastTicketCheck < 5 * 60_000L) return;
+        if (now - lastTicketCheck < 25_000L) return;
         lastTicketCheck = now;
+        checkForAppUpdate(now);
         android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
         String appUuid = prefs.getString("app_uuid", "");
         String deviceToken = prefs.getString("device_token", "");

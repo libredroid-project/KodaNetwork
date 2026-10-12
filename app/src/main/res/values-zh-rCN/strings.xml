@@ -1148,4 +1148,8 @@
     <string name="chat_photo_saved">已保存到下载</string>
     <string name="chat_photo_save_failed">无法保存图片</string>
     <string name="ticket_reply_title">你的工单有新回复</string>
+    <string name="update_notification_title">有可用更新</string>
+    <string name="update_notification_text">新版本已准备好</string>
+    <string name="crash_notification_title">已崩溃</string>
+    <string name="crash_notification_text">服务器意外停止，点击查看控制台</string>
 </resources>
