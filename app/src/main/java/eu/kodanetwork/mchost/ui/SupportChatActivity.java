@@ -608,6 +608,10 @@ public class SupportChatActivity extends AppCompatActivity {
             adapter.notifyDataSetChanged();
         }
 
+        // im offenen Chat gilt alles als gelesen, sonst meldet der Dienst die eigene Antwort
+        eu.kodanetwork.mchost.App.getPrefs(this).edit()
+                .putLong("ticket_seen_" + ticketId, System.currentTimeMillis()).apply();
+
         updateEmptyState();
         if (firstCall) {
             scrollToBottom(true);

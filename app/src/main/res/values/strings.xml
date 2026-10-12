@@ -1167,4 +1167,5 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="chat_photo_save">Save to Downloads</string>
     <string name="chat_photo_saved">Saved to Downloads</string>
     <string name="chat_photo_save_failed">Could not save the photo</string>
+    <string name="ticket_reply_title">Answer in your support ticket</string>
 </resources>

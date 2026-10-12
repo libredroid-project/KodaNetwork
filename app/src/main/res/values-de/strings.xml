@@ -1178,4 +1178,5 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="chat_photo_save">In Downloads speichern</string>
     <string name="chat_photo_saved">In Downloads gespeichert</string>
     <string name="chat_photo_save_failed">Foto konnte nicht gespeichert werden</string>
+    <string name="ticket_reply_title">Antwort in deinem Support-Ticket</string>
 </resources>

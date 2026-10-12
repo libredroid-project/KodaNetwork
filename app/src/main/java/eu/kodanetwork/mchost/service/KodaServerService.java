@@ -255,6 +255,7 @@ public class KodaServerService extends Service {
         // backups: once an hour we check whether a server is due for its daily backup,
         // and while one runs we keep an eye on the phone's battery and temperature.
         scheduler.scheduleAtFixedRate(this::backupMaintenanceTick, 120, 600, java.util.concurrent.TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::ticketReplyTick, 75, 300, java.util.concurrent.TimeUnit.SECONDS);
 
         // automation: the schedules come from the app and run here, KodaDash only shows them
         scheduler.scheduleAtFixedRate(this::automationTick, 60, 30, java.util.concurrent.TimeUnit.SECONDS);
@@ -3216,11 +3217,133 @@ public class KodaServerService extends Service {
         acquireWakeLock();
         Notification n = new Notification.Builder(this, CHANNEL)
             .setContentTitle("KodaHosting")
-            .setContentText((count == 0 && settingUp) ? "AI Setup läuft..." : (count + " Server aktiv"))
+            .setContentText((count == 0 && settingUp) ? "Setting up the server..." : (count + " server active"))
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOnlyAlertOnce(true)
+            .setContentIntent(android.app.PendingIntent.getActivity(this, 0,
+                    new android.content.Intent(this, eu.kodanetwork.mchost.ui.MainActivity.class)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE))
             .build();
         startForeground(NOTIF_ID, n);
+    }
+
+    private long lastTicketCheck;
+    private static final String TICKET_CHANNEL = "koda_tickets";
+
+    /**
+     * looks for fresh answers from the team and posts a notification for them, at most
+     * every five minutes. an open chat marks its ticket as read, so reading in the app
+     * never notifies twice.
+     */
+    private void ticketReplyTick() {
+        long now = System.currentTimeMillis();
+        if (now - lastTicketCheck < 5 * 60_000L) return;
+        lastTicketCheck = now;
+        android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
+        String appUuid = prefs.getString("app_uuid", "");
+        String deviceToken = prefs.getString("device_token", "");
+        if (appUuid.isEmpty() || deviceToken.isEmpty()) return;
+        try {
+            org.json.JSONObject listBody = new org.json.JSONObject();
+            listBody.put("p_reporter_uuid", appUuid);
+            listBody.put("p_device_token", deviceToken);
+            org.json.JSONArray tickets = new org.json.JSONArray(postRpc("rpc_get_tickets", listBody));
+            for (int i = 0; i < tickets.length(); i++) {
+                org.json.JSONObject ticket = tickets.getJSONObject(i);
+                String status = ticket.optString("status", "");
+                if (!"OPEN".equals(status) && !"CLOSE_REQUESTED".equals(status)) continue;
+                String ticketId = ticket.optString("id", "");
+                if (ticketId.isEmpty()) continue;
+                org.json.JSONObject msgBody = new org.json.JSONObject();
+                msgBody.put("p_ticket_id", ticketId);
+                msgBody.put("p_reporter_uuid", appUuid);
+                msgBody.put("p_device_token", deviceToken);
+                org.json.JSONArray msgs = new org.json.JSONArray(postRpc("rpc_get_ticket_messages", msgBody));
+                long newestAdmin = -1L;
+                for (int m = 0; m < msgs.length(); m++) {
+                    org.json.JSONObject msg = msgs.getJSONObject(m);
+                    if (!msg.optBoolean("is_admin", false)) continue;
+                    long ts = parseIsoTime(msg.optString("created_at", ""));
+                    if (ts > newestAdmin) newestAdmin = ts;
+                }
+                if (newestAdmin <= 0) continue;
+                String seenKey = "ticket_seen_" + ticketId;
+                long seen = prefs.getLong(seenKey, -1L);
+                if (seen < 0) {
+                    // erster Durchlauf: nur merken, nichts nachtraeglich melden
+                    prefs.edit().putLong(seenKey, newestAdmin).apply();
+                } else if (newestAdmin > seen) {
+                    prefs.edit().putLong(seenKey, newestAdmin).apply();
+                    notifyTicketAnswer(ticket.optString("title", "Support"), ticketId,
+                            ticket.optString("ticket_type", ""), status);
+                }
+            }
+        } catch (Exception e) {
+            eu.kodanetwork.mchost.util.AppLogger.log("KodaTickets", "ticket check failed: " + e.getMessage());
+        }
+    }
+
+    private String postRpc(String rpc, org.json.JSONObject body) throws Exception {
+        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(
+                eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl() + "/rest/v1/rpc/" + rpc).openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("apikey", SUPABASE_KEY);
+        conn.setRequestProperty("Authorization", "Bearer " + SUPABASE_KEY);
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(body.toString().getBytes("UTF-8"));
+        int code = conn.getResponseCode();
+        try (java.util.Scanner sc = new java.util.Scanner(
+                code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream()).useDelimiter("\\A")) {
+            return sc.hasNext() ? sc.next() : "";
+        }
+    }
+
+    private long parseIsoTime(String iso) {
+        if (iso == null || iso.isEmpty()) return -1L;
+        try {
+            return java.time.Instant.parse(iso).toEpochMilli();
+        } catch (Exception e) {
+            try {
+                return java.time.OffsetDateTime.parse(iso).toInstant().toEpochMilli();
+            } catch (Exception e2) {
+                return -1L;
+            }
+        }
+    }
+
+    /** the tap opens the ticket right away, no hunting through the list. */
+    private void notifyTicketAnswer(String title, String ticketId, String type, String status) {
+        try {
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm == null) return;
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(new android.app.NotificationChannel(
+                        TICKET_CHANNEL, "Support answers", android.app.NotificationManager.IMPORTANCE_DEFAULT));
+            }
+            android.content.Intent open = new android.content.Intent(
+                    this, eu.kodanetwork.mchost.ui.SupportChatActivity.class);
+            open.putExtra("TICKET_ID", ticketId);
+            open.putExtra("TICKET_TITLE", title);
+            open.putExtra("TICKET_STATUS", status);
+            open.putExtra("TICKET_TYPE", type);
+            open.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            android.app.PendingIntent pi = android.app.PendingIntent.getActivity(this,
+                    ticketId.hashCode(), open,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+            android.app.Notification n = new android.app.Notification.Builder(this, TICKET_CHANNEL)
+                    .setContentTitle(getString(R.string.ticket_reply_title))
+                    .setContentText(title)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setAutoCancel(true)
+                    .setContentIntent(pi)
+                    .build();
+            nm.notify(ticketId.hashCode(), n);
+        } catch (Exception e) {
+            eu.kodanetwork.mchost.util.AppLogger.log("KodaTickets", "notify failed: " + e.getMessage());
+        }
     }
 
     /**

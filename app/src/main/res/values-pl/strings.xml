@@ -1117,4 +1117,5 @@
     <string name="chat_photo_save">Zapisz w Pobranych</string>
     <string name="chat_photo_saved">Zapisano w Pobranych</string>
     <string name="chat_photo_save_failed">Nie udało się zapisać zdjęcia</string>
+    <string name="ticket_reply_title">Odpowiedź w Twoim zgłoszeniu</string>
 </resources>

@@ -1147,4 +1147,5 @@
     <string name="chat_photo_save">保存到下载</string>
     <string name="chat_photo_saved">已保存到下载</string>
     <string name="chat_photo_save_failed">无法保存图片</string>
+    <string name="ticket_reply_title">你的工单有新回复</string>
 </resources>
