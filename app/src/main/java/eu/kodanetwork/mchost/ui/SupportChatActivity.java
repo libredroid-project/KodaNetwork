@@ -471,10 +471,8 @@ public class SupportChatActivity extends AppCompatActivity {
                     if (encrypted != null) wire = encrypted;
                 }
                 if (attachmentUrl != null) {
-                    // the send RPC has no attachment column yet, so the url rides in the
-                    // message and the adapter splits it back out for the preview
-                    wire = wire.isEmpty() ? "Attachment: " + attachmentUrl
-                            : wire + "\nAttachment: " + attachmentUrl;
+                    // the photo has its own column since 2026-10-12, the message stays clean
+                    msgObj.put("p_attachment_url", attachmentUrl);
                 }
                 msgObj.put("p_message", wire);
                 SupportApi.makeSupabaseRequest(
@@ -786,10 +784,26 @@ public class SupportChatActivity extends AppCompatActivity {
         }
     }
 
-    /** asks the team to close this ticket, the admin tools pick the marker up. */
+    /** asks the team to close this ticket: the status flips and the marker message goes out. */
     private void requestClose() {
-        sendText("[KODA-CLOSE-REQUEST] " + getString(R.string.chat_request_close), null);
+        ticketStatus = "CLOSE_REQUESTED";
+        refreshSubtitle();
+        android.view.View button = findViewById(R.id.btn_close_request);
+        if (button != null) button.setVisibility(View.GONE);
         Toast.makeText(this, getString(R.string.chat_request_close_sent), Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("p_ticket_id", ticketId);
+                body.put("p_reporter_uuid", myUuid);
+                body.put("p_device_token", deviceToken);
+                SupportApi.makeSupabaseRequest("rest/v1/rpc/rpc_request_ticket_close",
+                        "POST", body.toString(), null);
+            } catch (Exception e) {
+                AppLogger.log("KodaSupport", "close request failed: " + e.getMessage());
+            }
+        }, "KodaSupportClose").start();
+        sendText("[KODA-CLOSE-REQUEST] " + getString(R.string.chat_request_close), null);
     }
 
     /**
