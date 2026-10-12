@@ -1183,4 +1183,5 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="update_notification_text">Eine neuere KodaHosting-Version ist da</string>
     <string name="crash_notification_title">ist abgestuerzt</string>
     <string name="crash_notification_text">Der Server hat sich unerwartet beendet, tippen fuer die Konsole</string>
+    <string name="question">Frage</string>
 </resources>

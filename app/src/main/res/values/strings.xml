@@ -1172,4 +1172,5 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="update_notification_text">A newer KodaHosting version is ready</string>
     <string name="crash_notification_title">crashed</string>
     <string name="crash_notification_text">The server stopped unexpectedly, tap for the console</string>
+    <string name="question">Question</string>
 </resources>

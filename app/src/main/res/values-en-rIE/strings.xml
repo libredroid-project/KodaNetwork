@@ -544,4 +544,5 @@
     <string name="crash_reason_plugin_config">A plugin crashed or has a broken config file. Fix: remove or re-download the plugin named in the log, and fix the YAML syntax error in its config.yml/plugin.yml.</string>
     <string name="crash_category_storage">Storage Problem</string>
     <string name="crash_reason_storage">The device storage is full or read only, so the server cannot write files. Fix: free up storage space (delete old worlds/exports) or restart the device to remount storage.</string>
+    <string name="question">Question</string>
 </resources>

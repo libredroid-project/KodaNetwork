@@ -1152,4 +1152,5 @@
     <string name="update_notification_text">新版本已准备好</string>
     <string name="crash_notification_title">已崩溃</string>
     <string name="crash_notification_text">服务器意外停止，点击查看控制台</string>
+    <string name="question">问</string>
 </resources>
