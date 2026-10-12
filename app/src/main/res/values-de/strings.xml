@@ -1151,4 +1151,20 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="pregen_state_eula">Der Server braucht die Zustimmung zur Minecraft-EULA, bevor er starten kann.</string>
     <string name="pregen_state_download">Server-Jar wird heruntergeladen…</string>
     <string name="pregen_state_download_failed">Der Download hat nicht geklappt: %1$s</string>
+    <string name="chat_info_plain">Nachrichten hier kann das Support-Team lesen.</string>
+    <string name="chat_info_encrypted">Diese Unterhaltung ist Ende-zu-Ende verschlüsselt.</string>
+    <string name="chat_empty_hint">Schreib die erste Nachricht, das Team antwortet genau hier.</string>
+    <string name="chat_sending">wird gesendet...</string>
+    <string name="chat_send_retry">nicht gesendet, zum Wiederholen tippen</string>
+    <string name="chat_send_failed">Nachricht konnte nicht gesendet werden</string>
+    <string name="chat_upload_failed">Upload fehlgeschlagen</string>
+    <string name="chat_conn_problem">Verbindungsproblem, zum Neuladen tippen</string>
+    <string name="chat_attachment">Anhang</string>
+    <string name="chat_export_empty">Keine Nachrichten zum Exportieren.</string>
+    <string name="chat_export_title">Chat exportieren</string>
+    <string name="chat_type_bug">Fehlerbericht</string>
+    <string name="chat_type_server">Server-Problem</string>
+    <string name="chat_type_personal">Persönliche Hilfe</string>
+    <string name="chat_type_support">Support-Ticket</string>
+    <string name="support_ticket_default_title">Support-Ticket</string>
 </resources>

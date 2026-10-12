@@ -1120,4 +1120,20 @@
     <string name="pregen_state_eula">服务器需要先接受 Minecraft 最终用户许可协议才能启动。</string>
     <string name="pregen_state_download">正在下载服务器文件…</string>
     <string name="pregen_state_download_failed">下载失败：%1$s</string>
+    <string name="chat_info_plain">支持团队可以阅读这里的消息。</string>
+    <string name="chat_info_encrypted">此对话已端到端加密。</string>
+    <string name="chat_empty_hint">发送第一条消息，团队会在这里回复。</string>
+    <string name="chat_sending">发送中…</string>
+    <string name="chat_send_retry">未发送，点击重试</string>
+    <string name="chat_send_failed">消息发送失败</string>
+    <string name="chat_upload_failed">上传失败</string>
+    <string name="chat_conn_problem">连接问题，点击重新加载</string>
+    <string name="chat_attachment">附件</string>
+    <string name="chat_export_empty">没有可导出的消息。</string>
+    <string name="chat_export_title">导出聊天</string>
+    <string name="chat_type_bug">错误报告</string>
+    <string name="chat_type_server">服务器问题</string>
+    <string name="chat_type_personal">个人支持</string>
+    <string name="chat_type_support">支持工单</string>
+    <string name="support_ticket_default_title">支持工单</string>
 </resources>

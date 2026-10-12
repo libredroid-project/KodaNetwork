@@ -1090,4 +1090,20 @@
     <string name="pregen_state_eula">Serwer wymaga zaakceptowania EULA Minecraft, zanim wystartuje.</string>
     <string name="pregen_state_download">Pobieranie pliku serwera…</string>
     <string name="pregen_state_download_failed">Pobieranie nie udało się: %1$s</string>
+    <string name="chat_info_plain">Zespół wsparcia może czytać te wiadomości.</string>
+    <string name="chat_info_encrypted">Ta rozmowa jest szyfrowana end-to-end.</string>
+    <string name="chat_empty_hint">Napisz pierwszą wiadomość, zespół odpowie tutaj.</string>
+    <string name="chat_sending">wysyłanie...</string>
+    <string name="chat_send_retry">nie wysłano, dotknij aby ponowić</string>
+    <string name="chat_send_failed">Nie udało się wysłać wiadomości</string>
+    <string name="chat_upload_failed">Przesyłanie nie powiodło się</string>
+    <string name="chat_conn_problem">Problem z połączeniem, dotknij aby odświeżyć</string>
+    <string name="chat_attachment">Załącznik</string>
+    <string name="chat_export_empty">Brak wiadomości do eksportu.</string>
+    <string name="chat_export_title">Eksportuj czat</string>
+    <string name="chat_type_bug">Zgłoszenie błędu</string>
+    <string name="chat_type_server">Problem z serwerem</string>
+    <string name="chat_type_personal">Wsparcie osobiste</string>
+    <string name="chat_type_support">Zgłoszenie wsparcia</string>
+    <string name="support_ticket_default_title">Zgłoszenie wsparcia</string>
 </resources>

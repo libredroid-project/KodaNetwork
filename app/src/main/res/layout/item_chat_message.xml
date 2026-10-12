@@ -48,24 +48,34 @@
             android:background="@drawable/bg_dialog_custom"
             android:padding="12dp">
 
-            <ImageView
-                android:id="@+id/iv_attachment"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:scaleType="centerCrop"
-                android:visibility="gone"
-                android:layout_marginBottom="8dp"/>
-
-            <TextView
-                android:id="@+id/tv_attachment_link"
+            <LinearLayout
+                android:id="@+id/ll_attachment"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📎 View Attachment"
-                android:textColor="#FF8C00"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                android:paddingBottom="8dp"/>
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/iv_attachment"
+                    android:layout_width="220dp"
+                    android:layout_height="160dp"
+                    android:scaleType="centerCrop"
+                    android:background="@drawable/bg_input"
+                    android:visibility="gone"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/tv_attachment_link"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/chat_attachment"
+                    android:textColor="#FF8C00"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/font_koda"
+                    android:visibility="gone"
+                    android:paddingBottom="4dp"/>
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tv_message"
@@ -84,6 +94,18 @@
             android:text="12:00"
             android:textColor="#666666"
             android:textSize="10sp"
+            android:layout_marginTop="2dp"
+            android:layout_gravity="end"/>
+
+        <TextView
+            android:id="@+id/tv_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#8A8A9A"
+            android:textSize="10sp"
+            android:fontFamily="@font/font_koda"
+            android:visibility="gone"
             android:layout_marginTop="2dp"
             android:layout_gravity="end"/>
 

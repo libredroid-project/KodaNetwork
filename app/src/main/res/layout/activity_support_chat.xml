@@ -18,6 +18,7 @@
   SPDX-License-Identifier: GPL-3.0-only
 -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/support_chat_root"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"

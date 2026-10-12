@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!-- empty state: the three hopping blocks from the server start screen while loading -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:paddingTop="48dp"
+    android:paddingBottom="48dp">
+
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/lottie_chat_wait"
+        android:layout_width="140dp"
+        android:layout_height="48dp"
+        app:lottie_rawRes="@raw/koda_boot"
+        app:lottie_autoPlay="true"
+        app:lottie_loop="true"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/chat_empty_hint"
+        android:textColor="#B7AE9F"
+        android:textSize="12sp"
+        android:fontFamily="@font/font_koda"
+        android:gravity="center"
+        android:layout_marginTop="16dp"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"/>
+</LinearLayout>

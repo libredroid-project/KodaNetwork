@@ -101,6 +101,23 @@ public class SupportTicketListActivity extends AppCompatActivity {
         }).start();
     }
 
+    /** readable name for the raw ticket type from the database. */
+    private String typeLabel(String rawType) {
+        String type = rawType == null ? "" : rawType.toUpperCase(java.util.Locale.ROOT);
+        switch (type) {
+            case "BUG":
+                return getString(R.string.chat_type_bug);
+            case "SERVER":
+                return getString(R.string.chat_type_server);
+            case "PERSONAL":
+                return getString(R.string.chat_type_personal);
+            case "SUPPORT":
+                return getString(R.string.chat_type_support);
+            default:
+                return rawType == null ? "" : rawType;
+        }
+    }
+
     private class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.ViewHolder> {
 
         @NonNull
@@ -118,10 +135,11 @@ public class SupportTicketListActivity extends AppCompatActivity {
                 String status = ticket.optString("status", "OPEN");
                 String date = ticket.optString("created_at", "").split("T")[0];
                 String id = ticket.getString("id");
+                String type = typeLabel(ticket.optString("ticket_type", ""));
 
                 holder.tvTitle.setText(title);
                 holder.tvStatus.setText(status);
-                holder.tvDate.setText(date);
+                holder.tvDate.setText(type.isEmpty() ? date : type + " · " + date);
 
                 if ("RESOLVED".equals(status)) {
                     holder.tvStatus.setTextColor(0xFF4CAF50); // green
@@ -134,6 +152,7 @@ public class SupportTicketListActivity extends AppCompatActivity {
                     intent.putExtra("TICKET_ID", id);
                     intent.putExtra("TICKET_TITLE", title);
                     intent.putExtra("TICKET_STATUS", status);
+                    intent.putExtra("TICKET_TYPE", ticket.optString("ticket_type", ""));
                     startActivity(intent);
                 });
             } catch (Exception e) {

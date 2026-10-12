@@ -1140,4 +1140,20 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="pregen_state_eula">The server needs the Minecraft EULA accepted before it can start.</string>
     <string name="pregen_state_download">Downloading the server jar…</string>
     <string name="pregen_state_download_failed">The download did not work: %1$s</string>
+    <string name="chat_info_plain">Messages here are readable by the support team.</string>
+    <string name="chat_info_encrypted">This conversation is end to end encrypted.</string>
+    <string name="chat_empty_hint">Write your first message, the team answers right here.</string>
+    <string name="chat_sending">sending...</string>
+    <string name="chat_send_retry">not sent, tap to try again</string>
+    <string name="chat_send_failed">Could not send the message</string>
+    <string name="chat_upload_failed">Upload failed</string>
+    <string name="chat_conn_problem">Connection problem, tap to reload</string>
+    <string name="chat_attachment">Attachment</string>
+    <string name="chat_export_empty">No messages to export.</string>
+    <string name="chat_export_title">Export chat</string>
+    <string name="chat_type_bug">Bug report</string>
+    <string name="chat_type_server">Server problem</string>
+    <string name="chat_type_personal">Personal support</string>
+    <string name="chat_type_support">Support ticket</string>
+    <string name="support_ticket_default_title">Support ticket</string>
 </resources>

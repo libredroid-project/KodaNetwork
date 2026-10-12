@@ -58,30 +58,22 @@ public class SupportSelectionDialog extends Dialog {
             );
         }
 
+        // no login needed any more: tickets and bug reports run on the device token, just
+        // like the personal chat. the old login hint stays hidden.
         LinearLayout llLoginWarning = findViewById(R.id.ll_login_warning);
         LinearLayout llButtons = findViewById(R.id.ll_buttons);
-
-        boolean isLoggedIn = eu.kodanetwork.mchost.network.supabase.SupabaseAuth.isLoggedIn(getContext());
-
-        if (!isLoggedIn) {
-            llLoginWarning.setVisibility(View.VISIBLE);
-            llButtons.setVisibility(View.GONE);
-        } else {
-            llLoginWarning.setVisibility(View.GONE);
-            llButtons.setVisibility(View.VISIBLE);
-        }
+        llLoginWarning.setVisibility(View.GONE);
+        llButtons.setVisibility(View.VISIBLE);
 
         // "mental support <3" only exists while a personal conversation is open, new ones are
         // started from the crisis screen, this entry point continues the existing chat
         android.view.View mentalButton = findViewById(R.id.btn_mental_support);
         mentalButton.setVisibility(View.GONE);
-        if (isLoggedIn) {
-            eu.kodanetwork.mchost.util.PersonalSupport.hasOpenTicket(getContext(), has -> {
-                if (has && isShowing()) {
-                    mentalButton.setVisibility(View.VISIBLE);
-                }
-            });
-        }
+        eu.kodanetwork.mchost.util.PersonalSupport.hasOpenTicket(getContext(), has -> {
+            if (has && isShowing()) {
+                mentalButton.setVisibility(View.VISIBLE);
+            }
+        });
         mentalButton.setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(getContext(), 30);
             dismiss();
