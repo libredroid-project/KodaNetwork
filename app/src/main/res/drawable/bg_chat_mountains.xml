@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!-- chat wallpaper: night mountains with a koda orange glow, the scrim on top keeps the text readable -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp"
+    android:height="640dp"
+    android:viewportWidth="1080"
+    android:viewportHeight="1920">
+
+    <path android:pathData="M0,0h1080v1920h-1080z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="540" android:startY="0"
+                android:endX="540" android:endY="1920">
+                <item android:offset="0.0" android:color="#FF0A0A12"/>
+                <item android:offset="0.55" android:color="#FF141020"/>
+                <item android:offset="0.78" android:color="#FF2A1A18"/>
+                <item android:offset="1.0" android:color="#FF120E12"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- stars -->
+    <path android:fillColor="#66FFFFFF" android:pathData="M180,220m-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0"/>
+    <path android:fillColor="#4DFFFFFF" android:pathData="M320,150m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"/>
+    <path android:fillColor="#59FFFFFF" android:pathData="M470,260m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"/>
+    <path android:fillColor="#40FFFFFF" android:pathData="M640,120m-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0"/>
+    <path android:fillColor="#66FFFFFF" android:pathData="M880,300m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"/>
+    <path android:fillColor="#4DFFFFFF" android:pathData="M960,180m-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0"/>
+    <path android:fillColor="#59FFFFFF" android:pathData="M100,380m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"/>
+    <path android:fillColor="#40FFFFFF" android:pathData="M760,420m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"/>
+
+    <!-- moon with a soft koda glow -->
+    <path android:pathData="M830,300m-140,0a140,140 0 1,0 280,0a140,140 0 1,0 -280,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="830" android:centerY="300"
+                android:gradientRadius="140">
+                <item android:offset="0.0" android:color="#2EFF8C38"/>
+                <item android:offset="1.0" android:color="#00FF8C38"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#E6FFE0B8" android:pathData="M830,300m-58,0a58,58 0 1,0 116,0a58,58 0 1,0 -116,0"/>
+
+    <!-- far ridge -->
+    <path android:fillColor="#FF171722" android:pathData="M0,1240 L140,1120 L260,1200 L420,1040 L560,1170 L700,1010 L860,1160 L980,1080 L1080,1150 L1080,1920 L0,1920 Z"/>
+    <!-- mid ridge -->
+    <path android:fillColor="#FF101019" android:pathData="M0,1420 L160,1300 L300,1390 L470,1240 L640,1370 L790,1230 L940,1360 L1080,1280 L1080,1920 L0,1920 Z"/>
+    <!-- near ridge with an orange rim light -->
+    <path android:fillColor="#FF0A0A11" android:pathData="M0,1620 L200,1480 L360,1570 L540,1420 L720,1560 L880,1440 L1080,1550 L1080,1920 L0,1920 Z"/>
+    <path android:strokeColor="#59FF6B00" android:strokeWidth="6" android:fillColor="#00000000"
+        android:pathData="M0,1620 L200,1480 L360,1570 L540,1420 L720,1560 L880,1440 L1080,1550"/>
+
+    <!-- readability scrim over the whole scene -->
+    <path android:fillColor="#B3050508" android:pathData="M0,0h1080v1920h-1080z"/>
+</vector>

@@ -1156,4 +1156,9 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="chat_type_personal">Personal support</string>
     <string name="chat_type_support">Support ticket</string>
     <string name="support_ticket_default_title">Support ticket</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_photo_failed">Could not load that photo</string>
+    <string name="chat_photo_only">Photos only, please</string>
+    <string name="chat_ticket_limit">You already have 5 open tickets. Close one first, or answer in the existing chat.</string>
+    <string name="chat_login_needed">Tickets need a signed in account, that is how we know who is asking.</string>
 </resources>

@@ -21,13 +21,14 @@ package eu.kodanetwork.mchost.ui;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.OpenableColumns;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -44,12 +45,14 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -65,20 +68,21 @@ import eu.kodanetwork.mchost.util.Material3ThemeHelper;
 import eu.kodanetwork.mchost.util.ThemeHelper;
 
 /**
- * the support ticket chat. works exactly like the personal (crisis) chat: device token
- * login instead of the (expiring) supabase session, so it works for every device without
- * an account, and personal tickets keep their end to end encryption.
+ * the support ticket chat: whatsapp style, bubbles floating over the mountain wallpaper
+ * like the console panels float over the log.
  *
- * the list is built incrementally, new messages arrive with a soft scroll, own messages
- * show up immediately with a sending state and can be retried, attachments render as
- * image previews or file chips and open inside the app instead of the browser.
+ * photos only on purpose, and every photo is scaled down to 1440px and re-encoded as
+ * jpeg before it leaves the phone, so identifying a screenshot stays easy while the
+ * bucket barely eats storage. viewing a photo runs through our own loader inside the
+ * app, no browser hop and no external app touching the ticket image.
+ *
+ * tickets run on the device token like the personal chat, personal ones keep the
+ * end to end encryption.
  */
 public class SupportChatActivity extends AppCompatActivity {
 
-    private static final int TYPE_INFO = 0;
-    private static final int TYPE_MESSAGE = 1;
-    private static final int TYPE_EMPTY = 2;
-    private static final int TYPE_CONNECTION = 3;
+    private static final int MAX_PHOTO_DIM = 1440;
+    private static final int PHOTO_QUALITY = 82;
 
     private String ticketId;
     private String ticketTitle;
@@ -92,6 +96,11 @@ public class SupportChatActivity extends AppCompatActivity {
     private EditText etMessage;
     private LinearLayout llAttachmentPreview;
     private TextView tvAttachmentName;
+    private ImageView ivAttachmentPreview;
+    private LinearLayout llChatEmpty;
+    private com.airbnb.lottie.LottieAnimationView lottieWait;
+    private LinearLayout llConnectionBar;
+    private TextView tvChatSubtitle;
 
     /** E2EE key for personal tickets, null while not established or not needed. */
     private byte[] e2eeKey;
@@ -100,7 +109,6 @@ public class SupportChatActivity extends AppCompatActivity {
 
     private final List<JSONObject> messages = new ArrayList<>();
     private final List<JSONObject> pending = new ArrayList<>();
-    /** text of the last failed send, offered for retry. */
     private String failedText;
     private String failedAttachmentUrl;
     private boolean connectionProblem;
@@ -120,7 +128,7 @@ public class SupportChatActivity extends AppCompatActivity {
         }
     };
 
-    private ActivityResultLauncher<Intent> filePickerLauncher;
+    private ActivityResultLauncher<Intent> photoPickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,56 +153,66 @@ public class SupportChatActivity extends AppCompatActivity {
         TextView tvTitle = findViewById(R.id.tv_chat_title);
         tvTitle.setText(ticketTitle != null && !ticketTitle.isEmpty()
                 ? ticketTitle : getString(R.string.support_ticket_default_title));
+        tvChatSubtitle = findViewById(R.id.tv_chat_subtitle);
+        refreshSubtitle();
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_export).setOnClickListener(v -> exportChat());
 
         rvChat = findViewById(R.id.rv_chat);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true);
         rvChat.setLayoutManager(layoutManager);
+        rvChat.setItemAnimator(new DefaultItemAnimator());
         adapter = new ChatAdapter();
         rvChat.setAdapter(adapter);
         rvChat.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                // only stick to the newest message while the user is already at the bottom,
-                // otherwise reading older messages would be yanked away on every poll
-                View last = recyclerView.getChildAt(recyclerView.getChildCount() - 1);
-                userAtBottom = last == null
-                        || last.getBottom() - recyclerView.getHeight() + recyclerView.getPaddingBottom() <= 24;
+                // stick to the newest message only while the user is already at the bottom,
+                // otherwise reading older messages would be yanked away by every poll
+                userAtBottom = !recyclerView.canScrollVertically(1);
             }
         });
 
         etMessage = findViewById(R.id.et_message);
         llAttachmentPreview = findViewById(R.id.ll_attachment_preview);
         tvAttachmentName = findViewById(R.id.tv_attachment_name);
-
-        findViewById(R.id.btn_remove_attachment).setOnClickListener(v -> {
-            selectedAttachmentUri = null;
-            selectedAttachmentName = null;
-            llAttachmentPreview.setVisibility(View.GONE);
+        ivAttachmentPreview = findViewById(R.id.iv_attachment_preview);
+        llChatEmpty = findViewById(R.id.ll_chat_empty);
+        lottieWait = findViewById(R.id.lottie_chat_wait);
+        llConnectionBar = findViewById(R.id.ll_connection_bar);
+        tvChatSubtitle = findViewById(R.id.tv_chat_subtitle);
+        llConnectionBar.setOnClickListener(v -> {
+            connectionProblem = false;
+            llConnectionBar.setVisibility(View.GONE);
+            loadMessages(true);
         });
 
-        filePickerLauncher = registerForActivityResult(
+        findViewById(R.id.btn_remove_attachment).setOnClickListener(v -> {
+            clearPickedPhoto();
+        });
+
+        photoPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     Uri uri = result.getData().getData();
                     if (uri != null) {
                         selectedAttachmentUri = uri;
-                        selectedAttachmentName = getFileName(uri);
+                        selectedAttachmentName = "photo.jpg";
                         tvAttachmentName.setText(selectedAttachmentName);
                         llAttachmentPreview.setVisibility(View.VISIBLE);
+                        showPickedPhotoPreview(uri);
                     }
                 }
             }
         );
 
         findViewById(R.id.btn_attach).setOnClickListener(v -> {
+            // photos only, everything else would just be storage waste in a support ticket
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("*/*");
-            filePickerLauncher.launch(intent);
+            intent.setType("image/*");
+            photoPickerLauncher.launch(intent);
         });
 
         ImageButton send = findViewById(R.id.btn_send);
@@ -208,8 +226,31 @@ public class SupportChatActivity extends AppCompatActivity {
             return true;
         });
 
+        updateEmptyState();
         setupE2EE();
         loadMessages(true);
+    }
+
+    private void refreshSubtitle() {
+        if (tvChatSubtitle == null) return;
+        String state = ticketStatus == null || ticketStatus.isEmpty()
+                ? "OPEN" : ticketStatus.toUpperCase(java.util.Locale.ROOT);
+        String type = typeLabel();
+        tvChatSubtitle.setText(type + " · " + state);
+    }
+
+    private String typeLabel() {
+        String type = ticketType == null ? "" : ticketType.toUpperCase(java.util.Locale.ROOT);
+        switch (type) {
+            case "BUG":
+                return getString(R.string.chat_type_bug);
+            case "SERVER":
+                return getString(R.string.chat_type_server);
+            case "PERSONAL":
+                return getString(R.string.chat_type_personal);
+            default:
+                return getString(R.string.chat_type_support);
+        }
     }
 
     @Override
@@ -279,69 +320,132 @@ public class SupportChatActivity extends AppCompatActivity {
         }, "KodaE2EEAdmin").start();
     }
 
+    private void clearPickedPhoto() {
+        selectedAttachmentUri = null;
+        selectedAttachmentName = null;
+        llAttachmentPreview.setVisibility(View.GONE);
+        ivAttachmentPreview.setImageDrawable(null);
+    }
+
+    /** small local preview so the picked photo is visible before sending. */
+    private void showPickedPhotoPreview(Uri uri) {
+        new Thread(() -> {
+            Bitmap preview = decodePhoto(uri, 200);
+            if (preview == null) return;
+            runOnUiThread(() -> ivAttachmentPreview.setImageBitmap(preview));
+        }, "KodaSupportPreview").start();
+    }
+
+    /**
+     * decodes the picked photo at a sane size and applies the exif rotation (ImageDecoder
+     * does that for us from android 9 on). returns null when it is no real image.
+     */
+    private Bitmap decodePhoto(Uri uri, int maxDim) {
+        try {
+            if (Build.VERSION.SDK_INT >= 28) {
+                android.graphics.ImageDecoder.Source source =
+                        android.graphics.ImageDecoder.createSource(getContentResolver(), uri);
+                return android.graphics.ImageDecoder.decodeBitmap(source, (decoder, info, src) -> {
+                    int longest = Math.max(info.getSize().getWidth(), info.getSize().getHeight());
+                    int sample = 1;
+                    while (longest / sample > maxDim) sample *= 2;
+                    decoder.setTargetSampleSize(sample);
+                    decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE);
+                });
+            }
+            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (InputStream is = getContentResolver().openInputStream(uri)) {
+                android.graphics.BitmapFactory.decodeStream(is, null, bounds);
+            }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+            int longest = Math.max(bounds.outWidth, bounds.outHeight);
+            int sample = 1;
+            while (longest / sample > maxDim) sample *= 2;
+            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+            opts.inSampleSize = sample;
+            try (InputStream is = getContentResolver().openInputStream(uri)) {
+                return android.graphics.BitmapFactory.decodeStream(is, null, opts);
+            }
+        } catch (Exception | OutOfMemoryError e) {
+            AppLogger.log("KodaSupport", "photo decode failed: " + e);
+            return null;
+        }
+    }
+
     private void sendCurrentInput() {
         String text = etMessage.getText().toString().trim();
         if (text.isEmpty() && selectedAttachmentUri == null) return;
         etMessage.setText("");
         if (selectedAttachmentUri != null) {
             Uri uri = selectedAttachmentUri;
-            String name = selectedAttachmentName;
-            selectedAttachmentUri = null;
-            selectedAttachmentName = null;
-            llAttachmentPreview.setVisibility(View.GONE);
-            uploadAndSend(text, uri, name);
+            clearPickedPhoto();
+            uploadAndSend(text, uri);
         } else {
             sendText(text, null);
         }
     }
 
-    /** uploads the picked file, then sends the message with the attachment url. */
-    private void uploadAndSend(String text, Uri uri, String name) {
+    /** uploads the downscaled photo, then sends the message with the link. */
+    private void uploadAndSend(String text, Uri uri) {
         addPending(text.isEmpty() ? getString(R.string.chat_attachment) : text, null);
         new Thread(() -> {
             try {
-                String safeName = String.valueOf(name).replaceAll("[^a-zA-Z0-9._-]", "_");
-                String fileName = System.currentTimeMillis() + "_" + safeName;
+                Bitmap bitmap = decodePhoto(uri, MAX_PHOTO_DIM);
+                if (bitmap == null) {
+                    failPending(getString(R.string.chat_photo_failed));
+                    return;
+                }
+                byte[] jpeg = toJpeg(bitmap, PHOTO_QUALITY);
+                bitmap.recycle();
+                if (jpeg == null || jpeg.length == 0) {
+                    failPending(getString(R.string.chat_photo_failed));
+                    return;
+                }
+                String fileName = System.currentTimeMillis() + "_photo.jpg";
                 HttpURLConnection conn = (HttpURLConnection) new URL(
                         PraetorSecurity.getSupabaseUrl() + "/storage/v1/object/support_attachments/" + fileName)
                         .openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Authorization", "Bearer " + PraetorSecurity.getSupabaseKey());
                 conn.setRequestProperty("apikey", PraetorSecurity.getSupabaseKey());
-                conn.setRequestProperty("Content-Type", guessContentType(safeName));
+                conn.setRequestProperty("Content-Type", "image/jpeg");
                 conn.setDoOutput(true);
-                try (InputStream is = getContentResolver().openInputStream(uri);
-                     OutputStream os = conn.getOutputStream()) {
-                    byte[] buffer = new byte[8192];
-                    int read;
-                    while (is != null && (read = is.read(buffer)) != -1) {
-                        os.write(buffer, 0, read);
-                    }
+                conn.setFixedLengthStreamingMode(jpeg.length);
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(jpeg);
                     os.flush();
                 }
                 int code = conn.getResponseCode();
                 if (code == 200 || code == 201) {
-                    String publicUrl = PraetorSecurity.getSupabaseUrl()
+                    String url = PraetorSecurity.getSupabaseUrl()
                             + "/storage/v1/object/public/support_attachments/" + fileName;
-                    sendText(text, publicUrl);
+                    sendText(text, url);
                 } else {
                     failPending(getString(R.string.chat_upload_failed) + " (" + code + ")");
                 }
             } catch (Exception e) {
-                failPending(e.getMessage() == null ? getString(R.string.chat_upload_failed) : e.getMessage());
+                AppLogger.log("KodaSupport", "upload failed: " + e.getMessage());
+                failPending(getString(R.string.chat_upload_failed));
             }
         }, "KodaSupportUpload").start();
     }
 
-    private static String guessContentType(String name) {
-        String lower = name.toLowerCase(java.util.Locale.ROOT);
-        if (lower.endsWith(".png")) return "image/png";
-        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        if (lower.endsWith(".gif")) return "image/gif";
-        if (lower.endsWith(".webp")) return "image/webp";
-        if (lower.endsWith(".txt") || lower.endsWith(".log")) return "text/plain";
-        if (lower.endsWith(".zip")) return "application/zip";
-        return "application/octet-stream";
+    /** jpeg bytes, with a second, harder pass when the first one is still huge. */
+    private byte[] toJpeg(Bitmap bitmap, int quality) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out);
+            byte[] data = out.toByteArray();
+            if (data.length > 4 * 1024 * 1024) {
+                out.reset();
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 60, out);
+                data = out.toByteArray();
+            }
+            return data;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** own message shows up right away, the send runs in the background. */
@@ -390,14 +494,19 @@ public class SupportChatActivity extends AppCompatActivity {
             pending.add(local);
             failedText = null;
             failedAttachmentUrl = null;
-            render(true);
+            int position = messages.size() + pending.size() - 1;
+            adapter.notifyItemInserted(position);
+            updateEmptyState();
+            scrollToBottom(false);
         });
     }
 
     private void deliveredPending() {
         runOnUiThread(() -> {
+            int count = pending.size();
+            if (count > 0) adapter.notifyItemRangeRemoved(messages.size(), count);
             pending.clear();
-            render(true);
+            updateEmptyState();
         });
     }
 
@@ -408,10 +517,33 @@ public class SupportChatActivity extends AppCompatActivity {
                 failedText = last.optString("message", "");
                 failedAttachmentUrl = last.optString("local_attachment", null);
             }
+            int count = pending.size();
+            if (count > 0) adapter.notifyItemRangeRemoved(messages.size(), count);
             pending.clear();
             Toast.makeText(this, reason == null ? getString(R.string.chat_send_failed) : reason,
                     Toast.LENGTH_SHORT).show();
-            render(true);
+            adapter.notifyDataSetChanged();
+        });
+    }
+
+    private void updateEmptyState() {
+        if (llChatEmpty == null) return;
+        boolean nothingYet = messages.isEmpty() && pending.isEmpty();
+        llChatEmpty.setVisibility(nothingYet ? View.VISIBLE : View.GONE);
+        if (lottieWait != null) {
+            // the hopping blocks run while we are still waiting for the first answer
+            lottieWait.setVisibility(firstLoadDone ? View.GONE : View.VISIBLE);
+        }
+    }
+
+    /** keeps the newest message visible; only moves when the user is at the bottom. */
+    private void scrollToBottom(boolean force) {
+        if (adapter.getItemCount() == 0) return;
+        if (!force && !userAtBottom) return;
+        rvChat.post(() -> {
+            if (adapter.getItemCount() > 0) {
+                rvChat.smoothScrollToPosition(adapter.getItemCount() - 1);
+            }
         });
     }
 
@@ -434,34 +566,63 @@ public class SupportChatActivity extends AppCompatActivity {
                     }
                     fresh.add(msg);
                 }
-                String stamp = fresh.isEmpty() ? "" :
-                        fresh.get(fresh.size() - 1).optString("created_at", "") + "#" + fresh.size();
-                boolean changed = !stamp.equals(lastSeenStamp);
-                lastSeenStamp = stamp;
-                runOnUiThread(() -> {
-                    firstLoadDone = true;
-                    connectionProblem = false;
-                    messages.clear();
-                    messages.addAll(fresh);
-                    if (changed || firstCall) render(false);
-                });
+                runOnUiThread(() -> applyFresh(fresh, firstCall));
             } catch (Exception e) {
                 AppLogger.log("KodaSupport", "load failed: " + e.getMessage());
                 runOnUiThread(() -> {
+                    boolean wasFirst = !firstLoadDone;
                     firstLoadDone = true;
                     connectionProblem = true;
-                    render(false);
+                    if (llConnectionBar != null) llConnectionBar.setVisibility(View.VISIBLE);
+                    updateEmptyState();
+                    if (wasFirst) adapter.notifyDataSetChanged();
                 });
             }
         }, "KodaSupportLoad").start();
     }
 
-    /** rebuilds the visible list; animated=true when an own message was just added. */
-    private void render(boolean jump) {
-        adapter.notifyDataSetChanged();
-        if ((userAtBottom || jump) && adapter.getItemCount() > 0) {
-            rvChat.smoothScrollToPosition(adapter.getItemCount() - 1);
+    /**
+     * appends what is new instead of rebuilding the whole list: the scroll stays calm and
+     * the default item animator gives the new bubble its slide in.
+     */
+    private void applyFresh(List<JSONObject> fresh, boolean firstCall) {
+        firstLoadDone = true;
+        connectionProblem = false;
+        if (llConnectionBar != null) llConnectionBar.setVisibility(View.GONE);
+
+        boolean appended = false;
+        if (!firstCall && fresh.size() > messages.size() && samePrefix(fresh, messages.size())) {
+            int start = messages.size();
+            for (int i = start; i < fresh.size(); i++) messages.add(fresh.get(i));
+            adapter.notifyItemRangeInserted(start, fresh.size() - start);
+            appended = true;
+        } else if (firstCall || fresh.size() != messages.size() || changedAt(fresh)) {
+            messages.clear();
+            messages.addAll(fresh);
+            adapter.notifyDataSetChanged();
         }
+
+        updateEmptyState();
+        if (firstCall) {
+            scrollToBottom(true);
+        } else if (appended) {
+            scrollToBottom(false);
+        }
+    }
+
+    private boolean samePrefix(List<JSONObject> fresh, int count) {
+        if (count > fresh.size()) return false;
+        for (int i = 0; i < count; i++) {
+            if (!messages.get(i).optString("id").equals(fresh.get(i).optString("id"))) return false;
+        }
+        return true;
+    }
+
+    private boolean changedAt(List<JSONObject> fresh) {
+        for (int i = 0; i < fresh.size(); i++) {
+            if (!messages.get(i).optString("id").equals(fresh.get(i).optString("id"))) return true;
+        }
+        return false;
     }
 
     private void exportChat() {
@@ -509,7 +670,7 @@ public class SupportChatActivity extends AppCompatActivity {
         return raw;
     }
 
-    /** the attachment url of a message: proper column if it ever exists, else the suffix. */
+    /** the photo url of a message: proper column if it ever exists, else the suffix. */
     private String attachmentUrl(JSONObject msg) {
         String local = msg.optString("local_attachment", "");
         if (!local.isEmpty()) return local;
@@ -524,133 +685,132 @@ public class SupportChatActivity extends AppCompatActivity {
         return null;
     }
 
-    private String getFileName(Uri uri) {
-        String result = null;
-        if (uri.getScheme() != null && uri.getScheme().equals("content")) {
-            try (android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
-                if (cursor != null && cursor.moveToFirst()) {
-                    int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    if (idx >= 0) result = cursor.getString(idx);
+    /** small in-memory cache, the same photo shows up instantly when scrolling back. */
+    private static final java.util.HashMap<String, Bitmap> photoCache = new java.util.HashMap<>();
+
+    /** downloads the photo and decodes it down to maxDim, null when anything goes wrong. */
+    private Bitmap decodeFromUrl(String url, int maxDim) {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            byte[] data;
+            try (InputStream is = conn.getInputStream()) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = is.read(buffer)) != -1) out.write(buffer, 0, read);
+                data = out.toByteArray();
+            }
+            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+            int longest = Math.max(bounds.outWidth, bounds.outHeight);
+            int sample = 1;
+            while (longest / sample > maxDim) sample *= 2;
+            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+            opts.inSampleSize = sample;
+            return android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+        } catch (Exception | OutOfMemoryError e) {
+            AppLogger.log("KodaSupport", "photo download failed: " + e);
+            return null;
+        }
+    }
+
+    /** thumbnail for the bubble; the tag check keeps recycled rows from showing wrong photos. */
+    private void loadPhotoThumb(String url, ImageView target) {
+        target.setTag(url);
+        Bitmap cached = photoCache.get(url);
+        if (cached != null) {
+            target.setImageBitmap(cached);
+            return;
+        }
+        target.setImageBitmap(null);
+        new Thread(() -> {
+            Bitmap loaded = decodeFromUrl(url, 480);
+            if (loaded == null) return;
+            synchronized (photoCache) {
+                if (photoCache.size() > 24) photoCache.clear();
+                photoCache.put(url, loaded);
+            }
+            runOnUiThread(() -> {
+                if (url.equals(target.getTag())) target.setImageBitmap(loaded);
+            });
+        }, "KodaSupportThumb").start();
+    }
+
+    /**
+     * fullscreen photo view inside the app, through our own loader: no browser hop and no
+     * external app gets to see the ticket image. every step is guarded, a broken photo
+     * shows an error toast instead of taking the app down.
+     */
+    private void showPhoto(String url) {
+        new Thread(() -> {
+            Bitmap bitmap = decodeFromUrl(url, 2048);
+            runOnUiThread(() -> {
+                if (isFinishing()) return;
+                if (bitmap == null) {
+                    Toast.makeText(this, getString(R.string.chat_photo_failed), Toast.LENGTH_SHORT).show();
+                    return;
                 }
-            }
-        }
-        if (result == null) {
-            String path = uri.getPath();
-            if (path != null) {
-                int cut = path.lastIndexOf('/');
-                result = cut != -1 ? path.substring(cut + 1) : path;
-            }
-        }
-        return result == null ? "file" : result;
+                try {
+                    Dialog dialog = new Dialog(this);
+                    ImageView image = new ImageView(this);
+                    image.setLayoutParams(new ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                    image.setBackgroundColor(Color.BLACK);
+                    image.setImageBitmap(bitmap);
+                    image.setOnClickListener(v -> dialog.dismiss());
+                    dialog.setContentView(image);
+                    Window window = dialog.getWindow();
+                    if (window != null) {
+                        window.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
+                        window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+                    }
+                    dialog.show();
+                } catch (Exception e) {
+                    AppLogger.log("KodaSupport", "photo dialog failed: " + e);
+                    Toast.makeText(this, getString(R.string.chat_photo_failed), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }, "KodaSupportPhoto").start();
     }
 
-    /** fullscreen in-app viewer, no browser hop and no external app sees the ticket image. */
-    private void showImage(String url) {
-        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-        ImageView image = new ImageView(this);
-        image.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        image.setBackgroundColor(Color.BLACK);
-        dialog.setContentView(image);
-        Window window = dialog.getWindow();
-        if (window != null) window.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
-        image.setOnClickListener(v -> dialog.dismiss());
-        com.bumptech.glide.Glide.with(this).load(url).into(image);
-        dialog.show();
+    private boolean isImageUrl(String url) {
+        if (url == null) return false;
+        String lower = url.toLowerCase(java.util.Locale.ROOT);
+        return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")
+                || lower.endsWith(".webp") || lower.endsWith(".gif");
     }
 
-    private class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-
-        @Override
-        public int getItemViewType(int position) {
-            int messageCount = messages.size() + pending.size();
-            if (position == 0) return TYPE_INFO;
-            if (messageCount == 0) return TYPE_EMPTY;
-            if (position == messageCount + 1 && connectionProblem) return TYPE_CONNECTION;
-            return TYPE_MESSAGE;
-        }
-
-        @Override
-        public int getItemCount() {
-            int count = messages.size() + pending.size();
-            int total = 1; // the info card is always there
-            total += count == 0 ? 1 : count;
-            if (connectionProblem) total += 1;
-            return total;
-        }
+    private class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
 
         @NonNull
         @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-            if (viewType == TYPE_INFO) {
-                return new InfoHolder(inflater.inflate(R.layout.item_support_chat_info, parent, false));
-            }
-            if (viewType == TYPE_EMPTY) {
-                return new EmptyHolder(inflater.inflate(R.layout.item_support_chat_empty, parent, false));
-            }
-            if (viewType == TYPE_CONNECTION) {
-                return new ConnectionHolder(inflater.inflate(R.layout.item_support_chat_connection, parent, false));
-            }
-            return new MessageHolder(inflater.inflate(R.layout.item_chat_message, parent, false));
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return new ViewHolder(LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_chat_message, parent, false));
         }
 
         @Override
-        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-            if (holder instanceof InfoHolder) {
-                bindInfo((InfoHolder) holder);
-            } else if (holder instanceof ConnectionHolder) {
-                holder.itemView.setOnClickListener(v -> {
-                    connectionProblem = false;
-                    loadMessages(true);
-                });
-            } else if (holder instanceof MessageHolder) {
-                bindMessage((MessageHolder) holder, position);
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            try {
+                bind(holder, position);
+            } catch (Exception e) {
+                // a single broken message must never take the whole chat down
+                AppLogger.log("KodaSupport", "bind failed: " + e);
+                holder.tvMessage.setText("");
+                holder.tvMessage.setVisibility(View.GONE);
+                holder.llAttachment.setVisibility(View.GONE);
+                holder.tvState.setVisibility(View.GONE);
             }
         }
 
-        private void bindInfo(InfoHolder holder) {
-            holder.tvType.setText(typeLabel());
-            holder.tvStatus.setText(ticketStatus == null || ticketStatus.isEmpty()
-                    ? "OPEN" : ticketStatus.toUpperCase(java.util.Locale.ROOT));
-            boolean resolved = "RESOLVED".equalsIgnoreCase(ticketStatus);
-            holder.tvStatus.setTextColor(resolved ? 0xFF4CAF50 : 0xFFFF8C00);
-            String created = "";
-            for (JSONObject msg : messages) {
-                created = msg.optString("created_at", "");
-                if (!created.isEmpty()) break;
-            }
-            holder.tvCreated.setText(created.isEmpty() ? ""
-                    : created.split("T")[0]);
-            holder.tvCreated.setVisibility(created.isEmpty() ? View.GONE : View.VISIBLE);
-            holder.tvHint.setText(e2eeTicket ? getString(R.string.chat_info_encrypted)
-                    : getString(R.string.chat_info_plain));
-        }
-
-        private String typeLabel() {
-            String type = ticketType == null ? "" : ticketType.toUpperCase(java.util.Locale.ROOT);
-            switch (type) {
-                case "BUG":
-                    return getString(R.string.chat_type_bug);
-                case "SERVER":
-                    return getString(R.string.chat_type_server);
-                case "PERSONAL":
-                    return getString(R.string.chat_type_personal);
-                default:
-                    return getString(R.string.chat_type_support);
-            }
-        }
-
-        private void bindMessage(MessageHolder holder, int position) {
-            int index = position - 1;
-            JSONObject msg;
-            boolean isPending = index >= messages.size();
-            if (isPending) {
-                msg = pending.get(index - messages.size());
-            } else {
-                msg = messages.get(index);
-            }
+        private void bind(ViewHolder holder, int position) {
+            boolean isPending = position >= messages.size();
+            JSONObject msg = isPending ? pending.get(position - messages.size()) : messages.get(position);
 
             String text = isPending ? msg.optString("message", "") : messageText(msg);
             String url = isPending ? msg.optString("local_attachment", null) : attachmentUrl(msg);
@@ -665,7 +825,7 @@ public class SupportChatActivity extends AppCompatActivity {
 
             if (isMe) {
                 holder.tvSenderName.setText(getString(R.string.chat_you));
-                holder.tvSenderName.setTextColor(light ? 0xFF555555 : 0xFF888888);
+                holder.tvSenderName.setTextColor(light ? 0xFF555555 : 0xFF9A9AA5);
                 holder.llBubble.setBackgroundResource(light ? R.drawable.bg_chat_bubble_me_light : R.drawable.bg_chat_bubble_me);
                 holder.tvMessage.setTextColor(light ? 0xFF111111 : 0xFFFFFFFF);
             } else if (isAdmin) {
@@ -675,7 +835,7 @@ public class SupportChatActivity extends AppCompatActivity {
                 holder.tvMessage.setTextColor(light ? 0xFF111111 : 0xFFFFFFFF);
             } else {
                 holder.tvSenderName.setText(getString(R.string.chat_system));
-                holder.tvSenderName.setTextColor(light ? 0xFF555555 : 0xFF888888);
+                holder.tvSenderName.setTextColor(light ? 0xFF555555 : 0xFF9A9AA5);
                 holder.llBubble.setBackgroundResource(light ? R.drawable.bg_chat_bubble_system_light : R.drawable.bg_chat_bubble_system);
                 holder.tvMessage.setTextColor(light ? 0xFF111111 : 0xFFFFFFFF);
             }
@@ -687,35 +847,38 @@ public class SupportChatActivity extends AppCompatActivity {
                 holder.tvMessage.setText(text);
             }
 
-            // attachment: image preview when it is a picture, else a file chip
-            if (url != null && !url.isEmpty()) {
+            if (url != null && !url.isEmpty() && isImageUrl(url)) {
                 holder.llAttachment.setVisibility(View.VISIBLE);
-                boolean image = isImageUrl(url);
-                holder.ivAttachment.setVisibility(image ? View.VISIBLE : View.GONE);
-                holder.tvAttachmentLink.setVisibility(image ? View.GONE : View.VISIBLE);
-                if (image) {
-                    com.bumptech.glide.Glide.with(SupportChatActivity.this)
-                            .load(url)
-                            .placeholder(R.drawable.bg_input)
-                            .into(holder.ivAttachment);
-                    holder.ivAttachment.setOnClickListener(v -> showImage(url));
-                } else {
-                    holder.tvAttachmentLink.setText(getString(R.string.chat_attachment));
-                    holder.tvAttachmentLink.setOnClickListener(v -> showImage(url));
-                }
+                holder.ivAttachment.setVisibility(View.VISIBLE);
+                holder.tvAttachmentLink.setVisibility(View.GONE);
+                loadPhotoThumb(url, holder.ivAttachment);
+                holder.ivAttachment.setOnClickListener(v -> showPhoto(url));
+            } else if (url != null && !url.isEmpty()) {
+                holder.llAttachment.setVisibility(View.VISIBLE);
+                holder.ivAttachment.setVisibility(View.GONE);
+                holder.tvAttachmentLink.setVisibility(View.VISIBLE);
+                holder.tvAttachmentLink.setText(getString(R.string.chat_attachment));
+                holder.tvAttachmentLink.setOnClickListener(v -> showPhoto(url));
             } else {
                 holder.llAttachment.setVisibility(View.GONE);
+                holder.ivAttachment.setVisibility(View.GONE);
+                holder.tvAttachmentLink.setVisibility(View.GONE);
             }
 
             String date = msg.optString("created_at", "");
-            if (date.contains("T")) date = date.split("T")[1].substring(0, Math.min(5, date.split("T")[1].length()));
+            if (date.contains("T")) {
+                String time = date.split("T")[1];
+                date = time.substring(0, Math.min(5, time.length()));
+            }
             holder.tvTime.setText(date);
+
             if (isPending) {
                 holder.tvState.setVisibility(View.VISIBLE);
                 holder.tvState.setText(getString(R.string.chat_sending));
                 holder.tvState.setTextColor(0xFF8A8A9A);
-            } else if (!isPending && failedText != null && !messages.isEmpty()
-                    && index == messages.size() - 1) {
+                holder.itemView.setOnClickListener(null);
+            } else if (failedText != null && !messages.isEmpty()
+                    && position == messages.size() - 1) {
                 holder.tvState.setVisibility(View.VISIBLE);
                 holder.tvState.setText(getString(R.string.chat_send_retry));
                 holder.tvState.setTextColor(0xFFFF5555);
@@ -732,57 +895,28 @@ public class SupportChatActivity extends AppCompatActivity {
             }
         }
 
-        private JSONObject lastMessage() {
-            if (!messages.isEmpty()) return messages.get(messages.size() - 1);
-            return null;
+        @Override
+        public int getItemCount() {
+            return messages.size() + pending.size();
         }
 
-        private boolean isImageUrl(String url) {
-            String lower = url.toLowerCase(java.util.Locale.ROOT);
-            return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
-                    || lower.endsWith(".gif") || lower.endsWith(".webp");
-        }
-    }
+        class ViewHolder extends RecyclerView.ViewHolder {
+            final LinearLayout llMessageContainer, llBubble, llAttachment;
+            final TextView tvSenderName, tvMessage, tvTime, tvAttachmentLink, tvState;
+            final ImageView ivAttachment;
 
-    private static class InfoHolder extends RecyclerView.ViewHolder {
-        final TextView tvType, tvStatus, tvCreated, tvHint;
-        InfoHolder(View view) {
-            super(view);
-            tvType = view.findViewById(R.id.tv_info_type);
-            tvStatus = view.findViewById(R.id.tv_info_status);
-            tvCreated = view.findViewById(R.id.tv_info_created);
-            tvHint = view.findViewById(R.id.tv_info_hint);
-        }
-    }
-
-    private static class EmptyHolder extends RecyclerView.ViewHolder {
-        EmptyHolder(View view) {
-            super(view);
-        }
-    }
-
-    private static class ConnectionHolder extends RecyclerView.ViewHolder {
-        ConnectionHolder(View view) {
-            super(view);
-        }
-    }
-
-    private static class MessageHolder extends RecyclerView.ViewHolder {
-        final LinearLayout llMessageContainer, llBubble, llAttachment;
-        final TextView tvSenderName, tvMessage, tvTime, tvAttachmentLink, tvState;
-        final ImageView ivAttachment;
-
-        MessageHolder(View view) {
-            super(view);
-            llMessageContainer = view.findViewById(R.id.ll_message_container);
-            llBubble = view.findViewById(R.id.ll_bubble);
-            llAttachment = view.findViewById(R.id.ll_attachment);
-            tvSenderName = view.findViewById(R.id.tv_sender_name);
-            tvMessage = view.findViewById(R.id.tv_message);
-            tvTime = view.findViewById(R.id.tv_time);
-            tvAttachmentLink = view.findViewById(R.id.tv_attachment_link);
-            tvState = view.findViewById(R.id.tv_state);
-            ivAttachment = view.findViewById(R.id.iv_attachment);
+            ViewHolder(View view) {
+                super(view);
+                llMessageContainer = view.findViewById(R.id.ll_message_container);
+                llBubble = view.findViewById(R.id.ll_bubble);
+                llAttachment = view.findViewById(R.id.ll_attachment);
+                tvSenderName = view.findViewById(R.id.tv_sender_name);
+                tvMessage = view.findViewById(R.id.tv_message);
+                tvTime = view.findViewById(R.id.tv_time);
+                tvAttachmentLink = view.findViewById(R.id.tv_attachment_link);
+                tvState = view.findViewById(R.id.tv_state);
+                ivAttachment = view.findViewById(R.id.iv_attachment);
+            }
         }
     }
 }

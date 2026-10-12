@@ -1167,4 +1167,9 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="chat_type_personal">Persönliche Hilfe</string>
     <string name="chat_type_support">Support-Ticket</string>
     <string name="support_ticket_default_title">Support-Ticket</string>
+    <string name="chat_send">Senden</string>
+    <string name="chat_photo_failed">Foto konnte nicht geladen werden</string>
+    <string name="chat_photo_only">Bitte nur Fotos</string>
+    <string name="chat_ticket_limit">Du hast schon 5 offene Tickets. Schliesse eins, oder antworte im bestehenden Chat.</string>
+    <string name="chat_login_needed">Für Tickets brauchst du ein angemeldetes Konto, damit wir wissen, wer fragt.</string>
 </resources>

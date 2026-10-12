@@ -81,20 +81,40 @@ public class SupportSelectionDialog extends Dialog {
         });
 
         findViewById(R.id.btn_report_bug).setOnClickListener(v -> {
+            if (!requireLogin()) return;
             dismiss();
             if (listener != null) listener.onReportBugClicked();
         });
 
         findViewById(R.id.btn_report_server).setOnClickListener(v -> {
+            if (!requireLogin()) return;
             dismiss();
             if (listener != null) listener.onReportServerClicked();
         });
 
         findViewById(R.id.btn_my_tickets).setOnClickListener(v -> {
+            if (!requireLogin()) return;
             dismiss();
             if (listener != null) listener.onMyTicketsClicked();
         });
 
         findViewById(R.id.btn_cancel).setOnClickListener(v -> dismiss());
+    }
+
+    /**
+     * tickets need a signed in account, that is the identity check: the team has to know
+     * who is asking. the personal/mental support path deliberately never asks for it.
+     */
+    private boolean requireLogin() {
+        if (eu.kodanetwork.mchost.network.supabase.SupabaseAuth.isLoggedIn(getContext())) return true;
+        android.widget.Toast.makeText(getContext(), R.string.chat_login_needed,
+                android.widget.Toast.LENGTH_LONG).show();
+        dismiss();
+        try {
+            getContext().startActivity(new android.content.Intent(getContext(),
+                    eu.kodanetwork.mchost.ui.design.LoginPageActivity.class));
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 }

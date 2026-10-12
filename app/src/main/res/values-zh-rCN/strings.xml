@@ -1136,4 +1136,9 @@
     <string name="chat_type_personal">个人支持</string>
     <string name="chat_type_support">支持工单</string>
     <string name="support_ticket_default_title">支持工单</string>
+    <string name="chat_send">发送</string>
+    <string name="chat_photo_failed">无法加载这张图片</string>
+    <string name="chat_photo_only">请只发送图片</string>
+    <string name="chat_ticket_limit">你已有 5 个未关闭的工单，请先关闭一个。</string>
+    <string name="chat_login_needed">提交工单需要先登录账号。</string>
 </resources>

@@ -87,6 +87,30 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
 
         new Thread(() -> {
             try {
+                // at most 5 open tickets per device. the team stays on top of the queue and
+                // nobody floods it with duplicates. resolved ones never count.
+                try {
+                    JSONObject listObj = new JSONObject();
+                    listObj.put("p_reporter_uuid", uuid);
+                    listObj.put("p_device_token", deviceToken);
+                    String listResp = SupportApi.makeSupabaseRequest(
+                            "rest/v1/rpc/rpc_get_tickets", "POST", listObj.toString(), null);
+                    org.json.JSONArray existing = new org.json.JSONArray(listResp);
+                    int open = 0;
+                    for (int i = 0; i < existing.length(); i++) {
+                        if (!"RESOLVED".equals(existing.getJSONObject(i).optString("status", "OPEN"))) {
+                            open++;
+                        }
+                    }
+                    if (open >= 5) {
+                        runOnUiThread(() -> Toast.makeText(this,
+                                getString(R.string.chat_ticket_limit), Toast.LENGTH_LONG).show());
+                        return;
+                    }
+                } catch (Exception ignored) {
+                    // a courtesy check: if the list fails, the ticket still goes through
+                }
+
                 if (ticketType.equals("SERVER_REPORT")) {
                     // server existence goes through the public status view
                     String checkResponse = SupportApi.makeSupabaseRequest(
