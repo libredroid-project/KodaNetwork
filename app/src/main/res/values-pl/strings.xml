@@ -1111,4 +1111,10 @@
     <string name="chat_photo_only">Tylko zdjęcia</string>
     <string name="chat_ticket_limit">Masz już 5 otwartych zgłoszeń, najpierw zamknij jedno.</string>
     <string name="chat_login_needed">Zgłoszenia wymagają zalogowanego konta.</string>
+    <string name="chat_request_close">Popros o zamkniecie</string>
+    <string name="chat_request_close_sent">Prośba o zamknięcie wysłana</string>
+    <string name="chat_photo_close">Zamknij</string>
+    <string name="chat_photo_save">Zapisz w Pobranych</string>
+    <string name="chat_photo_saved">Zapisano w Pobranych</string>
+    <string name="chat_photo_save_failed">Nie udało się zapisać zdjęcia</string>
 </resources>

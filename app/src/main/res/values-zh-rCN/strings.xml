@@ -1141,4 +1141,10 @@
     <string name="chat_photo_only">请只发送图片</string>
     <string name="chat_ticket_limit">你已有 5 个未关闭的工单，请先关闭一个。</string>
     <string name="chat_login_needed">提交工单需要先登录账号。</string>
+    <string name="chat_request_close">请求关闭</string>
+    <string name="chat_request_close_sent">关闭请求已发送</string>
+    <string name="chat_photo_close">关闭</string>
+    <string name="chat_photo_save">保存到下载</string>
+    <string name="chat_photo_saved">已保存到下载</string>
+    <string name="chat_photo_save_failed">无法保存图片</string>
 </resources>

@@ -1161,4 +1161,10 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="chat_photo_only">Photos only, please</string>
     <string name="chat_ticket_limit">You already have 5 open tickets. Close one first, or answer in the existing chat.</string>
     <string name="chat_login_needed">Tickets need a signed in account, that is how we know who is asking.</string>
+    <string name="chat_request_close">Request close</string>
+    <string name="chat_request_close_sent">Close request sent</string>
+    <string name="chat_photo_close">Close</string>
+    <string name="chat_photo_save">Save to Downloads</string>
+    <string name="chat_photo_saved">Saved to Downloads</string>
+    <string name="chat_photo_save_failed">Could not save the photo</string>
 </resources>

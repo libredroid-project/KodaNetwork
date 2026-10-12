@@ -159,6 +159,14 @@ public class SupportChatActivity extends AppCompatActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_export).setOnClickListener(v -> exportChat());
 
+        android.view.View closeRequest = findViewById(R.id.btn_close_request);
+        if (closeRequest != null) {
+            // schon erledigte Tickets brauchen keinen Schliessen-Wunsch mehr
+            boolean resolved = "RESOLVED".equalsIgnoreCase(ticketStatus == null ? "" : ticketStatus);
+            closeRequest.setVisibility(resolved ? View.GONE : View.VISIBLE);
+            closeRequest.setOnClickListener(v -> requestClose());
+        }
+
         rvChat = findViewById(R.id.rv_chat);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         rvChat.setLayoutManager(layoutManager);
@@ -740,42 +748,171 @@ public class SupportChatActivity extends AppCompatActivity {
         }, "KodaSupportThumb").start();
     }
 
+    /** raw bytes of a remote photo, null when anything goes wrong. */
+    private byte[] downloadBytes(String url) {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            try (InputStream is = conn.getInputStream()) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = is.read(buffer)) != -1) out.write(buffer, 0, read);
+                return out.toByteArray();
+            }
+        } catch (Exception e) {
+            AppLogger.log("KodaSupport", "photo download failed: " + e);
+            return null;
+        }
+    }
+
+    /** decodes photo bytes down to maxDim, null when it is not a usable image. */
+    private Bitmap decodeBytes(byte[] data, int maxDim) {
+        try {
+            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+            int longest = Math.max(bounds.outWidth, bounds.outHeight);
+            int sample = 1;
+            while (longest / sample > maxDim) sample *= 2;
+            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+            opts.inSampleSize = sample;
+            return android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+        } catch (Exception | OutOfMemoryError e) {
+            AppLogger.log("KodaSupport", "photo decode failed: " + e);
+            return null;
+        }
+    }
+
+    /** asks the team to close this ticket, the admin tools pick the marker up. */
+    private void requestClose() {
+        sendText("[KODA-CLOSE-REQUEST] " + getString(R.string.chat_request_close), null);
+        Toast.makeText(this, getString(R.string.chat_request_close_sent), Toast.LENGTH_SHORT).show();
+    }
+
     /**
-     * fullscreen photo view inside the app, through our own loader: no browser hop and no
-     * external app gets to see the ticket image. every step is guarded, a broken photo
-     * shows an error toast instead of taking the app down.
+     * fullscreen photo viewer inside the app: pinch to zoom, double tap to zoom, drag to
+     * pan while zoomed, a pull down or up to close while not zoomed, an X in the corner
+     * and a download button that drops the photo into the Downloads folder.
      */
     private void showPhoto(String url) {
         new Thread(() -> {
-            Bitmap bitmap = decodeFromUrl(url, 2048);
+            byte[] data = downloadBytes(url);
+            Bitmap bitmap = data == null ? null : decodeBytes(data, 2048);
             runOnUiThread(() -> {
                 if (isFinishing()) return;
                 if (bitmap == null) {
                     Toast.makeText(this, getString(R.string.chat_photo_failed), Toast.LENGTH_SHORT).show();
                     return;
                 }
-                try {
-                    Dialog dialog = new Dialog(this);
-                    ImageView image = new ImageView(this);
-                    image.setLayoutParams(new ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                    image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    image.setBackgroundColor(Color.BLACK);
-                    image.setImageBitmap(bitmap);
-                    image.setOnClickListener(v -> dialog.dismiss());
-                    dialog.setContentView(image);
-                    Window window = dialog.getWindow();
-                    if (window != null) {
-                        window.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
-                        window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-                    }
-                    dialog.show();
-                } catch (Exception e) {
-                    AppLogger.log("KodaSupport", "photo dialog failed: " + e);
-                    Toast.makeText(this, getString(R.string.chat_photo_failed), Toast.LENGTH_SHORT).show();
-                }
+                showPhotoViewer(bitmap, data);
             });
         }, "KodaSupportPhoto").start();
+    }
+
+    private void showPhotoViewer(Bitmap bitmap, final byte[] rawData) {
+        try {
+            final Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+            final android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+            frame.setBackgroundColor(Color.BLACK);
+            final eu.kodanetwork.mchost.ui.widget.ZoomablePhotoView photo =
+                    new eu.kodanetwork.mchost.ui.widget.ZoomablePhotoView(this);
+            photo.setImageBitmap(bitmap);
+            frame.addView(photo, new android.widget.FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            int size = (int) (44 * getResources().getDisplayMetrics().density);
+            int margin = (int) (12 * getResources().getDisplayMetrics().density);
+
+            ImageButton close = new ImageButton(this);
+            close.setImageResource(R.drawable.ic_close_custom);
+            close.setBackgroundColor(Color.TRANSPARENT);
+            close.setColorFilter(Color.WHITE);
+            close.setContentDescription(getString(R.string.chat_photo_close));
+            android.widget.FrameLayout.LayoutParams closeParams =
+                    new android.widget.FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.END);
+            closeParams.topMargin = margin;
+            closeParams.rightMargin = margin;
+            close.setOnClickListener(v -> dialog.dismiss());
+            frame.addView(close, closeParams);
+
+            ImageButton save = new ImageButton(this);
+            save.setImageResource(android.R.drawable.stat_sys_download);
+            save.setBackgroundColor(Color.TRANSPARENT);
+            save.setColorFilter(Color.WHITE);
+            save.setContentDescription(getString(R.string.chat_photo_save));
+            android.widget.FrameLayout.LayoutParams saveParams =
+                    new android.widget.FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.START);
+            saveParams.topMargin = margin;
+            saveParams.leftMargin = margin;
+            save.setOnClickListener(v -> savePhotoToDownloads(rawData));
+            frame.addView(save, saveParams);
+
+            photo.setListener(new eu.kodanetwork.mchost.ui.widget.ZoomablePhotoView.Listener() {
+                @Override
+                public void onPull(float offsetY, float progress) {
+                    frame.setAlpha(1f - progress * 0.7f);
+                }
+
+                @Override
+                public void onPullDismiss() {
+                    dialog.dismiss();
+                }
+
+                @Override
+                public void onPullCancel() {
+                    photo.resetView();
+                    frame.setAlpha(1f);
+                }
+            });
+
+            dialog.setContentView(frame);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
+                window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            }
+            dialog.show();
+        } catch (Exception e) {
+            AppLogger.log("KodaSupport", "photo viewer failed: " + e);
+            Toast.makeText(this, getString(R.string.chat_photo_failed), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** drops the photo into the Downloads folder so it can be kept like a normal file. */
+    private void savePhotoToDownloads(byte[] data) {
+        try {
+            String name = "KodaSupport_" + System.currentTimeMillis() + ".jpg";
+            android.content.ContentValues values = new android.content.ContentValues();
+            values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+            values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+            if (Build.VERSION.SDK_INT >= 29) {
+                values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH,
+                        android.os.Environment.DIRECTORY_DOWNLOADS);
+                android.net.Uri uri = getContentResolver().insert(
+                        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) throw new java.io.IOException("downloads uri missing");
+                try (OutputStream os = getContentResolver().openOutputStream(uri)) {
+                    if (os == null) throw new java.io.IOException("stream missing");
+                    os.write(data);
+                }
+            } else {
+                java.io.File dir = android.os.Environment.getExternalStoragePublicDirectory(
+                        android.os.Environment.DIRECTORY_DOWNLOADS);
+                java.io.File file = new java.io.File(dir, name);
+                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(file)) {
+                    fos.write(data);
+                }
+                android.media.MediaScannerConnection.scanFile(this,
+                        new String[]{file.getAbsolutePath()}, new String[]{"image/jpeg"}, null);
+            }
+            Toast.makeText(this, getString(R.string.chat_photo_saved), Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            AppLogger.log("KodaSupport", "photo save failed: " + e);
+            Toast.makeText(this, getString(R.string.chat_photo_save_failed), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private boolean isImageUrl(String url) {

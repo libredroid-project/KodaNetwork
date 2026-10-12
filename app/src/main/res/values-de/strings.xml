@@ -1172,4 +1172,10 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="chat_photo_only">Bitte nur Fotos</string>
     <string name="chat_ticket_limit">Du hast schon 5 offene Tickets. Schliesse eins, oder antworte im bestehenden Chat.</string>
     <string name="chat_login_needed">Für Tickets brauchst du ein angemeldetes Konto, damit wir wissen, wer fragt.</string>
+    <string name="chat_request_close">Schliessen wunschen</string>
+    <string name="chat_request_close_sent">Schliessen-Wunsch gesendet</string>
+    <string name="chat_photo_close">Schliessen</string>
+    <string name="chat_photo_save">In Downloads speichern</string>
+    <string name="chat_photo_saved">In Downloads gespeichert</string>
+    <string name="chat_photo_save_failed">Foto konnte nicht gespeichert werden</string>
 </resources>
