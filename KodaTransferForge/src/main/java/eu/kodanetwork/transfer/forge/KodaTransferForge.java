@@ -91,6 +91,7 @@ public class KodaTransferForge {
         if (event.phase != TickEvent.Phase.END) return;
         try {
             MinecraftServer server = event.getServer();
+            writeLiveStats(server);
             File request = new File(mapDir, "map_request.json");
             if (!request.isFile()) {
                 mapRunning = false;
@@ -246,4 +247,43 @@ public class KodaTransferForge {
             return fallback;
         }
     }
+    private int statsTickCounter = 0;
+
+    /**
+     * writes the live player stats for the app player manager every two seconds, same
+     * flat json as the bukkit plugin, just under koda_transfer/ instead of plugins/.
+     */
+    private void writeLiveStats(MinecraftServer server) {
+        if (++statsTickCounter < 40) return;
+        statsTickCounter = 0;
+        try {
+            File dir = new File(net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile(),
+                    "koda_transfer/playerdata/stats");
+            if (!dir.isDirectory()) dir.mkdirs();
+            for (net.minecraft.server.level.ServerPlayer player : server.getPlayerList().getPlayers()) {
+                try {
+                    net.minecraft.stats.ServerStatsCounter stats = player.getStats();
+                    long ticks = stats.getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.PLAY_TIME));
+                    long hours = (ticks + 36000) / 72000;
+                    long deaths = stats.getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DEATHS));
+                    long mobs = stats.getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.MOB_KILLS));
+                    long damage = stats.getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DAMAGE_TAKEN));
+                    long mined = 0;
+                    for (net.minecraft.world.level.block.Block block : net.minecraft.core.registries.BuiltInRegistries.BLOCK) {
+                        mined += stats.getValue(net.minecraft.stats.Stats.BLOCK_MINED.get(block));
+                    }
+                    File out = new File(dir, player.getUUID() + "_live.json");
+                    try (java.io.FileWriter w = new java.io.FileWriter(out)) {
+                        w.write("{\"hoursPlayed\":" + hours + ",\"deaths\":" + deaths
+                                + ",\"mobsKilled\":" + mobs + ",\"damageTaken\":" + damage
+                                + ",\"blocksMined\":" + mined + "}");
+                    }
+                } catch (Throwable t) {
+                    System.out.println("[KodaTransfer] live stats failed: " + t);
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
 }

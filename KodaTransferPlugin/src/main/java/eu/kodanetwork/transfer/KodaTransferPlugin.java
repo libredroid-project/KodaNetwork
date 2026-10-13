@@ -66,6 +66,7 @@ public class KodaTransferPlugin extends JavaPlugin implements CommandExecutor {
 
         ensureTransfersEnabled();
         startMapSampler();
+        startStatsWriter();
         getLogger().info("KodaTransfer enabled (lobby: " + lobbyHost + ":" + lobbyPort + ")");
     }
 
@@ -105,6 +106,50 @@ public class KodaTransferPlugin extends JavaPlugin implements CommandExecutor {
         }
         player.sendMessage(ChatColor.YELLOW + "This server is too old for the transfer API, join "
                 + lobbyHost + ":" + lobbyPort + " by hand.");
+    }
+
+    /**
+     * writes the live player stats the app shows in the player manager. the app prefers
+     * plugins/KodaTransfer/playerdata/stats/<uuid>_live.json over the vanilla stats
+     * file whenever it exists, because vanilla only writes on save/logout. the five
+     * numbers are exactly the flat json the app parser understands.
+     */
+    private void startStatsWriter() {
+        File statsDir = new File(getDataFolder(), "playerdata/stats");
+        if (!statsDir.isDirectory()) statsDir.mkdirs();
+        Bukkit.getScheduler().runTaskTimer(this, this::writeLiveStats, 40L, 40L);
+    }
+
+    private void writeLiveStats() {
+        for (final Player player : Bukkit.getOnlinePlayers()) {
+            try {
+                long ticks = player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE);
+                long hours = (ticks + 36000) / 72000;
+                long deaths = player.getStatistic(org.bukkit.Statistic.DEATHS);
+                long mobs = player.getStatistic(org.bukkit.Statistic.MOB_KILLS);
+                long damage = player.getStatistic(org.bukkit.Statistic.DAMAGE_TAKEN);
+                long mined = 0;
+                for (org.bukkit.Material material : org.bukkit.Material.values()) {
+                    if (!material.isBlock()) continue;
+                    try {
+                        mined += player.getStatistic(org.bukkit.Statistic.MINE_BLOCK, material);
+                    } catch (IllegalStateException ignored) {
+                        // a few materials carry no mine counter on some versions
+                    }
+                }
+                File out = new File(getDataFolder(),
+                        "playerdata/stats/" + player.getUniqueId() + "_live.json");
+                try (FileWriter w = new FileWriter(out)) {
+                    w.write("{\"hoursPlayed\":" + hours + ",\"deaths\":" + deaths
+                            + ",\"mobsKilled\":" + mobs + ",\"damageTaken\":" + damage
+                            + ",\"blocksMined\":" + mined + "}");
+                }
+            } catch (Throwable t) {
+                // very old servers name some statistics differently, the rest of the
+                // plugin must keep working
+                getLogger().warning("live stats for " + player.getName() + " failed: " + t);
+            }
+        }
     }
 
     /**

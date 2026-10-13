@@ -130,9 +130,11 @@ public class PlayerStatsParser {
 
     public static java.io.File getLiveStatsFile(java.io.File serverDir, String uuid) {
         String world = getWorldName(serverDir);
-        // the custom plugin folder comes first
+        // the custom plugin folders come first, bukkit and the mod loaders
         java.io.File pluginFile = new java.io.File(serverDir, "plugins/KodaTransfer/playerdata/stats/" + uuid + "_live.json");
         if (pluginFile.exists()) return pluginFile;
+        java.io.File modFile = new java.io.File(serverDir, "koda_transfer/playerdata/stats/" + uuid + "_live.json");
+        if (modFile.exists()) return modFile;
         
         java.io.File f1 = new java.io.File(serverDir, world + "/players/stats/" + uuid + "_live.json");
         if (f1.exists()) return f1;
