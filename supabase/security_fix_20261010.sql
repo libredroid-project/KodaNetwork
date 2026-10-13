@@ -84,6 +84,20 @@ BEGIN
     RETURN jsonb_build_object('banned', COALESCE(v_banned, false), 'device_token', v_token);
   END IF;
 
+  -- legacy recovery: the row has no stored hwid yet and the caller's token went stale
+  -- (the 2026-10-02 dedupe rotated tokens under apps that did not open in between).
+  -- the FULL hwid proves the device: its first 16 chars are the app_uuid, and the
+  -- full value exists nowhere public, so an app_uuid list is worthless for an attacker.
+  IF p_hwid IS NOT NULL AND p_hwid <> '' AND v_hwid IS NULL
+     AND ('KODA-' || upper(substr(p_hwid, 1, 16))) = p_app_uuid THEN
+    UPDATE public.koda_users
+       SET device_token = encode(gen_random_bytes(16), 'hex'),
+           hwid_full = p_hwid
+     WHERE app_uuid = p_app_uuid AND hwid_full IS NULL
+    RETURNING device_token, COALESCE(is_banned, false) INTO v_token, v_banned;
+    RETURN jsonb_build_object('banned', COALESCE(v_banned, false), 'device_token', v_token);
+  END IF;
+
   -- the device that already holds the token: give it back and remember its hwid
   -- so the next reinstall can be recovered
   IF p_device_token IS NOT NULL AND p_device_token <> ''

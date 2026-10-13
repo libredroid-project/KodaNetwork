@@ -24,13 +24,14 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { validateHost } from "../_shared/validation.ts";
 import { adminClient, jsonError, verifyDeviceToken } from "../_shared/deviceAuth.ts";
 
-// legacy callers without a device token (builds before 8515): at most 30 calls per
-// minute per warm instance, that is the brake against scrapers.
+// legacy callers without a device token (builds before 8515): at most 60 calls per
+// minute per warm instance, that is the brake against scrapers. 30 was too tight
+// with a whole closed-test fleet still on the old build.
 const unverifiedHits: number[] = [];
 function unverifiedAllowed(): boolean {
   const now = Date.now();
   while (unverifiedHits.length > 0 && now - unverifiedHits[0] > 60_000) unverifiedHits.shift();
-  if (unverifiedHits.length >= 30) return false;
+  if (unverifiedHits.length >= 60) return false;
   unverifiedHits.push(now);
   return true;
 }
