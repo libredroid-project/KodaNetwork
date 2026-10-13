@@ -1184,4 +1184,6 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="crash_notification_title">ist abgestuerzt</string>
     <string name="crash_notification_text">Der Server hat sich unerwartet beendet, tippen fuer die Konsole</string>
     <string name="question">Frage</string>
+    <string name="tickets_empty_title">Keine Tickets</string>
+    <string name="tickets_empty_hint">Gerade ist alles ruhig. Wenn dich etwas stört, schreib uns einfach.</string>
 </resources>

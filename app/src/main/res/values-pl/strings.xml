@@ -1123,4 +1123,6 @@
     <string name="crash_notification_title">uległ awarii</string>
     <string name="crash_notification_text">Serwer zatrzymał się nieoczekiwanie, dotknij aby zobaczyć konsolę</string>
     <string name="question">Pytanie</string>
+    <string name="tickets_empty_title">Brak zgłoszeń</string>
+    <string name="tickets_empty_hint">Na razie wszystko w spokoju. Jeśli coś nie działa, po prostu napisz.</string>
 </resources>

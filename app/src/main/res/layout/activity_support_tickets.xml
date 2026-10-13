@@ -57,11 +57,56 @@
 
     <View android:layout_width="match_parent" android:layout_height="2dp" android:background="#FF6B00"/>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_tickets"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:padding="8dp"/>
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_tickets"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="8dp"/>
+
+        <!-- nothing open: the koda empty animation and a calm hint -->
+        <LinearLayout
+            android:id="@+id/ll_tickets_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingStart="32dp"
+            android:paddingEnd="32dp"
+            android:visibility="gone">
+
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/lottie_tickets_empty"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                app:lottie_rawRes="@raw/koda_empty"
+                app:lottie_autoPlay="true"
+                app:lottie_loop="true"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/tickets_empty_title"
+                android:textColor="#F2EFE9"
+                android:textSize="15sp"
+                android:fontFamily="@font/font_koda"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/tickets_empty_hint"
+                android:textColor="#B7AE9F"
+                android:textSize="12sp"
+                android:fontFamily="@font/font_koda"
+                android:gravity="center"/>
+        </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>

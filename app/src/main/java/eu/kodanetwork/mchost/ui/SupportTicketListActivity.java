@@ -45,6 +45,7 @@ import eu.kodanetwork.mchost.util.ThemeHelper;
 public class SupportTicketListActivity extends AppCompatActivity {
 
     private RecyclerView rvTickets;
+    private android.widget.LinearLayout llEmpty;
     private TicketAdapter adapter;
     private List<JSONObject> ticketList = new ArrayList<>();
 
@@ -62,6 +63,7 @@ public class SupportTicketListActivity extends AppCompatActivity {
         rvTickets.setLayoutManager(new LinearLayoutManager(this));
         adapter = new TicketAdapter();
         rvTickets.setAdapter(adapter);
+        llEmpty = findViewById(R.id.ll_tickets_empty);
     }
 
     @Override
@@ -93,6 +95,9 @@ public class SupportTicketListActivity extends AppCompatActivity {
                     ticketList.clear();
                     ticketList.addAll(newTickets);
                     adapter.notifyDataSetChanged();
+                    if (llEmpty != null) {
+                        llEmpty.setVisibility(ticketList.isEmpty() ? View.VISIBLE : View.GONE);
+                    }
                 });
             } catch (Exception e) {
                 e.printStackTrace();

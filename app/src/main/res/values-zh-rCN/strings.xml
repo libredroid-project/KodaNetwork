@@ -1153,4 +1153,6 @@
     <string name="crash_notification_title">已崩溃</string>
     <string name="crash_notification_text">服务器意外停止，点击查看控制台</string>
     <string name="question">问</string>
+    <string name="tickets_empty_title">没有工单</string>
+    <string name="tickets_empty_hint">现在一切正常。如果有什么问题，直接告诉我们。</string>
 </resources>
