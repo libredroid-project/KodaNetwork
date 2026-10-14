@@ -1360,6 +1360,47 @@ public class ServerDetailActivity extends AppCompatActivity {
         items.add(item);
     }
 
+    private static final String TEXTURE_BASE =
+            "https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/";
+
+    // a few items have no png in item/ or block/ at all, their texture lives
+    // elsewhere in the assets (checks done against the 1.21.4 branch)
+    private static final java.util.Map<String, String> ITEM_TEXTURE_ALIASES = new java.util.HashMap<>();
+    static {
+        ITEM_TEXTURE_ALIASES.put("chest", "entity/chest/normal");
+        ITEM_TEXTURE_ALIASES.put("trapped_chest", "entity/chest/trapped");
+        ITEM_TEXTURE_ALIASES.put("ender_chest", "entity/chest/ender");
+        ITEM_TEXTURE_ALIASES.put("shield", "entity/shield/base");
+        ITEM_TEXTURE_ALIASES.put("grass_block", "block/grass_block_side");
+        ITEM_TEXTURE_ALIASES.put("crafting_table", "block/crafting_table_front");
+        ITEM_TEXTURE_ALIASES.put("furnace", "block/furnace_front");
+        ITEM_TEXTURE_ALIASES.put("blast_furnace", "block/blast_furnace_front");
+        ITEM_TEXTURE_ALIASES.put("smoker", "block/smoker_front");
+        ITEM_TEXTURE_ALIASES.put("tnt", "block/tnt_side");
+        ITEM_TEXTURE_ALIASES.put("barrel", "block/barrel_side");
+        ITEM_TEXTURE_ALIASES.put("grindstone", "block/grindstone_side");
+        ITEM_TEXTURE_ALIASES.put("stonecutter", "block/stonecutter_saw");
+        ITEM_TEXTURE_ALIASES.put("lectern", "block/lectern_base");
+        ITEM_TEXTURE_ALIASES.put("dropper", "block/dropper_front");
+        ITEM_TEXTURE_ALIASES.put("dispenser", "block/dispenser_front");
+        ITEM_TEXTURE_ALIASES.put("observer", "block/observer_front");
+        ITEM_TEXTURE_ALIASES.put("piston", "block/piston_top");
+        ITEM_TEXTURE_ALIASES.put("sticky_piston", "block/piston_top_sticky");
+        ITEM_TEXTURE_ALIASES.put("jukebox", "block/jukebox_side");
+        ITEM_TEXTURE_ALIASES.put("enchanting_table", "block/enchanting_table_top");
+    }
+
+    /** beds only exist as entity textures, one per colour */
+    private static String itemTextureUrl(String itemName) {
+        String alias = ITEM_TEXTURE_ALIASES.get(itemName);
+        if (alias != null) return TEXTURE_BASE + alias + ".png";
+        if (itemName.endsWith("_bed")) {
+            return TEXTURE_BASE + "entity/bed/"
+                    + itemName.substring(0, itemName.length() - "_bed".length()) + ".png";
+        }
+        return TEXTURE_BASE + "item/" + itemName + ".png";
+    }
+
     private void fillInventoryItems(android.view.View view, java.util.List<Object> inventory) {
         android.widget.LinearLayout containerArmor = view.findViewById(R.id.container_armor);
         android.widget.FrameLayout containerOffhand = view.findViewById(R.id.container_offhand);
@@ -1399,12 +1440,11 @@ public class ServerDetailActivity extends AppCompatActivity {
                 android.widget.TextView tvCount = targetView.findViewById(R.id.tv_item_count);
 
                 String itemName = id.replace("minecraft:", "");
-                // blocks have no png under item/, they only exist under block/, so a
-                // failed item load retries there (the dashboard does the same)
-                String textureBase = "https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/";
                 com.bumptech.glide.RequestManager rm = com.bumptech.glide.Glide.with(this);
-                rm.load(textureBase + "item/" + itemName + ".png")
-                        .error(rm.load(textureBase + "block/" + itemName + ".png"))
+                // blocks only have their png under block/, that retry runs here,
+                // special items (chest, beds, shield...) come from itemTextureUrl
+                rm.load(itemTextureUrl(itemName))
+                        .error(rm.load(TEXTURE_BASE + "block/" + itemName + ".png"))
                         .into(iv);
 
                 if (count > 1) {
