@@ -340,7 +340,7 @@
     <string name="execution_mode_desc">Direct in-app hosting (Experimental)</string>
     <string name="setup_design_label">SETUP &amp; DESIGN</string>
     <string name="setup_koda">KodaHosting Design (Auto TAB &amp; Theme)</string>
-    <string name="setup_manual">Alles selbst machen (Clean Install)</string>
+    <string name="setup_manual">Do it by myself (Clean Install)</string>
     <string name="setup_ai">AI Server Builder (BETA)</string>
     <string name="ai_chat_label">AI SERVER BUILDER CHAT</string>
     <string name="ai_chat_hint">Talk to Gemini...</string>

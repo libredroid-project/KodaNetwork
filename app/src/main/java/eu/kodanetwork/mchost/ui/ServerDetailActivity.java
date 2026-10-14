@@ -1171,12 +1171,11 @@ public class ServerDetailActivity extends AppCompatActivity {
 
                     android.view.View pbInv = view.findViewById(R.id.pb_pm_inventory);
                     android.view.View invContainer = view.findViewById(R.id.container_pm_inventory);
-                    java.util.List<Object> items = (fDat != null && fDat.get("Inventory") instanceof java.util.List)
-                            ? (java.util.List<Object>) fDat.get("Inventory") : java.util.Collections.emptyList();
+                    java.util.List<Object> items = collectInventoryItems(fDat);
                     // fillInventoryItems resets every slot first, so an empty
                     // list clears the stale icons while (re)loading
                     fillInventoryItems(view, items);
-                    if (fDat != null && fDat.containsKey("Inventory")) {
+                    if (fDat != null && (fDat.containsKey("Inventory") || fDat.containsKey("equipment"))) {
                         showLottie(pbInv, false);
                         if (!invAnimated[0]) {
                             invAnimated[0] = true;
@@ -1325,6 +1324,42 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * the items for the grid, from both storage places of the game. up to 1.21.4
+     * armour and offhand live inside the Inventory list under slots 100-103/-106,
+     * newer versions write them into their own equipment compound. both get mapped
+     * to the same slot ids here so the renderer only sees one format.
+     */
+    private java.util.List<Object> collectInventoryItems(java.util.Map<String, Object> fDat) {
+        java.util.List<Object> items = new java.util.ArrayList<>();
+        if (fDat == null) return items;
+        if (fDat.get("Inventory") instanceof java.util.List) {
+            items.addAll((java.util.List<Object>) fDat.get("Inventory"));
+        }
+        if (fDat.get("equipment") instanceof java.util.Map) {
+            java.util.Map<?, ?> equipment = (java.util.Map<?, ?>) fDat.get("equipment");
+            addEquipmentItem(items, equipment, "head", 103);
+            addEquipmentItem(items, equipment, "chest", 102);
+            addEquipmentItem(items, equipment, "legs", 101);
+            addEquipmentItem(items, equipment, "feet", 100);
+            addEquipmentItem(items, equipment, "offhand", -106);
+        }
+        return items;
+    }
+
+    private void addEquipmentItem(java.util.List<Object> items, java.util.Map<?, ?> equipment,
+                                  String key, int slot) {
+        Object entry = equipment.get(key);
+        if (!(entry instanceof java.util.Map)) return;
+        java.util.Map<?, ?> stack = (java.util.Map<?, ?>) entry;
+        java.util.Map<String, Object> item = new java.util.HashMap<>(4);
+        item.put("Slot", slot);
+        item.put("id", stack.get("id"));
+        Object count = stack.containsKey("count") ? stack.get("count") : stack.get("Count");
+        item.put("count", count instanceof Number ? count : 1);
+        items.add(item);
+    }
+
     private void fillInventoryItems(android.view.View view, java.util.List<Object> inventory) {
         android.widget.LinearLayout containerArmor = view.findViewById(R.id.container_armor);
         android.widget.FrameLayout containerOffhand = view.findViewById(R.id.container_offhand);
@@ -1364,9 +1399,13 @@ public class ServerDetailActivity extends AppCompatActivity {
                 android.widget.TextView tvCount = targetView.findViewById(R.id.tv_item_count);
 
                 String itemName = id.replace("minecraft:", "");
-                String url = "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.20.4/assets/minecraft/textures/item/" + itemName + ".png";
-
-                com.bumptech.glide.Glide.with(this).load(url).into(iv);
+                // blocks have no png under item/, they only exist under block/, so a
+                // failed item load retries there (the dashboard does the same)
+                String textureBase = "https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/";
+                com.bumptech.glide.RequestManager rm = com.bumptech.glide.Glide.with(this);
+                rm.load(textureBase + "item/" + itemName + ".png")
+                        .error(rm.load(textureBase + "block/" + itemName + ".png"))
+                        .into(iv);
 
                 if (count > 1) {
                     tvCount.setVisibility(android.view.View.VISIBLE);
