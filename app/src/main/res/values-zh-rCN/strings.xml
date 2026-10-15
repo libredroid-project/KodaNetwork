@@ -132,6 +132,7 @@
     <string name="connection">连接</string>
     <string name="join_address_java">加入地址 (JAVA)</string>
     <string name="bedrock_port">基岩版端口</string>
+    <string name="bedrock_address">基岩版地址</string>
     <string name="installing">正在安装...</string>
     <string name="controls">控制</string>
     <string name="hard_reset">⚠ 强制重置</string>
@@ -359,6 +360,31 @@
     <string name="database_password_default">password</string>
     <string name="btn_create_database">创建数据库</string>
     <string name="new_server">新服务器</string>
+    <string name="wizard_next">下一步</string>
+    <string name="wizard_back">返回</string>
+    <string name="wizard_summary_label">摘要</string>
+    <string name="security_game_label">安全与游戏</string>
+    <string name="extras_services_label">附加服务</string>
+    <string name="console_auto_scroll">控制台自动滚动</string>
+    <string name="wizard_step_options">选项</string>
+    <string name="gamemode_label">游戏模式</string>
+    <string name="motd_label">MOTD</string>
+    <string name="motd_hint">显示在服务器列表中</string>
+    <string name="server_icon_label">服务器图标</string>
+    <string name="pick_image">选择图片</string>
+    <string name="backup_mode_label">备份</string>
+    <string name="backup_off">关闭</string>
+    <string name="backup_daily">每天</string>
+    <string name="backup_on_stop">服务器停止时</string>
+    <string name="backup_keep_label">保留数量</string>
+    <string name="online_mode_label">正版验证</string>
+    <string name="online_mode_hint">开：仅允许微软账号加入。关：允许盗版与离线客户端。</string>
+    <string name="whitelist_label">白名单</string>
+    <string name="pvp_label">PVP</string>
+    <string name="view_distance_label">视距</string>
+    <string name="wizard_step_server">服务器</string>
+    <string name="wizard_step_power">性能</string>
+    <string name="wizard_step_setup">设置</string>
     <string name="import_folder">导入文件夹</string>
     <string name="import_zip">导入ZIP</string>
     <string name="server_name_label">服务器名称</string>
@@ -524,6 +550,10 @@
     <string name="pm_offline_hint">无网络连接，操作已禁用</string>
     <string name="pm_empty_players">还没有玩家，快加入服务器吧！</string>
     <string name="sd_files_empty">此目录为空</string><string name="sd_close_loading">关闭加载画面</string>
+    <string name="sd_files_parent">.. (上一级文件夹)</string>
+    <string name="sd_files_not_downloaded">(尚未下载)</string>
+    <string name="sd_runtime_download">⬇ OpenJDK %1$s 将在启动时加载</string>
+    <string name="sd_file_path_label">文件路径：</string>
 
     <!-- warning when values were edited by hand in server.properties -->
     <string name="sd_props_changed_title">server.properties 已被修改</string>
@@ -1094,6 +1124,7 @@
     <string name="pregen_minutes">%1$d 分钟</string>
     <string name="pregen_hours">%1$.1f 小时</string>
     <string name="pregen_hint">不确定时先选小一点。之后随时可以继续预生成，Chunky 不会重复生成同一个区块。</string>
+    <string name="pregen_background_hint">世界在服务器上生成。你可以随时离开此页面，它会在后台继续。</string>
     <string name="pregen_cancel">取消</string>
     <string name="pregen_save">确定</string>
     <string name="pregen_back">返回</string>
@@ -1155,4 +1186,14 @@
     <string name="question">问</string>
     <string name="tickets_empty_title">没有工单</string>
     <string name="tickets_empty_hint">现在一切正常。如果有什么问题，直接告诉我们。</string>
+
+    <!-- 皮肤：Notion 与 Apple，仅开发者选项，默认关闭 -->
+    <string name="dev_notion_skin">Notion 主题</string>
+    <string name="dev_notion_skin_hint">白色画布、衬线标题、蓝色链接</string>
+    <string name="dev_notion_skin_on">Notion 主题已开启，应用将重新载入。</string>
+    <string name="dev_notion_skin_off">Notion 主题已关闭。</string>
+    <string name="dev_apple_skin">Apple 主题</string>
+    <string name="dev_apple_skin_hint">分组卡片、箭头、系统蓝</string>
+    <string name="dev_apple_skin_on">Apple 主题已开启，应用将重新载入。</string>
+    <string name="dev_apple_skin_off">Apple 主题已关闭。</string>
 </resources>

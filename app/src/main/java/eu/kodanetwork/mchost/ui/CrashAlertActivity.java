@@ -59,6 +59,7 @@ public class CrashAlertActivity extends androidx.appcompat.app.AppCompatActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
         getWindow().addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
@@ -399,6 +400,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
 
         scroll.addView(root);
         setContentView(scroll);
+        eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
 
         // ── subtle pulse on the background ──────────────────────────────────
         anim = ObjectAnimator.ofInt(getWindow().getDecorView(), "backgroundColor", 0xFF0F0808, 0xFF1A0A0A);
@@ -469,7 +471,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
     /** the AI window: 3-dot loading animation first, then the answer. */
     private void showAiDialog() {
         if (!eu.kodanetwork.mchost.util.AiHelper.hasConsent(this)) {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(getString(R.string.ai_consent_title))
                     .setMessage(getString(R.string.ai_consent_message))
                     .setPositiveButton(getString(R.string.ai_consent_agree), (d, w) -> {
@@ -664,7 +666,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
     /** one-tap fix from the analyzer (CrashFixer), used when the AI has no app-setting fix. */
     private void confirmCrashFixerFix() {
         HapticUtil.forceVibrate(this, 50);
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.ai_try_fix))
                 .setMessage(srv.crashFix != null ? srv.crashFix : getString(R.string.ai_try_fix))
                 .setPositiveButton(getString(R.string.ai_apply), (d, w) -> {
@@ -686,7 +688,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         } else {
             msg = getString(R.string.ai_fix_confirm_java, (int) aiResult.autoFixValue);
         }
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.ai_try_fix))
                 .setMessage(msg)
                 .setPositiveButton(getString(R.string.ai_apply), (d, w) -> applyAutoFix())

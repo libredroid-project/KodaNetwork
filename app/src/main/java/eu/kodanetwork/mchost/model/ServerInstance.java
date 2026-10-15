@@ -93,6 +93,9 @@ public class ServerInstance {
     // world generation comes from the create wizard (empty = leave the server default alone)
     private String levelType = "";
     private String levelSeed = "";
+    // empty means "leave whatever the file/defaults have"; the wizard sets them explicitly
+    private String onlineMode = "";
+    private String viewDistance = "";
     private String backupMode = "off";       // off | daily | on_stop
     private int backupKeep = 3;              // how many ZIPs to keep
     private boolean pregenerate = false;     // run Chunky on the first start
@@ -146,6 +149,10 @@ public class ServerInstance {
     public void setLevelType(String value) { this.levelType = value == null ? "" : value; }
     public String getLevelSeed() { return levelSeed; }
     public void setLevelSeed(String value) { this.levelSeed = value == null ? "" : value; }
+    public void setOnlineMode(String value) { this.onlineMode = value == null ? "" : value; }
+    public String getOnlineMode() { return onlineMode; }
+    public void setViewDistance(String value) { this.viewDistance = value == null ? "" : value; }
+    public String getViewDistance() { return viewDistance; }
 
     public String getBackupMode() { return backupMode; }
     public void setBackupMode(String mode) { this.backupMode = mode == null ? "off" : mode; }
@@ -192,6 +199,8 @@ public class ServerInstance {
         j.put("baseDomain", baseDomain);
         j.put("levelType", levelType);
         j.put("levelSeed", levelSeed);
+        j.put("onlineMode", onlineMode);
+        j.put("viewDistance", viewDistance);
         j.put("backupMode", backupMode);
         j.put("backupKeep", backupKeep);
         j.put("pregenerate", pregenerate);
@@ -252,6 +261,8 @@ public class ServerInstance {
         s.baseDomain     = j.optString("baseDomain", "kodanetwork.eu");
         s.levelType         = j.optString("levelType", "");
         s.levelSeed         = j.optString("levelSeed", "");
+        s.onlineMode        = j.optString("onlineMode", "");
+        s.viewDistance      = j.optString("viewDistance", "");
         s.backupMode        = j.optString("backupMode", "off");
         s.backupKeep        = j.optInt("backupKeep", 3);
         s.pregenerate       = j.optBoolean("pregenerate", false);

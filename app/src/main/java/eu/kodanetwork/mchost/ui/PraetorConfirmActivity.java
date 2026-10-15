@@ -128,7 +128,7 @@ public class PraetorConfirmActivity extends Activity {
 
         if (isConnected) {
             tvNetworkStatus.setText("CONNECTED");
-            tvNetworkStatus.setTextColor(0xFF00FF00); // green
+            tvNetworkStatus.setTextColor(0xFF00E676); // koda green
         } else {
             tvNetworkStatus.setText("DISCONNECTED - WAITING FOR NETWORK");
             tvNetworkStatus.setTextColor(0xFFFF3333); // red

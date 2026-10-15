@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+  A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <!-- notion skin, light: plain white canvas, grey chrome, blue links -->
+    <color name="notion_bg_light">#FFFFFF</color>
+    <color name="notion_chrome_light">#F7F7F5</color>
+    <color name="notion_surface_light">#FFFFFF</color>
+    <color name="notion_text_light">#37352F</color>
+    <color name="notion_text_muted_light">#736F69</color>
+    <color name="notion_text_faint_light">#A5A29C</color>
+    <color name="notion_line_light">#E9E9E7</color>
+    <color name="notion_hover_light">#EFEFED</color>
+    <color name="notion_accent_light">#2383E2</color>
+    <color name="notion_accent_soft_light">#1F2383E2</color>
+
+    <!-- notion skin, dark: graphite canvas, softer blue -->
+    <color name="notion_bg_dark">#191919</color>
+    <color name="notion_chrome_dark">#202020</color>
+    <color name="notion_surface_dark">#202020</color>
+    <color name="notion_text_dark">#D4D4D4</color>
+    <color name="notion_text_muted_dark">#9B9B9B</color>
+    <color name="notion_text_faint_dark">#6F6F6F</color>
+    <color name="notion_line_dark">#2F2F2F</color>
+    <color name="notion_hover_dark">#2A2A2A</color>
+    <color name="notion_accent_dark">#529CCA</color>
+    <color name="notion_accent_soft_dark">#33529CCA</color>
+</resources>

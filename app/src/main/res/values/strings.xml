@@ -100,6 +100,7 @@
     <string name="connection">CONNECTION</string>
     <string name="join_address_java">JOIN ADDRESS (JAVA)</string>
     <string name="bedrock_port">BEDROCK PORT</string>
+    <string name="bedrock_address">BEDROCK ADDRESS</string>
     <string name="installing">INSTALLING...</string>
     <string name="controls">CONTROLS</string>
     <string name="hard_reset">⚠ HARD RESET</string>
@@ -328,6 +329,31 @@
     <string name="database_password_default">password</string>
     <string name="btn_create_database">CREATE DATABASE</string>
     <string name="new_server">New Server</string>
+    <string name="wizard_next">NEXT</string>
+    <string name="wizard_back">BACK</string>
+    <string name="wizard_summary_label">SUMMARY</string>
+    <string name="security_game_label">SECURITY &amp; GAMEPLAY</string>
+    <string name="extras_services_label">EXTRA SERVICES</string>
+    <string name="console_auto_scroll">CONSOLE AUTO-SCROLL</string>
+    <string name="wizard_step_options">OPTIONS</string>
+    <string name="gamemode_label">GAMEMODE</string>
+    <string name="motd_label">MOTD</string>
+    <string name="motd_hint">Shown in the server list</string>
+    <string name="server_icon_label">SERVER ICON</string>
+    <string name="pick_image">PICK IMAGE</string>
+    <string name="backup_mode_label">BACKUPS</string>
+    <string name="backup_off">Off</string>
+    <string name="backup_daily">Daily</string>
+    <string name="backup_on_stop">On server stop</string>
+    <string name="backup_keep_label">KEEP</string>
+    <string name="online_mode_label">ONLINE MODE</string>
+    <string name="online_mode_hint">ON: only Microsoft accounts can join. OFF: cracked and offline clients are allowed.</string>
+    <string name="whitelist_label">WHITELIST</string>
+    <string name="pvp_label">PVP</string>
+    <string name="view_distance_label">VIEW DISTANCE</string>
+    <string name="wizard_step_server">SERVER</string>
+    <string name="wizard_step_power">PERFORMANCE</string>
+    <string name="wizard_step_setup">SETUP</string>
     <string name="import_folder">Import Folder</string>
     <string name="import_zip">Import ZIP</string>
     <string name="server_name_label">SERVER NAME</string>
@@ -351,6 +377,11 @@
     <string name="btn_create_server">Create Server</string>
     <string name="preparing_java">Preparing Java...</string>
     <string name="pm_heal">Heal</string><string name="pm_feed">Feed</string><string name="pm_starve">Starve</string><string name="pm_kill">Kill</string><string name="pm_wipe">Wipe</string><string name="pm_wipe_title">Wipe Player Data</string><string name="pm_wipe_desc">Are you sure? This will kick the player and delete their inventory and stats.</string><string name="pm_whitelisted">Whitelisted</string><string name="pm_inventory">Inventory</string><string name="pm_deaths">Deaths:</string><string name="pm_blocks_mined">Blocks Mined:</string><string name="pm_hours_played">Hours Played:</string><string name="pm_mobs_killed">Mobs Killed:</string><string name="pm_damage_taken">Damage Taken:</string><string name="pm_online">(Online)</string><string name="pm_offline">(Offline)</string><string name="pm_wiped_toast">Player data wiped</string><string name="pm_action_toast">Executed action on player</string><string name="pm_stats">Statistics</string><string name="pm_offline_hint">No internet connection, actions are disabled</string><string name="pm_empty_players">No players yet, join the server!</string><string name="sd_files_empty">This directory is empty</string><string name="sd_close_loading">Close loading screen</string>
+    <string name="sd_files_parent">.. (one folder up)</string>
+    <string name="sd_files_not_downloaded">(not downloaded yet)</string>
+    <string name="sd_java_auto_install">◌ Java installs automatically on start (JDK 25)</string>
+    <string name="sd_runtime_download">⬇ OpenJDK %1$s loads on start</string>
+    <string name="sd_file_path_label">File path:</string>
     <string name="err_server_create_cooldown">Please wait %1$d seconds before creating a new server.</string>
     <string name="err_server_limit_reached">You have reached the limit of %1$d active servers.</string>
     <string name="err_wakeup_limit_reached">Server limit reached. You can run a maximum of %1$d active servers simultaneously. Please hibernate another server first.</string>
@@ -374,7 +405,6 @@
     <string name="sd_starting_server">STARTING SERVER...</string>
     <string name="sd_auto_setup_running">AUTO-SETUP RUNNING...</string>
     <string name="sd_checking_java">checking java.</string>
-    <string name="sd_java_auto_install">Java will be installed automatically at start (JDK 25)</string>
     <string name="sd_updates_available">Updates Available!</string>
     <string name="sd_check_updates">Check for Updates</string>
     <string name="sd_join_address">JOIN ADDRESS</string>
@@ -1114,6 +1144,7 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="pregen_minutes">%1$d minutes</string>
     <string name="pregen_hours">%1$.1f hours</string>
     <string name="pregen_hint">Start small if you are unsure. The world can always be pre-generated further later, chunky does not generate the same chunk twice.</string>
+    <string name="pregen_background_hint">Generation runs on the server. You can leave this screen whenever you want, it keeps going in the background.</string>
     <string name="pregen_cancel">CANCEL</string>
     <string name="pregen_save">START WORKING</string>
     <string name="pregen_back">BACK</string>
@@ -1175,4 +1206,14 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="question">Question</string>
     <string name="tickets_empty_title">No tickets</string>
     <string name="tickets_empty_hint">Nothing going on right now. If something bothers you, just write us.</string>
+
+    <!-- skins: notion and apple, dev only, off by default -->
+    <string name="dev_notion_skin">Notion theme</string>
+    <string name="dev_notion_skin_hint">White canvas, serif headings, blue links</string>
+    <string name="dev_notion_skin_on">Notion theme on, reloading the app into it.</string>
+    <string name="dev_notion_skin_off">Notion theme off.</string>
+    <string name="dev_apple_skin">Apple theme</string>
+    <string name="dev_apple_skin_hint">Grouped cards, chevrons, system blue</string>
+    <string name="dev_apple_skin_on">Apple theme on, reloading the app into it.</string>
+    <string name="dev_apple_skin_off">Apple theme off.</string>
 </resources>

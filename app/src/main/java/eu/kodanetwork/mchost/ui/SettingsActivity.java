@@ -38,6 +38,8 @@ public class SettingsActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        eu.kodanetwork.mchost.util.NotionSkinHelper.applyTheme(this);
+        eu.kodanetwork.mchost.util.AppleSkinHelper.applyTheme(this);
         eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
         if (eu.kodanetwork.mchost.util.Material3ThemeHelper.isM3Enabled(this)) {
@@ -45,6 +47,8 @@ public class SettingsActivity extends Activity {
         } else {
             setContentView(R.layout.activity_settings);
         }
+        eu.kodanetwork.mchost.util.NotionSkinHelper.apply(this);
+        eu.kodanetwork.mchost.util.AppleSkinHelper.apply(this);
 
         TextView tvVersion = findViewById(R.id.tv_settings_version);
         if (tvVersion != null) {
@@ -354,7 +358,7 @@ public class SettingsActivity extends Activity {
         if (ref.extension.license != null && !ref.extension.license.isEmpty()) {
             message.append("\n").append(getString(R.string.ext_settings_license, ref.extension.license));
         }
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(ref.entry.title)
                 .setMessage(message.toString())
                 .setPositiveButton(R.string.ext_settings_open, (dialog, which) -> openExtensionFromSettings(ref))
@@ -660,9 +664,59 @@ public class SettingsActivity extends Activity {
                 eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
             });
         }
+
+        // notion skin, dev option. the skins paint the same tree, so only one may be on.
+        com.google.android.material.switchmaterial.SwitchMaterial switchNotion = findViewById(R.id.switch_dev_notion);
+        if (switchNotion != null) {
+            switchNotion.setChecked(prefs.getBoolean("dev_notion_skin_enabled", false));
+            switchNotion.setOnCheckedChangeListener((btn, checked) -> {
+                if (checked) {
+                    exclusiveSkin("notion");
+                    eu.kodanetwork.mchost.util.NotionSkinHelper.markIntroPending(this);
+                } else {
+                    prefs.edit().putBoolean("dev_notion_skin_enabled", false).apply();
+                }
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
+                Toast.makeText(this, checked ? getString(R.string.dev_notion_skin_on) : getString(R.string.dev_notion_skin_off), Toast.LENGTH_SHORT).show();
+                btn.postDelayed(this::recreate, 320);
+            });
+        }
+
+        // apple skin, dev option, same exclusivity
+        com.google.android.material.switchmaterial.SwitchMaterial switchApple = findViewById(R.id.switch_dev_apple);
+        if (switchApple != null) {
+            switchApple.setChecked(prefs.getBoolean("dev_apple_skin_enabled", false));
+            switchApple.setOnCheckedChangeListener((btn, checked) -> {
+                if (checked) {
+                    exclusiveSkin("apple");
+                    eu.kodanetwork.mchost.util.AppleSkinHelper.markIntroPending(this);
+                } else {
+                    prefs.edit().putBoolean("dev_apple_skin_enabled", false).apply();
+                }
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
+                Toast.makeText(this, checked ? getString(R.string.dev_apple_skin_on) : getString(R.string.dev_apple_skin_off), Toast.LENGTH_SHORT).show();
+                btn.postDelayed(this::recreate, 320);
+            });
+        }
         
         setupM3ColorModeSegmented();
         setupM3ColorPresets();
+    }
+
+    /**
+     * every skin paints the same activity tree, so enabling one has to switch the others off.
+     * keep is "notion", "apple" or null, and cyber steps aside too because its cards would fight
+     * the skin palette.
+     */
+    private void exclusiveSkin(String keep) {
+        prefs.edit()
+                .putBoolean("dev_notion_skin_enabled", "notion".equals(keep))
+                .putBoolean("dev_apple_skin_enabled", "apple".equals(keep))
+                .putBoolean("dev_sleek_enabled", "sleek".equals(keep))
+                .putBoolean("dev_terminal_enabled", "terminal".equals(keep))
+                .putBoolean("dev_material3_enabled", "m3".equals(keep))
+                .putString("app_theme", "modern")
+                .apply();
     }
 
     private void setupM3ColorModeSegmented() {
@@ -1637,7 +1691,7 @@ public class SettingsActivity extends Activity {
             checkedItems[i] = currentPerms.optBoolean(permKeys[i], false);
         }
         
-        new android.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle("Permissions: " + mcName)
             .setMultiChoiceItems(permNames, checkedItems, (dialog, which, isChecked) -> {
                 checkedItems[which] = isChecked;
@@ -1731,7 +1785,7 @@ public class SettingsActivity extends Activity {
         input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
         input.setHint("Enter a secure password");
 
-        new android.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle("Set 2FA Password")
             .setMessage("This password will be required in Minecraft when using /myservers.")
             .setView(input)

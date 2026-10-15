@@ -147,9 +147,9 @@ public class SupportTicketListActivity extends AppCompatActivity {
                 holder.tvDate.setText(type.isEmpty() ? date : type + " · " + date);
 
                 if ("RESOLVED".equals(status)) {
-                    holder.tvStatus.setTextColor(0xFF4CAF50); // green
+                    holder.tvStatus.setTextColor(0xFF00E676); // koda green
                 } else {
-                    holder.tvStatus.setTextColor(0xFFFF8C00); // orange
+                    holder.tvStatus.setTextColor(0xFFFF8C38); // koda orange
                 }
 
                 holder.itemView.setOnClickListener(v -> {

@@ -141,7 +141,7 @@ public class ExtensionHostActivity extends AppCompatActivity {
     }
 
     private void confirmRemove() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.ext_remove_title)
                 .setMessage(R.string.ext_remove_message)
                 .setPositiveButton(R.string.ext_remove, (d, w) -> {

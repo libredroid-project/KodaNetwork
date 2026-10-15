@@ -183,6 +183,55 @@ public class CreateServerActivity extends AppCompatActivity {
     private String lastTheme = "modern";
     private String lastThemeMode = "dark";
 
+    // server icon picked at setup, written into the new server dir on create
+    private android.net.Uri pendingIconUri;
+    private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> iconPicker =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null
+                        && result.getData().getData() != null) {
+                    android.net.Uri uri = result.getData().getData();
+                    pendingIconUri = uri;
+                    try {
+                        java.io.InputStream is = getContentResolver().openInputStream(uri);
+                        android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeStream(is);
+                        is.close();
+                        if (bmp != null) {
+                            android.graphics.Bitmap scaled = android.graphics.Bitmap.createScaledBitmap(bmp, 64, 64, true);
+                            android.widget.ImageView iv = findViewById(R.id.icon_preview);
+                            if (iv != null) {
+                                iv.setImageBitmap(scaled);
+                                iv.setVisibility(android.view.View.VISIBLE);
+                            }
+                        }
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(this, getString(R.string.sd_toast_error_loading_image) + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+
+    // the wizard shell: one scroll per step, step 1..3 shows
+    private int wizardStep = 1;
+    private android.view.View[] wizardScrolls;
+    private android.widget.TextView[] wizardStepLabels;
+    private android.view.View[] wizardSegments;
+    private com.google.android.material.button.MaterialButton btnWizardBack, btnWizardNext;
+    private final android.os.Handler wizardHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private long wizardStepOpenedAt = 0L;
+
+    @Override
+    protected void onSaveInstanceState(android.os.Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("wizard_step", wizardStep);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(android.os.Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        // the framework restores view visibilities too, so the step wins afterwards
+        wizardStep = savedInstanceState.getInt("wizard_step", 1);
+        applyWizardStep();
+    }
+
     private void animateLightBlob(android.view.View blob) {
         if (blob == null || blob.getVisibility() != android.view.View.VISIBLE) return;
         
@@ -217,11 +266,8 @@ public class CreateServerActivity extends AppCompatActivity {
         lastTheme = prefs.getString("app_theme", "modern");
         boolean isCyber = "cyber".equals(lastTheme);
 
-        if (eu.kodanetwork.mchost.util.Material3ThemeHelper.isM3Enabled(this)) {
-            setContentView(R.layout.activity_create_server_m3);
-        } else {
-            setContentView(R.layout.activity_create_server);
-        }
+        // one wizard layout for every mode: the m3 helper restyles the same views
+        setContentView(R.layout.activity_create_server);
         if (isCyber) {
             findViewById(android.R.id.content).getRootView().setBackgroundResource(R.drawable.bg_cyber_grid);
         }
@@ -234,11 +280,15 @@ public class CreateServerActivity extends AppCompatActivity {
         int headerColor = headerBg();
 
         findViewById(android.R.id.content).setBackgroundColor(pageColor);
-        findViewById(R.id.main_scroll).setBackgroundColor(pageColor);
-        
-        android.view.View mainScroll = findViewById(R.id.main_scroll);
-        if (mainScroll instanceof android.view.ViewGroup) {
-            ((android.view.ViewGroup) mainScroll).setClipToPadding(false);
+        // the wizard has one scroll per step, all of them get the page look
+        wizardScrolls = new android.view.View[]{
+                findViewById(R.id.wizard_scroll_1), findViewById(R.id.wizard_scroll_2), findViewById(R.id.wizard_scroll_3), findViewById(R.id.wizard_scroll_4)};
+        for (android.view.View stepScroll : wizardScrolls) {
+            if (stepScroll == null) continue;
+            stepScroll.setBackgroundColor(pageColor);
+            if (stepScroll instanceof android.view.ViewGroup) {
+                ((android.view.ViewGroup) stepScroll).setClipToPadding(false);
+            }
         }
 
         findViewById(R.id.top_bar_container).setBackgroundColor(headerColor);
@@ -264,8 +314,10 @@ public class CreateServerActivity extends AppCompatActivity {
                 android.view.View topBar = findViewById(R.id.top_bar_container);
                 if (topBar != null) topBar.setPadding(0, insets.getSystemWindowInsetTop(), 0, 0);
                 
-                android.view.View scroll = findViewById(R.id.main_scroll);
-                if (scroll != null) scroll.setPadding(scroll.getPaddingLeft(), 0, scroll.getPaddingRight(), insets.getSystemWindowInsetBottom() + 120);
+                for (int sid : new int[]{R.id.wizard_scroll_1, R.id.wizard_scroll_2, R.id.wizard_scroll_3, R.id.wizard_scroll_4}) {
+                    android.view.View scroll = findViewById(sid);
+                    if (scroll != null) scroll.setPadding(scroll.getPaddingLeft(), 0, scroll.getPaddingRight(), insets.getSystemWindowInsetBottom() + 120);
+                }
                 
                 return insets.consumeSystemWindowInsets();
             });
@@ -315,7 +367,7 @@ public class CreateServerActivity extends AppCompatActivity {
                         getString(R.string.java_runtime_manual, 25)};
                 int cur = 0;
                 for (int i = 0; i < opts.length; i++) if (opts[i] == createJavaRuntime) cur = i;
-                new android.app.AlertDialog.Builder(this)
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                         .setTitle(R.string.java_runtime_label)
                         .setSingleChoiceItems(labels, cur, (d, which) -> {
                             createJavaRuntime = opts[which];
@@ -346,6 +398,35 @@ public class CreateServerActivity extends AppCompatActivity {
         btnImport       = findViewById(R.id.btn_import);
         btnImportZip    = findViewById(R.id.btn_import_zip);
         btnBack         = findViewById(R.id.btn_back);
+
+        // the wizard: step labels, segments and the bottom bar
+        wizardStepLabels = new android.widget.TextView[]{
+                findViewById(R.id.tv_step_1), findViewById(R.id.tv_step_2), findViewById(R.id.tv_step_3), findViewById(R.id.tv_step_4)};
+        wizardSegments = new android.view.View[]{
+                findViewById(R.id.seg_1), findViewById(R.id.seg_2), findViewById(R.id.seg_3), findViewById(R.id.seg_4)};
+        btnWizardBack = findViewById(R.id.btn_wizard_back);
+        btnWizardNext = findViewById(R.id.btn_wizard_next);
+        if (btnWizardBack != null) btnWizardBack.setOnClickListener(v -> setWizardStep(wizardStep - 1));
+        if (btnWizardNext != null) btnWizardNext.setOnClickListener(v -> setWizardStep(wizardStep + 1));
+        android.widget.EditText wizardNameField = findViewById(R.id.et_name);
+        if (wizardNameField != null) {
+            wizardNameField.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override public void afterTextChanged(android.text.Editable s) { updateWizardGate(); fillWizardSummary(); }
+            });
+        }
+        applyWizardStep();
+
+        // the summary mirrors every value it shows, live
+        watchSummarySource(R.id.tv_ram_value);
+        watchSummarySource(R.id.tv_version_selected);
+        watchSummarySource(R.id.tv_pregen_inline_radius);
+        android.widget.CompoundButton swSummary = findViewById(R.id.switch_pregenerate);
+        if (swSummary != null) swSummary.setOnCheckedChangeListener((button, checked) -> fillWizardSummary());
+        android.widget.CompoundButton swOnlineSummary = findViewById(R.id.sw_online_mode);
+        if (swOnlineSummary != null) swOnlineSummary.setOnCheckedChangeListener((button, checked) -> fillWizardSummary());
+
         swUseNative = findViewById(R.id.sw_use_native);
         swUseNative.setChecked(true);
         swUseNative.setVisibility(android.view.View.GONE);
@@ -373,6 +454,8 @@ public class CreateServerActivity extends AppCompatActivity {
         setupNumberPicker();
         setupRam();
         setupWorldType();
+        setupSecurityOptions();
+        setupExtras();
         
         setupNameWatcher();
 
@@ -855,7 +938,7 @@ public class CreateServerActivity extends AppCompatActivity {
         selectedColor = "#FF6B00"; // default Koda orange
 
         btnColorPicker.setOnClickListener(v -> {
-            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+            com.google.android.material.dialog.MaterialAlertDialogBuilder builder = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this);
             builder.setTitle("Pick Theme Color");
 
             LinearLayout layout = new LinearLayout(this);
@@ -881,7 +964,7 @@ public class CreateServerActivity extends AppCompatActivity {
             };
 
             String[] labels = {"Red", "Green", "Blue"};
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < labels.length; i++) {
                 TextView tv = new TextView(this); tv.setText(labels[i]);
                 layout.addView(tv);
                 bars[i] = new android.widget.SeekBar(this);
@@ -1525,33 +1608,293 @@ public class CreateServerActivity extends AppCompatActivity {
      */
     private void setupWorldType() {
         android.widget.Spinner spinner = findViewById(R.id.spinner_world_type);
+        setupStringSpinner(spinner, WORLD_TYPES, 0);
+        if (spinner != null) {
+            spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
+                    fillWizardSummary();
+                }
+                @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+            });
+        }
+    }
+
+    /** fills a spinner with koda colours on both the closed view and the dropdown. the runtime
+     *  item views are built by hand because the theme pass never reaches views created later:
+     *  mono plus letter spacing is exactly the look the pass puts on every other label. */
+    private void setupStringSpinner(android.widget.Spinner spinner, String[] values, int selected) {
         if (spinner == null) return;
-        final int textColor = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFF1B1613 : 0xFFF0F0F0;
-        final int rowColor = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFFF5F0EC : 0xFF241C18;
+        final int textColor = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFF1A1A1A : 0xFFF0F0F0;
+        final int rowColor = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFFFFFFFF : 0xFF241C18;
+        final float density = getResources().getDisplayMetrics().density;
         android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<String>(
-                this, android.R.layout.simple_spinner_item, WORLD_TYPES) {
+                this, android.R.layout.simple_spinner_item, values) {
             @Override
             public android.view.View getView(int position, android.view.View convertView, android.view.ViewGroup parent) {
-                android.view.View view = super.getView(position, convertView, parent);
-                if (view instanceof android.widget.TextView) {
-                    ((android.widget.TextView) view).setTextColor(textColor);
-                }
-                return view;
+                android.widget.TextView tv = new android.widget.TextView(CreateServerActivity.this);
+                tv.setText(values[position]);
+                tv.setTextColor(textColor);
+                tv.setTextSize(14);
+                tv.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.NORMAL);
+                tv.setLetterSpacing(0.06f);
+                tv.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                tv.setPadding((int) (14 * density), 0, 0, 0);
+                return tv;
             }
 
             @Override
             public android.view.View getDropDownView(int position, android.view.View convertView, android.view.ViewGroup parent) {
-                android.view.View view = super.getDropDownView(position, convertView, parent);
-                if (view instanceof android.widget.TextView) {
-                    ((android.widget.TextView) view).setTextColor(textColor);
-                    view.setBackgroundColor(rowColor);
-                }
-                return view;
+                android.widget.TextView tv = new android.widget.TextView(CreateServerActivity.this);
+                tv.setText(values[position]);
+                tv.setTextColor(textColor);
+                tv.setTextSize(14);
+                tv.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.NORMAL);
+                tv.setLetterSpacing(0.06f);
+                tv.setBackgroundColor(rowColor);
+                tv.setPadding((int) (16 * density), (int) (12 * density), 0, (int) (12 * density));
+                return tv;
             }
         };
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
-        spinner.setSelection(0);
+        spinner.setSelection(selected);
+    }
+
+    /** online mode, whitelist, pvp, difficulty, max players and view distance. */
+    private void setupSecurityOptions() {
+        setupStringSpinner(findViewById(R.id.spinner_difficulty),
+                new String[]{"Peaceful", "Easy", "Normal", "Hard"}, 2);
+
+        final android.widget.TextView tvMax = findViewById(R.id.tv_max_players_value);
+        android.widget.SeekBar sbMax = findViewById(R.id.sb_max_players);
+        if (sbMax != null && tvMax != null) {
+            tvMax.setText(String.valueOf(2 + sbMax.getProgress()));
+            sbMax.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(android.widget.SeekBar bar, int progress, boolean fromUser) {
+                    tvMax.setText(String.valueOf(2 + progress));
+                }
+                @Override public void onStartTrackingTouch(android.widget.SeekBar bar) {}
+                @Override public void onStopTrackingTouch(android.widget.SeekBar bar) {}
+            });
+        }
+
+        final android.widget.TextView tvVd = findViewById(R.id.tv_view_distance_value);
+        android.widget.SeekBar sbVd = findViewById(R.id.sb_view_distance);
+        if (sbVd != null && tvVd != null) {
+            tvVd.setText(String.valueOf(4 + sbVd.getProgress()));
+            sbVd.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(android.widget.SeekBar bar, int progress, boolean fromUser) {
+                    tvVd.setText(String.valueOf(4 + progress));
+                }
+                @Override public void onStartTrackingTouch(android.widget.SeekBar bar) {}
+                @Override public void onStopTrackingTouch(android.widget.SeekBar bar) {}
+            });
+        }
+    }
+
+    /** shows the current wizard step: one scroll, three labels, the bottom bar buttons. */
+    private void applyWizardStep() {
+        for (int i = 0; i < 4; i++) {
+            if (wizardScrolls != null && wizardScrolls[i] != null) {
+                wizardScrolls[i].setVisibility(i + 1 == wizardStep ? android.view.View.VISIBLE : android.view.View.GONE);
+            }
+            if (wizardStepLabels != null && wizardStepLabels[i] != null) {
+                wizardStepLabels[i].setTextColor(i + 1 == wizardStep ? 0xFFFF6B00 : 0xFF8A8A9A);
+            }
+            if (wizardSegments != null && wizardSegments[i] != null) {
+                wizardSegments[i].setBackgroundColor(i + 1 == wizardStep ? 0xFFFF6B00 : 0xFF241C18);
+            }
+        }
+        if (btnWizardBack != null) {
+            btnWizardBack.setVisibility(wizardStep == 1 ? android.view.View.GONE : android.view.View.VISIBLE);
+        }
+        if (btnWizardNext != null) {
+            btnWizardNext.setVisibility(wizardStep >= 4 ? android.view.View.GONE : android.view.View.VISIBLE);
+        }
+        android.view.View create = findViewById(R.id.btn_create);
+        if (create != null) {
+            create.setVisibility(wizardStep == 4 ? android.view.View.VISIBLE : android.view.View.GONE);
+        }
+        if (wizardStep == 4) fillWizardSummary();
+        // the backup fill can only be measured once its step is visible
+        if (wizardStep == 3) {
+            android.view.View track = findViewById(R.id.backup_slider);
+            if (track != null) track.post(() -> setBackupModeIndex(backupModeIndex, false));
+        }
+        armWizardGate();
+    }
+
+    /** re-fills the summary whenever one of the value labels changes. */
+    private void watchSummarySource(int viewId) {
+        android.widget.TextView tv = findViewById(viewId);
+        if (tv == null) return;
+        tv.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) { fillWizardSummary(); }
+        });
+    }
+
+    /** next stays locked for three seconds per page, and until the page is filled in. */
+    private void armWizardGate() {
+        wizardStepOpenedAt = android.os.SystemClock.elapsedRealtime();
+        updateWizardGate();
+        wizardHandler.removeCallbacksAndMessages(null);
+        wizardHandler.postDelayed(this::updateWizardGate, 3200);
+    }
+
+    private void updateWizardGate() {
+        if (btnWizardNext == null) return;
+        boolean filled = wizardStep != 1 || wizardNameFilled();
+        boolean waited = android.os.SystemClock.elapsedRealtime() - wizardStepOpenedAt >= 3000;
+        boolean ready = filled && waited;
+        if (btnWizardNext.isEnabled() != ready) {
+            btnWizardNext.setEnabled(ready);
+            btnWizardNext.animate().alpha(ready ? 1f : 0.4f).setDuration(180).start();
+        }
+    }
+
+    private boolean wizardNameFilled() {
+        android.widget.EditText nameField = findViewById(R.id.et_name);
+        return nameField != null && nameField.getText() != null && nameField.getText().toString().trim().length() >= 2;
+    }
+
+    /** jumps to a step, scrolls it back to the top and taps back. */
+    private void setWizardStep(int step) {
+        int target = Math.max(1, Math.min(4, step));
+        if (target == wizardStep) return;
+        wizardStep = target;
+        applyWizardStep();
+        if (wizardScrolls != null && wizardScrolls[wizardStep - 1] instanceof android.widget.ScrollView) {
+            android.widget.ScrollView incoming = (android.widget.ScrollView) wizardScrolls[wizardStep - 1];
+            incoming.scrollTo(0, 0);
+            // the new page glides in so the switch is visible
+            incoming.setAlpha(0f);
+            incoming.setTranslationY(36f * getResources().getDisplayMetrics().density);
+            incoming.animate().alpha(1f).translationY(0f).setDuration(260).start();
+        }
+        eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
+    }
+
+    /** what is about to be created, filled from the live view values when step 3 opens. */
+    private void fillWizardSummary() {
+        android.widget.TextView tv = findViewById(R.id.tv_wizard_summary);
+        if (tv == null) return;
+        try {
+            StringBuilder sb = new StringBuilder();
+            android.widget.EditText nameField = findViewById(R.id.et_name);
+            String name = nameField != null && nameField.getText() != null ? nameField.getText().toString().trim() : "";
+            sb.append(name.isEmpty() ? "-" : name);
+            android.widget.TextView ver = findViewById(R.id.tv_version_selected);
+            if (ver != null && ver.getText() != null && !ver.getText().toString().isEmpty()) {
+                sb.append("  ·  ").append(ver.getText());
+            }
+            sb.append("\n");
+            android.widget.Spinner sp = findViewById(R.id.spinner_world_type);
+            if (sp != null && sp.getSelectedItem() != null) {
+                sb.append(sp.getSelectedItem());
+            }
+            com.google.android.material.switchmaterial.SwitchMaterial pre = findViewById(R.id.switch_pregenerate);
+            if (pre != null && pre.isChecked()) {
+                android.widget.TextView rad = findViewById(R.id.tv_pregen_inline_radius);
+                sb.append("  ·  ").append(getString(R.string.extras_pregen));
+                if (rad != null && rad.getText() != null) sb.append(" ").append(rad.getText());
+            }
+            sb.append("\n");
+            android.widget.TextView ram = findViewById(R.id.tv_ram_value);
+            if (ram != null && ram.getText() != null) {
+                sb.append(getString(R.string.ram_label)).append(" ").append(ram.getText());
+            }
+            android.widget.CompoundButton online = findViewById(R.id.sw_online_mode);
+            if (online != null) {
+                sb.append("  ·  ").append(getString(R.string.online_mode_label)).append(online.isChecked() ? ": ON" : ": OFF");
+            }
+            tv.setText(sb.toString());
+        } catch (Exception ignored) {}
+    }
+
+    // 0 = off, 1 = daily, 2 = on server stop
+    private int backupModeIndex = 0;
+
+    /** the backup bar: one long track, the fill grows with the picked mode. */
+    private void setupBackupSlider() {
+        android.widget.TextView off = findViewById(R.id.rb_backup_off);
+        android.widget.TextView daily = findViewById(R.id.rb_backup_daily);
+        android.widget.TextView stop = findViewById(R.id.rb_backup_on_stop);
+        if (off != null) off.setOnClickListener(v -> { eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20); setBackupModeIndex(0, true); });
+        if (daily != null) daily.setOnClickListener(v -> { eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20); setBackupModeIndex(1, true); });
+        if (stop != null) stop.setOnClickListener(v -> { eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20); setBackupModeIndex(2, true); });
+        setBackupModeIndex(0, false);
+    }
+
+    private void setBackupModeIndex(int idx, boolean animate) {
+        backupModeIndex = Math.max(0, Math.min(2, idx));
+        android.widget.TextView off = findViewById(R.id.rb_backup_off);
+        android.widget.TextView daily = findViewById(R.id.rb_backup_daily);
+        android.widget.TextView stop = findViewById(R.id.rb_backup_on_stop);
+        android.widget.TextView[] labels = {off, daily, stop};
+        for (int i = 0; i < labels.length; i++) {
+            // everything the fill covers goes dark, the rest stays warm gray
+            if (labels[i] != null) labels[i].setTextColor(i <= backupModeIndex ? 0xFF1B1613 : 0xFFB7AE9F);
+        }
+        final android.widget.FrameLayout track = findViewById(R.id.backup_slider);
+        final android.view.View fill = findViewById(R.id.backup_slider_fill);
+        if (track == null || fill == null) return;
+        // the further the mode, the stronger the orange gets
+        int fillAlpha = backupModeIndex == 0 ? 0x99 : backupModeIndex == 1 ? 0xCC : 0xFF;
+        android.graphics.drawable.Drawable fillBg = fill.getBackground();
+        if (fillBg != null) fillBg.mutate().setTint((fillAlpha << 24) | 0x00FF6B00);
+        final int target = Math.max(1, track.getWidth() * (backupModeIndex + 1) / 3);
+        if (track.getWidth() == 0) {
+            track.post(() -> applyBackupFill(fill, Math.max(1, track.getWidth() * (backupModeIndex + 1) / 3), false));
+        } else {
+            applyBackupFill(fill, target, animate);
+        }
+    }
+
+    private void applyBackupFill(android.view.View fill, int targetW, boolean animate) {
+        android.view.ViewGroup.LayoutParams lp = fill.getLayoutParams();
+        int from = Math.max(1, lp.width);
+        if (!animate) {
+            lp.width = targetW;
+            fill.setLayoutParams(lp);
+            return;
+        }
+        android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofInt(from, targetW);
+        anim.setDuration(200);
+        anim.addUpdateListener(a -> {
+            lp.width = (int) a.getAnimatedValue();
+            fill.setLayoutParams(lp);
+        });
+        anim.start();
+    }
+
+    /** gamemode, motd and the backup options of the extras step. */
+    private void setupExtras() {
+        setupBackupSlider();
+        android.widget.EditText etMotdField = findViewById(R.id.et_motd);
+        eu.kodanetwork.mchost.util.MotdBuilder.attach(this, etMotdField, R.id.ll_motd_codes, R.id.tv_motd_preview);
+        android.view.View pickIcon = findViewById(R.id.btn_pick_icon);
+        if (pickIcon != null) pickIcon.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            iconPicker.launch(intent);
+        });
+        setupStringSpinner(findViewById(R.id.spinner_gamemode),
+                new String[]{"Survival", "Creative", "Adventure", "Spectator"}, 0);
+
+        final android.widget.TextView tvKeep = findViewById(R.id.tv_backup_keep_value);
+        android.widget.SeekBar sbKeep = findViewById(R.id.sb_backup_keep);
+        if (sbKeep != null && tvKeep != null) {
+            tvKeep.setText(String.valueOf(1 + sbKeep.getProgress()));
+            sbKeep.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(android.widget.SeekBar bar, int progress, boolean fromUser) {
+                    tvKeep.setText(String.valueOf(1 + progress));
+                }
+                @Override public void onStartTrackingTouch(android.widget.SeekBar bar) {}
+                @Override public void onStopTrackingTouch(android.widget.SeekBar bar) {}
+            });
+        }
     }
 
     private void setupRam() {
@@ -1703,7 +2046,7 @@ public class CreateServerActivity extends AppCompatActivity {
             btnFullscreen.setOnClickListener(v -> {
                 boolean isFs = (svChat.getLayoutParams().height == android.widget.LinearLayout.LayoutParams.MATCH_PARENT);
                 android.widget.LinearLayout rootLayout = findViewById(R.id.root_layout);
-                android.widget.ScrollView mainScroll = findViewById(R.id.main_scroll);
+                android.widget.ScrollView mainScroll = (android.widget.ScrollView) wizardScrolls[wizardStep - 1];
                 View aiLayout = findViewById(R.id.layout_ai_prompt);
                 
                 if (!isFs) {
@@ -1963,6 +2306,22 @@ public class CreateServerActivity extends AppCompatActivity {
         String dir = useNative ? new File(getFilesDir(), "servers/" + id).getAbsolutePath() : android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS) + "/KodaNetwork/servers/" + id;
 
         ServerInstance s = new ServerInstance(id, name, type, version, ramMB, port, dir);
+
+        // the icon picked at setup lands in the new server dir right away
+        if (pendingIconUri != null) {
+            try {
+                java.io.File iconDir = new java.io.File(dir);
+                iconDir.mkdirs();
+                android.graphics.Bitmap iconBmp = android.graphics.BitmapFactory.decodeStream(
+                        getContentResolver().openInputStream(pendingIconUri));
+                if (iconBmp != null) {
+                    android.graphics.Bitmap iconScaled = android.graphics.Bitmap.createScaledBitmap(iconBmp, 64, 64, true);
+                    java.io.FileOutputStream iconOut = new java.io.FileOutputStream(new java.io.File(iconDir, "server-icon.png"));
+                    iconScaled.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, iconOut);
+                    iconOut.close();
+                }
+            } catch (Exception ignored) {}
+        }
                     s.setBaseDomain(getSelectedBaseDomain());
         int checkedId = rgSetupType.getCheckedRadioButtonId();
         s.setUseNative(useNative);
@@ -1984,6 +2343,43 @@ public class CreateServerActivity extends AppCompatActivity {
         if (etWorldSeed != null) {
             s.setLevelSeed(etWorldSeed.getText().toString().trim());
         }
+
+        // security and gameplay from the setup step
+        android.widget.CompoundButton swOnlineMode = findViewById(R.id.sw_online_mode);
+        if (swOnlineMode != null) s.setOnlineMode(swOnlineMode.isChecked() ? "true" : "false");
+        android.widget.CompoundButton swWhitelist = findViewById(R.id.sw_whitelist);
+        if (swWhitelist != null) s.setWhitelist(swWhitelist.isChecked());
+        android.widget.CompoundButton swPvpOption = findViewById(R.id.sw_pvp);
+        if (swPvpOption != null) s.setPvp(swPvpOption.isChecked());
+        android.widget.SeekBar sbMaxPlayers = findViewById(R.id.sb_max_players);
+        if (sbMaxPlayers != null) s.setMaxPlayers(2 + sbMaxPlayers.getProgress());
+        android.widget.Spinner spDifficulty = findViewById(R.id.spinner_difficulty);
+        if (spDifficulty != null) {
+            int diffIndex = Math.max(0, Math.min(3, spDifficulty.getSelectedItemPosition()));
+            s.setDifficulty(eu.kodanetwork.mchost.model.ServerInstance.Difficulty.values()[diffIndex]);
+        }
+        android.widget.SeekBar sbViewDistance = findViewById(R.id.sb_view_distance);
+        if (sbViewDistance != null) s.setViewDistance(String.valueOf(4 + sbViewDistance.getProgress()));
+
+        // extras from step 4
+        android.widget.Spinner spGamemode = findViewById(R.id.spinner_gamemode);
+        if (spGamemode != null) {
+            int gmIndex = Math.max(0, Math.min(3, spGamemode.getSelectedItemPosition()));
+            s.setGamemode(eu.kodanetwork.mchost.model.ServerInstance.Gamemode.values()[gmIndex]);
+        }
+        android.widget.EditText etMotdField = findViewById(R.id.et_motd);
+        if (etMotdField != null) s.setMotd(etMotdField.getText().toString().trim());
+        s.setBackupMode(backupModeIndex == 2 ? "on_stop" : backupModeIndex == 1 ? "daily" : "off");
+        android.widget.SeekBar sbBackupKeep = findViewById(R.id.sb_backup_keep);
+        if (sbBackupKeep != null) s.setBackupKeep(1 + sbBackupKeep.getProgress());
+
+        // the extra services, their ports and plugins get wired up on the first start
+        android.widget.CompoundButton swBedrock = findViewById(R.id.sw_bedrock);
+        if (swBedrock != null) s.setBedrockSupport(swBedrock.isChecked());
+        android.widget.CompoundButton swVoicechat = findViewById(R.id.sw_voicechat);
+        if (swVoicechat != null) s.setVoicechat(swVoicechat.isChecked());
+        android.widget.CompoundButton swConsoleScroll = findViewById(R.id.sw_console_scroll);
+        if (swConsoleScroll != null) s.setConsoleAutoScroll(swConsoleScroll.isChecked());
 
         // world pre-generation is asked here, once, while the server is being created
         android.widget.CompoundButton swPregen = findViewById(R.id.switch_pregenerate);

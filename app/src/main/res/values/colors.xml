@@ -33,7 +33,7 @@
 
     <color name="border_dim">#2A2A35</color>
     <color name="border_mid">#3A3A48</color>
-    <color name="border_orange">#FF6B0044</color>
+    <color name="border_orange">#44FF6B00</color>
 
     <color name="txt_primary">#F0F0F0</color>
     <color name="txt_secondary">#8A8A9A</color>

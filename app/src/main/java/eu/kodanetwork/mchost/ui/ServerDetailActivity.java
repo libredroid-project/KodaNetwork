@@ -217,6 +217,8 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        eu.kodanetwork.mchost.util.NotionSkinHelper.applyTheme(this);
+        eu.kodanetwork.mchost.util.AppleSkinHelper.applyTheme(this);
         eu.kodanetwork.mchost.util.SleekThemeHelper.applyTheme(this);
         eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
@@ -233,6 +235,8 @@ public class ServerDetailActivity extends AppCompatActivity {
         } else {
             setContentView(R.layout.activity_server_detail);
         }
+        eu.kodanetwork.mchost.util.NotionSkinHelper.apply(this);
+        eu.kodanetwork.mchost.util.AppleSkinHelper.apply(this);
         
         eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
 
@@ -401,6 +405,8 @@ public class ServerDetailActivity extends AppCompatActivity {
         tvJavaInfo = findViewById(R.id.tv_java_info);
         tvBedrockPortDash = findViewById(R.id.tv_bedrock_port_dash);
 
+        // bedrock players need the full address, a bare port number confused people
+
         // the sleek layout uses different IDs, so alias them onto the same fields and all
         // the existing dashboard/console logic (updateDash, appendLog, sendCmd…) keeps working
         if (tvJoinAddr == null) tvJoinAddr = findViewById(R.id.tv_join_address);
@@ -409,6 +415,12 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (tvBedrockPortDash != null) tvBedrockPortDash.setOnClickListener(v -> {
             if (server.isBedrockSupport() && server.getBedrockPort() > 0) {
                 copyToClipboard("Bedrock Port", String.valueOf(server.getBedrockPort()));
+            }
+        });
+        android.widget.TextView tvBedrockAddr = findViewById(R.id.tv_bedrock_address);
+        if (tvBedrockAddr != null) tvBedrockAddr.setOnClickListener(v -> {
+            if (server.isBedrockSupport() && server.getBedrockPort() > 0) {
+                copyToClipboard("Bedrock Address", bedrockDomain());
             }
         });
         btnStart   = findViewById(R.id.btn_start);
@@ -497,15 +509,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         // static info
         updateJoinAddressDisplay();
         
-        View layoutBedrockPort = findViewById(R.id.layout_bedrock_port);
-        if (layoutBedrockPort != null && tvBedrockPortDash != null) {
-            if (server.isBedrockSupport() && server.getBedrockPort() > 0) {
-                layoutBedrockPort.setVisibility(View.VISIBLE);
-                tvBedrockPortDash.setText(String.valueOf(server.getBedrockPort()));
-            } else {
-                layoutBedrockPort.setVisibility(View.GONE);
-            }
-        }
+        updateBedrockDisplay();
 
         tvRamInfo.setText(server.getRamMB() + " MB RAM");
         tvVerInfo.setText(server.getType().name() + " " + server.getVersion());
@@ -536,14 +540,14 @@ public class ServerDetailActivity extends AppCompatActivity {
                     text = "✓ " + eu.kodanetwork.mchost.util.JavaFinder.version(this);
                     color = android.graphics.Color.parseColor("#00E676");
                 } else {
-                    text = "◌ Java wird beim Start automatisch installiert (JDK 25)";
+                    text = getString(R.string.sd_java_auto_install);
                     color = android.graphics.Color.parseColor("#FFCC00");
                 }
             } else if (eu.kodanetwork.mchost.util.RuntimeManager.isRuntimeInstalled(this, jv)) {
                 text = "✓ OpenJDK " + jv;
                 color = android.graphics.Color.parseColor("#00E676");
             } else {
-                text = "⬇ OpenJDK " + jv + " wird beim Start geladen";
+                text = getString(R.string.sd_runtime_download, jv);
                 color = android.graphics.Color.parseColor("#FFCC00");
             }
             final String fText = text;
@@ -1028,7 +1032,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         });
 
         btnDelete.setOnClickListener(v -> {
-            new android.app.AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle("Wipe Player Data")
                 .setMessage("Are you sure? This will kick the player and delete their inventory and stats.")
                 .setPositiveButton("Wipe", (d, w2) -> {
@@ -1620,7 +1624,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (btnStop != null) btnStop.setOnClickListener(v -> sendAction(KodaServerService.ACTION_STOP));
         if (btnRestart != null) btnRestart.setOnClickListener(v -> sendAction(KodaServerService.ACTION_RESTART));
         if (btnKill != null) btnKill.setOnClickListener(v ->
-            new AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.sd_dialog_force_kill_title))
                 .setMessage("Welt-Daten werden möglicherweise nicht gespeichert. Fortfahren?")
                 .setPositiveButton("Kill", (d, w) -> sendAction(KodaServerService.ACTION_KILL))
@@ -2023,7 +2027,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                 break;
             case CRASHED:    label = "✕ CRASHED";    col = 0xFFFF4444; break;
             case INSTALLING: label = "⬇ LADEN…";     col = 0xFF44AAFF; break;
-            case SETTING_UP: label = "⚙ SETTING UP…";col = 0xFF9C27B0;
+            case SETTING_UP: label = "⚙ SETTING UP…";col = 0xFFB388FF;
                 if (tvBadge != null) {
                     tvBadge.animate().alpha(0.3f).setDuration(400).withEndAction(() ->
                         tvBadge.animate().alpha(1f).setDuration(400).start()
@@ -2746,7 +2750,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         layoutFileList.addView(btn, lp);
         
         View div = new View(this);
-        div.setBackgroundColor(eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFFE5DECF : 0xFF2A241E);
+        div.setBackgroundColor(eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFFE0E0E0 : 0xFF2A241E);
         div.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2));
         layoutFileList.addView(div);
     }
@@ -2759,7 +2763,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         tvFilesRoot.setText(relPath);
 
         if (!currentDir.exists()) {
-            addFRow("(noch nicht heruntergeladen)", null);
+            addFRow(getString(R.string.sd_files_not_downloaded), null);
             return;
         }
 
@@ -2767,7 +2771,7 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         // back button, only when we are not in the root folder
         if (!currentDir.getAbsolutePath().equals(rootPath)) {
-            addFRow(".. (Ordner hoch)", currentDir.getParentFile());
+            addFRow(getString(R.string.sd_files_parent), currentDir.getParentFile());
         }
 
         File[] files = currentDir.listFiles();
@@ -2810,7 +2814,7 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         TextView tv = new TextView(this);
         tv.setText(getString(R.string.sd_files_empty));
-        tv.setTextColor(eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFF8A8075 : 0xFF8A8A9A);
+        tv.setTextColor(eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFF6B6B6B : 0xFF8A8A9A);
         tv.setTextSize(13);
         tv.setGravity(android.view.Gravity.CENTER);
         box.addView(tv);
@@ -2826,7 +2830,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         android.graphics.Typeface mono = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda_mono);
         if (mono != null) tv.setTypeface(mono);
         boolean light = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this);
-        tv.setTextColor(text.contains("📁") || text.startsWith("..") ? 0xFFFF6B00 : (light ? 0xFF241207 : 0xFFE8E2D6));
+        tv.setTextColor(text.contains("📁") || text.startsWith("..") ? 0xFFFF6B00 : (light ? 0xFF1A1A1A : 0xFFE8E2D6));
         
         if (file != null) {
             tv.setBackgroundResource(android.R.drawable.list_selector_background);
@@ -2848,7 +2852,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             tv.setOnLongClickListener(v -> {
                 if (text.startsWith("..")) {
                     if (clipFile != null) {
-                        new AlertDialog.Builder(this)
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                             .setTitle(getString(R.string.sd_dialog_paste_action))
                             .setPositiveButton(getString(R.string.sd_action_paste, clipFile.getName()), (d, w) -> {
                                 try {
@@ -2886,13 +2890,13 @@ public class ServerDetailActivity extends AppCompatActivity {
                         getString(R.string.sd_files_export)));
                 if (isZip) actionList.add(getString(R.string.sd_files_unpack));
                 String[] actions = actionList.toArray(new String[0]);
-                new AlertDialog.Builder(this)
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(file.getName())
                     .setItems(actions, (d, which) -> {
                         if (which == 0) { // rename
                             final android.widget.EditText input = new android.widget.EditText(this);
                             input.setText(file.getName());
-                            new AlertDialog.Builder(this)
+                            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                                 .setTitle(getString(R.string.sd_dialog_rename))
                                 .setView(input)
                                 .setPositiveButton(getString(R.string.sd_action_ok), (d2, w2) -> {
@@ -2933,7 +2937,7 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         layoutFileList.addView(tv);
         View div = new View(this);
-        div.setBackgroundColor(eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFFE5DECF : 0xFF2A241E);
+        div.setBackgroundColor(eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this) ? 0xFFE0E0E0 : 0xFF2A241E);
         div.setLayoutParams(new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 1));
         layoutFileList.addView(div);
@@ -3244,7 +3248,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             "RAM:        " + server.getRamMB() + " MB\n" +
             "Port:       " + server.getPort() + "\n" +
             addressLabel + "\n" + addressValue + "\n\n" +
-            "Dateipfad:\n" + server.getServerDir()
+            getString(R.string.sd_file_path_label) + "\n" + server.getServerDir()
         );
 
         // java runtime selector (per server; auto = Fabric 21, everything else 25)
@@ -3335,11 +3339,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                         repo.update(server);
                         patchServerPorts();
                         
-                        View layoutBedrockPort = findViewById(R.id.layout_bedrock_port);
-                        if (layoutBedrockPort != null && tvBedrockPortDash != null) {
-                            layoutBedrockPort.setVisibility(View.VISIBLE);
-                            tvBedrockPortDash.setText(String.valueOf(server.getBedrockPort()));
-                        }
+                        updateBedrockDisplay();
                         triggerAddonRestart();
                     } else {
                         // no port yet, so allocate one
@@ -3352,11 +3352,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                                     server.setBedrockSupport(true);
                                     repo.update(server);
                                     
-                                    View layoutBedrockPort = findViewById(R.id.layout_bedrock_port);
-                                    if (layoutBedrockPort != null && tvBedrockPortDash != null) {
-                                        layoutBedrockPort.setVisibility(View.VISIBLE);
-                                        tvBedrockPortDash.setText(String.valueOf(server.getBedrockPort()));
-                                    }
+                                    updateBedrockDisplay();
                                     triggerAddonRestart();
                                 });
                             } catch (Exception e) {
@@ -3458,7 +3454,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                     }
                     boolean isChecked = swKodadash.isChecked();
                     if (isChecked) {
-                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                             .setTitle("KodaDash Beta Warning")
                             .setMessage("KodaDash Web Control Panel is a Beta feature. It uses ~50MB extra RAM and might be unstable. Are you sure you want to enable it?")
                             .setPositiveButton("Enable", (dialog, which) -> {
@@ -5066,70 +5062,10 @@ public class ServerDetailActivity extends AppCompatActivity {
      * inserts it at the cursor. the preview below shows the result with real Minecraft colours.
      */
     private void setupMotdBuilder(final android.widget.EditText etMotd) {
-        android.widget.LinearLayout codeRow = findViewById(R.id.ll_motd_codes);
-        final android.widget.TextView preview = findViewById(R.id.tv_motd_preview);
-        if (codeRow == null || etMotd == null) return;
-        float d = getResources().getDisplayMetrics().density;
-
-        codeRow.removeAllViews();
-        // every code the game understands: 16 colours + all five formats + reset
-        String[] codes = {"&0", "&1", "&2", "&3", "&4", "&5", "&6", "&7", "&8", "&9",
-                "&a", "&b", "&c", "&d", "&e", "&f", "&l", "&o", "&n", "&m", "&k", "&r"};
-        for (final String code : codes) {
-            android.widget.TextView item = new android.widget.TextView(this);
-            item.setText(code);
-            item.setTextSize(13);
-            item.setPadding((int) (7 * d), (int) (4 * d), (int) (7 * d), (int) (4 * d));
-            item.setTypeface(android.graphics.Typeface.MONOSPACE);
-            char c = code.charAt(1);
-            int color = eu.kodanetwork.mchost.util.MinecraftColors.colorFor(c);
-            if (color != -1) {
-                item.setTextColor(color);
-            } else {
-                item.setTextColor(0xFFE8E2D6);
-                if (c == 'm') item.setPaintFlags(item.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
-                if (c == 'n') item.setPaintFlags(item.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
-                if (c == 'l' || c == 'k') item.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
-                if (c == 'o') item.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.ITALIC);
-            }
-            item.setClickable(true);
-            item.setOnClickListener(v -> {
-                int at = Math.max(0, etMotd.getSelectionStart());
-                etMotd.getText().insert(at, code);
-            });
-            codeRow.addView(item);
-        }
-
-        // hex colour: inserts the template and puts the cursor on the digits
-        android.widget.TextView hexItem = new android.widget.TextView(this);
-        hexItem.setText("&#…");
-        hexItem.setTextSize(13);
-        hexItem.setPadding((int) (7 * d), (int) (4 * d), (int) (7 * d), (int) (4 * d));
-        hexItem.setTypeface(android.graphics.Typeface.MONOSPACE);
-        hexItem.setTextColor(0xFFFF7EB9);
-        hexItem.setClickable(true);
-        hexItem.setOnClickListener(v -> {
-            int at = Math.max(0, etMotd.getSelectionStart());
-            etMotd.getText().insert(at, "&#RRGGBB");
-            // select the placeholder so typing replaces it right away
-            etMotd.setSelection(at + 2, at + 8);
-        });
-        codeRow.addView(hexItem);
-
+        if (etMotd == null) return;
+        eu.kodanetwork.mchost.util.MotdBuilder.attach(this, etMotd, R.id.ll_motd_codes, R.id.tv_motd_preview);
         // freely resizable input field: drag grip right under it
-        attachMotdResizeHandle(etMotd, d);
-
-        final Runnable refresh = () -> {
-            if (preview != null) {
-                preview.setText(eu.kodanetwork.mchost.util.MinecraftColors.toSpannable(etMotd.getText().toString()));
-            }
-        };
-        etMotd.addTextChangedListener(new android.text.TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            public void afterTextChanged(android.text.Editable s) { refresh.run(); }
-        });
-        refresh.run();
+        attachMotdResizeHandle(etMotd, getResources().getDisplayMetrics().density);
     }
 
     /**
@@ -5502,11 +5438,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                 toggleSwitch.setChecked(true);
                 if (addonType.equals("bedrock")) {
                     server.setBedrockSupport(true);
-                    View layoutBedrockPort = findViewById(R.id.layout_bedrock_port);
-                    if (layoutBedrockPort != null && tvBedrockPortDash != null) {
-                        layoutBedrockPort.setVisibility(View.VISIBLE);
-                        tvBedrockPortDash.setText(String.valueOf(server.getBedrockPort()));
-                    }
+                    updateBedrockDisplay();
                 } else {
                     server.setVoicechat(true);
                 }
@@ -6261,7 +6193,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                 if (layoutFullLoading != null) layoutFullLoading.setVisibility(View.GONE);
                 server.state = ServerInstance.State.OFFLINE;
                 updateDash();
-                new AlertDialog.Builder(ServerDetailActivity.this)
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(ServerDetailActivity.this)
                     .setTitle(getString(R.string.sd_dialog_download_failed)).setMessage(e)
                     .setPositiveButton("OK", null).show();
             }
@@ -6719,7 +6651,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         boolean busy = server.isRunning() || server.state == ServerInstance.State.STOPPING
                 || server.state == ServerInstance.State.RESTARTING;
         if (busy) {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(getString(R.string.transfer_stop_title))
                     .setMessage(getString(R.string.transfer_stop_text, server.getName()))
                     .setPositiveButton(getString(R.string.transfer_stop_yes), (d, w) -> {
@@ -6851,7 +6783,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
         }
         if (!duplicates.isEmpty()) {
-            new AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.sd_dialog_files_exist))
                 .setMessage("The following files already exist:\n\n• " + String.join("\n• ", duplicates) + getString(R.string.sd_dialog_files_exist_msg_2))
                 .setPositiveButton("Overwrite", (d, w) -> doImport(uriNames))
@@ -7163,7 +7095,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                 case RESTARTING: label = "RESTARTING…";col = 0xFFFF8800; break;
                 case CRASHED:    label = "CRASHED";    col = 0xFFE8442E; break;
                 case INSTALLING: label = "LOADING…";   col = 0xFF44AAFF; break;
-                case SETTING_UP: label = "SETTING UP…";col = 0xFF9C27B0; break;
+                case SETTING_UP: label = "SETTING UP…";col = 0xFFB388FF; break;
                 case HIBERNATED: label = "HIBERNATED"; col = 0xFF44AAFF; break;
                 default:         label = "OFFLINE";    col = 0xFF9C968F; break;
             }
@@ -7535,7 +7467,7 @@ public class ServerDetailActivity extends AppCompatActivity {
     /** consent-gated start of the AI crash analysis (uses the live service buffer). */
     private void requestAiAnalysis() {
         if (!eu.kodanetwork.mchost.util.AiHelper.hasConsent(this)) {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(getString(R.string.ai_consent_title))
                     .setMessage(getString(R.string.ai_consent_message))
                     .setPositiveButton(getString(R.string.ai_consent_agree), (d, w) -> {
@@ -7721,6 +7653,27 @@ public class ServerDetailActivity extends AppCompatActivity {
 
 
     /** persists the bedrock/voicechat port + base_domain to the cloud. */
+    /** the join domain plus the allocated bedrock port, that is what a bedrock client types in. */
+    private String bedrockDomain() {
+        String base = server.getJoinAddress() != null ? server.getJoinAddress() : "";
+        int colon = base.indexOf(':');
+        if (colon > 0) base = base.substring(0, colon);
+        if (base.isEmpty()) base = server.getSubdomain() + "." + server.getBaseDomain();
+        return base;
+    }
+
+    /** bedrock clients ask for address and port in two fields, so both stand on their own line. */
+    private void updateBedrockDisplay() {
+        View layoutBedrockPort = findViewById(R.id.layout_bedrock_port);
+        if (layoutBedrockPort == null) return;
+        boolean on = server.isBedrockSupport() && server.getBedrockPort() > 0;
+        layoutBedrockPort.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (!on) return;
+        android.widget.TextView addr = findViewById(R.id.tv_bedrock_address);
+        if (addr != null) addr.setText(bedrockDomain());
+        if (tvBedrockPortDash != null) tvBedrockPortDash.setText(String.valueOf(server.getBedrockPort()));
+    }
+
     private void patchServerPorts() {
         new Thread(() -> {
             try {

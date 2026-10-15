@@ -56,7 +56,7 @@ public class PraetorHibernateActivity extends Activity {
         });
         
         btnExplanation.setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle("Hibernation Detail-Erklärung")
                 .setMessage("Wenn ein Server in den 'Hibernate' (Winterschlaf) Zustand versetzt wird:\n\n1. Deine DNS-Einträge (Join-Adresse) werden gelöscht. Andere Nutzer können diese Adresse übernehmen.\n2. Deine Server-Dateien werden platzsparend komprimiert.\n3. Der Server-Ordner wird gelöscht, um Speicherplatz freizugeben.\n\nBeim Aufwecken wird die Komprimierung rückgängig gemacht. Falls deine Join-Adresse belegt ist, musst du eine neue wählen.")
                 .setPositiveButton("Verstanden", null)

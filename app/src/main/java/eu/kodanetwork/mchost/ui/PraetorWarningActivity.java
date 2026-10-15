@@ -157,7 +157,7 @@ public class PraetorWarningActivity extends Activity {
                         
                         btnAction.setVisibility(View.VISIBLE);
                         btnAction.setText("CONFIRM START");
-                        btnAction.setBackgroundColor(0xFFFF0000);
+                        btnAction.setBackgroundColor(0xFFE8442E);
                         btnAction.setTextColor(0xFF000000);
                         btnAction.setOnClickListener(confirmView -> {
                             HapticUtil.forceVibrate(PraetorWarningActivity.this, 80);
@@ -263,9 +263,9 @@ public class PraetorWarningActivity extends Activity {
             @Override
             public void onFinish() {
                 tvCountdown.setText("You may now proceed.");
-                tvCountdown.setTextColor(0xFF00FF00);
+                tvCountdown.setTextColor(0xFF00E676);
                 btnAction.setEnabled(true);
-                btnAction.setBackgroundColor(0xFFFF0000);
+                btnAction.setBackgroundColor(0xFFE8442E);
                 btnAction.setTextColor(0xFF000000);
             }
         }.start();
@@ -312,9 +312,9 @@ public class PraetorWarningActivity extends Activity {
             @Override
             public void onFinish() {
                 tvCountdown.setText("You may now proceed.");
-                tvCountdown.setTextColor(0xFF00FF00);
+                tvCountdown.setTextColor(0xFF00E676);
                 btnAction.setEnabled(true);
-                btnAction.setBackgroundColor(0xFFFF0000);
+                btnAction.setBackgroundColor(0xFFE8442E);
                 btnAction.setTextColor(0xFF000000);
             }
         }.start();

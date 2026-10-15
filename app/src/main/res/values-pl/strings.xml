@@ -128,6 +128,7 @@
     <string name="connection">POŁĄCZENIE</string>
     <string name="join_address_java">ADRES DOŁĄCZENIA (JAVA)</string>
     <string name="bedrock_port">PORT BEDROCK</string>
+    <string name="bedrock_address">ADRES BEDROCK</string>
     <string name="installing">INSTALOWANIE...</string>
     <string name="controls">STEROWANIE</string>
     <string name="hard_reset">⚠ TWARDY RESET</string>
@@ -343,6 +344,31 @@
     <string name="database_password_default">hasło</string>
     <string name="btn_create_database">UTWÓRZ BAZĘ DANYCH</string>
     <string name="new_server">Nowy serwer</string>
+    <string name="wizard_next">DALEJ</string>
+    <string name="wizard_back">WSTECZ</string>
+    <string name="wizard_summary_label">PODSUMOWANIE</string>
+    <string name="security_game_label">BEZPIECZEŃSTWO I GRA</string>
+    <string name="extras_services_label">DODATKOWE USŁUGI</string>
+    <string name="console_auto_scroll">AUTOMATYCZNE PRZEWIJANIE KONSOLI</string>
+    <string name="wizard_step_options">OPCJE</string>
+    <string name="gamemode_label">TRYB GRY</string>
+    <string name="motd_label">MOTD</string>
+    <string name="motd_hint">Widoczne na liście serwerów</string>
+    <string name="server_icon_label">IKONA SERWERA</string>
+    <string name="pick_image">WYBIERZ OBRAZ</string>
+    <string name="backup_mode_label">KOPIE ZAPASOWE</string>
+    <string name="backup_off">Wyłączone</string>
+    <string name="backup_daily">Codziennie</string>
+    <string name="backup_on_stop">Przy zatrzymaniu serwera</string>
+    <string name="backup_keep_label">ZACHOWAJ</string>
+    <string name="online_mode_label">TRYB ONLINE</string>
+    <string name="online_mode_hint">WŁ: tylko konta Microsoft mogą dołączyć. WYŁ: pirackie i offline klienty są dozwolone.</string>
+    <string name="whitelist_label">BIAŁA LISTA</string>
+    <string name="pvp_label">PVP</string>
+    <string name="view_distance_label">ZASIĘG WIDOKU</string>
+    <string name="wizard_step_server">SERWER</string>
+    <string name="wizard_step_power">WYDAJNOŚĆ</string>
+    <string name="wizard_step_setup">KONFIGURACJA</string>
     <string name="import_folder">Importuj folder</string>
     <string name="import_zip">Importuj ZIP</string>
     <string name="server_name_label">NAZWA SERWERA</string>
@@ -387,6 +413,11 @@
     <string name="pm_offline_hint">Brak połączenia z internetem, akcje są wyłączone</string>
     <string name="pm_empty_players">Brak graczy — wejdź na serwer!</string>
     <string name="sd_files_empty">Ten katalog jest pusty</string>
+    <string name="sd_files_parent">.. (folder w górę)</string>
+    <string name="sd_files_not_downloaded">(jeszcze nie pobrano)</string>
+    <string name="sd_java_auto_install">◌ Java zainstaluje się automatycznie przy starcie (JDK 25)</string>
+    <string name="sd_runtime_download">⬇ OpenJDK %1$s zostanie pobrany przy starcie</string>
+    <string name="sd_file_path_label">Ścieżka pliku:</string>
     <string name="sd_close_loading">Zamknij ekran ładowania</string>
     <string name="err_server_create_cooldown">Poczekaj %1$d sekund przed utworzeniem nowego serwera.</string>
     <string name="err_server_limit_reached">Osiągnięto limit %1$d aktywnych serwerów.</string>
@@ -411,7 +442,6 @@
     <string name="sd_starting_server">URUCHAMIANIE SERWERA...</string>
     <string name="sd_auto_setup_running">AUTO-KONFIGURACJA W TOKU...</string>
     <string name="sd_checking_java">sprawdzanie Javy.</string>
-    <string name="sd_java_auto_install">Java zostanie zainstalowana automatycznie przy starcie (JDK 25)</string>
     <string name="sd_updates_available">Dostępne aktualizacje!</string>
     <string name="sd_check_updates">Sprawdź aktualizacje</string>
     <string name="sd_join_address">ADRES DOŁĄCZENIA</string>
@@ -1064,6 +1094,7 @@
     <string name="pregen_minutes">%1$d minut</string>
     <string name="pregen_hours">%1$.1f godziny</string>
     <string name="pregen_hint">W razie wątpliwości zacznij od małej wartości. Świat można później dogenerować, Chunky nie generuje tego samego chunka dwa razy.</string>
+    <string name="pregen_background_hint">Świat generuje się na serwerze. Możesz w każdej chwili opuścić ten ekran, działa dalej w tle.</string>
     <string name="pregen_cancel">ANULUJ</string>
     <string name="pregen_save">ZATWIERDŹ</string>
     <string name="pregen_back">WRÓĆ</string>
@@ -1125,4 +1156,14 @@
     <string name="question">Pytanie</string>
     <string name="tickets_empty_title">Brak zgłoszeń</string>
     <string name="tickets_empty_hint">Na razie wszystko w spokoju. Jeśli coś nie działa, po prostu napisz.</string>
+
+    <!-- skórki: notion i apple, tylko dla deweloperów, domyślnie wyłączone -->
+    <string name="dev_notion_skin">Motyw Notion</string>
+    <string name="dev_notion_skin_hint">Biała kanwa, nagłówki szeryfowe, niebieskie linki</string>
+    <string name="dev_notion_skin_on">Motyw Notion włączony, aplikacja przeładuje się z nim.</string>
+    <string name="dev_notion_skin_off">Motyw Notion wyłączony.</string>
+    <string name="dev_apple_skin">Motyw Apple</string>
+    <string name="dev_apple_skin_hint">Pogrupowane karty, chevrony, systemowy błękit</string>
+    <string name="dev_apple_skin_on">Motyw Apple włączony, aplikacja przeładuje się z nim.</string>
+    <string name="dev_apple_skin_off">Motyw Apple wyłączony.</string>
 </resources>

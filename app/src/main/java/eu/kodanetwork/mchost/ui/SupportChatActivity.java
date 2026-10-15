@@ -985,7 +985,7 @@ public class SupportChatActivity extends AppCompatActivity {
                 holder.tvMessage.setTextColor(light ? 0xFF111111 : 0xFFFFFFFF);
             } else if (isAdmin) {
                 holder.tvSenderName.setText(getString(R.string.chat_admin));
-                holder.tvSenderName.setTextColor(0xFFFF8C00);
+                holder.tvSenderName.setTextColor(0xFFFF8C38);
                 holder.llBubble.setBackgroundResource(light ? R.drawable.bg_chat_bubble_admin_light : R.drawable.bg_chat_bubble_admin);
                 holder.tvMessage.setTextColor(light ? 0xFF111111 : 0xFFFFFFFF);
             } else {

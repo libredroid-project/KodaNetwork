@@ -82,7 +82,7 @@ public class WorldGenView extends View {
 
     /** the colors for the plugin's palette, index 0 is "chunk does not exist". */
     private static final int[] BIOME_COLORS = {
-            0xFF15151A,   // 0 ungenerated
+            0xFF17120F,   // 0 ungenerated
             0xFF34566B,   // 1 ocean, river
             0xFF6B7A38,   // 2 plains, meadow
             0xFF415526,   // 3 forest, taiga
@@ -175,7 +175,7 @@ public class WorldGenView extends View {
                         color = blend(color, 0xFFFFFFFF, 0.25f + 0.35f * glow);
                     }
                 } else {
-                    color = 0xFF101014;            // ungenerated chunk
+                    color = 0xFF14100D;            // ungenerated chunk
                     if (phase == Phase.SETUP) {
                         // a scan line walks over the empty world while chunky installs
                         float cx = (gx + 0.5f) / GRID;

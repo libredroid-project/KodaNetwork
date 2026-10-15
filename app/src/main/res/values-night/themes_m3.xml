@@ -59,5 +59,7 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <!-- koda dialog form, also in M3 night: 12dp corners and the koda font -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.KodaNetwork.M3.MaterialAlertDialog</item>
     </style>
 </resources>

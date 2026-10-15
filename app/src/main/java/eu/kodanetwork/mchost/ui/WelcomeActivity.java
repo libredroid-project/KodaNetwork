@@ -644,7 +644,7 @@ public class WelcomeActivity extends AppCompatActivity {
 
     /** the device-transfer prompt: "take your servers over to this device?" */
     private void showTransferPrompt(int count) {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.transfer_welcome_title))
                 .setMessage(getString(R.string.transfer_welcome_text, count))
                 .setPositiveButton(getString(R.string.transfer_welcome_yes), (d, w) -> {

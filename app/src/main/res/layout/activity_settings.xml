@@ -958,6 +958,52 @@
                             app:trackTint="@color/dev_purple"/>
                     </LinearLayout>
 
+                    <!-- notion skin, dev option, off by default -->
+                    <LinearLayout android:id="@+id/row_dev_notion"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/dev_notion_skin" android:textColor="#FFFFFF"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/dev_notion_skin_hint"
+                                android:textColor="#888899" android:textSize="12sp"/>
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_dev_notion"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            app:thumbTint="@color/dev_purple_dark"
+                            app:trackTint="@color/dev_purple"/>
+                    </LinearLayout>
+
+                    <!-- apple skin, dev option, off by default -->
+                    <LinearLayout android:id="@+id/row_dev_apple"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/dev_apple_skin" android:textColor="#FFFFFF"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/dev_apple_skin_hint"
+                                android:textColor="#888899" android:textSize="12sp"/>
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_dev_apple"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            app:thumbTint="@color/dev_purple_dark"
+                            app:trackTint="@color/dev_purple"/>
+                    </LinearLayout>
+
                     <!-- m3 options, only shown while m3 is on -->
                     <LinearLayout android:id="@+id/ll_m3_options"
                         android:layout_width="match_parent" android:layout_height="wrap_content"

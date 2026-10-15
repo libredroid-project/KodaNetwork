@@ -47,16 +47,16 @@ public class ThemeHelper {
     private static final String TAG = "ThemeHelper";
     private static final Handler main = new Handler(Looper.getMainLooper());
 
-    // ─── light mode colors, warm cream from the design reference ──
-    private static final int LIGHT_BG       = 0xFFF4EFE7; // warm cream page background
-    private static final int LIGHT_SURFACE  = 0xFFF7F3EB; // a touch lighter than the background
-    private static final int LIGHT_CELL     = 0xFFF7F3EB; // cream cards on top of it
-    private static final int LIGHT_TEXT     = 0xFF241207; // espresso brown for titles
-    private static final int LIGHT_TEXT_SEC = 0xFF8A8075; // warm gray for secondary text
-    private static final int LIGHT_HEADER   = 0xFFF4EFE7;
-    private static final int LIGHT_STATUS   = 0xFFF4EFE7; // cream under the status bar so it does not stick out
-    private static final int LIGHT_BORDER   = 0xFFE5DECF; // thin warm border around cards
-    private static final int LIGHT_ACCENT   = 0xFFC96F1E; // terracotta accent, reads fine on cream
+    // ─── light mode colors, a plain neutral light skin ───────────
+    private static final int LIGHT_BG       = 0xFFF5F5F5; // neutral page background
+    private static final int LIGHT_SURFACE  = 0xFFFFFFFF; // white surfaces
+    private static final int LIGHT_CELL     = 0xFFFFFFFF; // white cards on top of the page
+    private static final int LIGHT_TEXT     = 0xFF1A1A1A; // near black for titles
+    private static final int LIGHT_TEXT_SEC = 0xFF6B6B6B; // neutral gray for secondary text
+    private static final int LIGHT_HEADER   = 0xFFF5F5F5;
+    private static final int LIGHT_STATUS   = 0xFFF5F5F5; // same as the page so the bar does not stick out
+    private static final int LIGHT_BORDER   = 0xFFE0E0E0; // thin neutral border around cards
+    private static final int LIGHT_ACCENT   = 0xFFFF6B00; // koda orange
 
     // ─── dark mode colors ────────────────────────────────────────
     private static final int DARK_BG        = 0xFF0A0807;
@@ -484,10 +484,12 @@ public class ThemeHelper {
 
                     if (lightMode) {
                         if (current == 0xFF888888 || current == 0xFF2A2A2A || current == 0xFF444444
-                            || current == 0xFF555566 || current == 0xFF8A8A9A || current == DARK_TEXT_SEC) {
+                            || current == 0xFF555566 || current == 0xFF8A8A9A || current == DARK_TEXT_SEC
+                            || current == 0xFFB7AE9F) {
                             tv.setTextColor(LIGHT_TEXT_SEC);
                         } else if (current == Color.WHITE || current == 0xFFEEEEEE || current == 0xFFF0F0F0
-                                   || current == DARK_TEXT || current == 0xFFDDDDDD || current == 0xFFBBBBCC) {
+                                   || current == DARK_TEXT || current == 0xFFDDDDDD || current == 0xFFBBBBCC
+                                   || current == 0xFFF2EFE9 || current == 0xFFE8E2D6 || current == 0xFFCCCCCC) {
                             tv.setTextColor(LIGHT_TEXT);
                         }
                     } else {
@@ -558,7 +560,10 @@ public class ThemeHelper {
                     } else if (isCyber) {
                         btv.setTextColor(Color.WHITE);
                     } else {
-                        if (currentText != themeColor && currentText != 0xFFFF6A00) {
+                        // danger and outline buttons keep their own text colour, the white
+                        // wash swallowed them before
+                        if (currentText != themeColor && currentText != 0xFFFF6A00
+                                && !isRedishText(currentText) && !isOrange(currentText)) {
                             btv.setTextColor(Color.WHITE);
                         }
                     }
@@ -576,7 +581,7 @@ public class ThemeHelper {
                     
                     if (isTarget || (isDark(tint) && !isOrange(tint) && tint != 0)) {
                         mb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEDEDED));
-                        mb.setStrokeColor(android.content.res.ColorStateList.valueOf(LIGHT_BORDER)); // subtle warm border, the orange was too loud
+                        mb.setStrokeColor(android.content.res.ColorStateList.valueOf(LIGHT_BORDER)); // subtle neutral border, the orange was too loud
                         mb.setStrokeWidth(3);
                         mb.setTextColor(0xFF111111); // the text has to stay readable
                         if (mb.getIconTint() != null) {
@@ -694,6 +699,12 @@ public class ThemeHelper {
     /** dark is anything under 50 brightness. */
     private static boolean isDark(int color) {
         return brightness(color) < 50;
+    }
+
+    /** red-ish button texts (danger buttons) survive the classic dark button pass. */
+    private static boolean isRedishText(int c) {
+        int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+        return r > 150 && g < 110 && b < 110;
     }
 
     /** perceived brightness, 0 to 255. */

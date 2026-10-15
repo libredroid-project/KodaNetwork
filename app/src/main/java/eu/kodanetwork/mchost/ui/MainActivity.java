@@ -93,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        eu.kodanetwork.mchost.util.NotionSkinHelper.applyTheme(this);
+        eu.kodanetwork.mchost.util.AppleSkinHelper.applyTheme(this);
         eu.kodanetwork.mchost.util.SleekThemeHelper.applyTheme(this);
         eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
@@ -213,6 +215,8 @@ public class MainActivity extends AppCompatActivity {
         } else {
             setContentView(R.layout.activity_main);
         }
+        eu.kodanetwork.mchost.util.NotionSkinHelper.apply(this);
+        eu.kodanetwork.mchost.util.AppleSkinHelper.apply(this);
 
         showWelcomeSplash();
         if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("tos_accepted_v3", false)) {
@@ -238,9 +242,9 @@ public class MainActivity extends AppCompatActivity {
         } else if (ThemeHelper.isLightMode(this)
                 && !eu.kodanetwork.mchost.util.SleekThemeHelper.isSleekEnabled(this)) {
             // sleek is always warm-dark, the light-mode overrides would wash out the nav pill
-            if (rootLayout != null) rootLayout.setBackgroundColor(0xFFF4EFE7);
-            if (topBar != null) topBar.setBackgroundColor(0xFFF4EFE7);
-            if (bottomBar != null) bottomBar.setBackgroundColor(0xFFF4EFE7);
+            if (rootLayout != null) rootLayout.setBackgroundColor(0xFFF5F5F5);
+            if (topBar != null) topBar.setBackgroundColor(0xFFF5F5F5);
+            if (bottomBar != null) bottomBar.setBackgroundColor(0xFFF5F5F5);
         }
         
         permLauncher = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), r -> {});
@@ -610,7 +614,7 @@ public class MainActivity extends AppCompatActivity {
                     "To ensure your server runs at maximum CPU performance and maintains 20 TPS without background throttling, you need to remove battery restrictions for this app.\n\nPlease select 'No restrictions' in the next menu.";
                 String btn = lang.equals("de") ? "Einstellungen öffnen" : "Open Settings";
 
-                new androidx.appcompat.app.AlertDialog.Builder(this)
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(title)
                     .setMessage(msg)
                     .setCancelable(false)
@@ -964,7 +968,7 @@ public class MainActivity extends AppCompatActivity {
                 + " (" + s.optInt("tunnel_clients", 0) + " " + getString(R.string.vps_clients) + ")"
                 + "\n" + getString(R.string.vps_detail_measured) + ": " + s.optString("measured_at", "").replace("T", " ").substring(0, Math.min(16, s.optString("measured_at", "").length()));
 
-        new android.app.AlertDialog.Builder(this)
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.vps_details_title)
                 .setMessage(body)
                 .setPositiveButton(android.R.string.ok, null)
@@ -1308,7 +1312,7 @@ public class MainActivity extends AppCompatActivity {
 
         // KodaHosting types itself live in the app's pixel font, left-aligned
         android.widget.TextView typed = new android.widget.TextView(this);
-        typed.setTextColor(0xFFFF8C00);
+        typed.setTextColor(0xFFFF8C38);
         typed.setTextSize(22);
         typed.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, eu.kodanetwork.mchost.R.font.press_start_2p));
         android.widget.LinearLayout.LayoutParams tLp = new android.widget.LinearLayout.LayoutParams(
@@ -1849,7 +1853,7 @@ public class MainActivity extends AppCompatActivity {
                     final String transferCodeFinal = transferCode;
                     runOnUiThread(() -> {
                         if (isFinishing() || isDestroyed()) return;
-                        new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
                                 .setTitle(getString(R.string.transfer_finished_title))
                                 .setMessage(getString(R.string.transfer_finished_text, names.toString()))
                                 .setPositiveButton(getString(R.string.transfer_finished_delete), (d, w) -> {
@@ -2145,7 +2149,7 @@ public class MainActivity extends AppCompatActivity {
         // importing on top of an existing folder is worth one question
         int existing = countEntries(targetDir);
         if (existing > 0) {
-            new android.app.AlertDialog.Builder(this)
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.import_pick_overwrite_title)
                     .setMessage(getString(R.string.import_pick_overwrite_body, existing))
                     .setPositiveButton(R.string.import_pick_overwrite_yes, (dd, w) -> startRecoveryExtract(uri, targetDir))

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+  A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <!-- the notion skin theme. light palette as the base, the dark overlay is applied in
+         NotionSkinHelper.applyTheme when theme_mode says dark. -->
+    <style name="Theme.KodaNetwork.Notion" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/notion_accent_light</item>
+        <item name="colorPrimaryVariant">@color/notion_accent_dark</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">@color/notion_accent_light</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSurface">@color/notion_surface_light</item>
+        <item name="colorOnSurface">@color/notion_text_light</item>
+        <item name="android:colorBackground">@color/notion_bg_light</item>
+        <item name="colorError">#EB5757</item>
+        <item name="android:textColorPrimary">@color/notion_text_light</item>
+        <item name="android:textColorSecondary">@color/notion_text_muted_light</item>
+        <item name="android:statusBarColor">@color/notion_bg_light</item>
+        <item name="android:navigationBarColor">@color/notion_bg_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:fontFamily">@font/golos_text</item>
+        <item name="fontFamily">@font/golos_text</item>
+        <item name="android:windowContentTransitions">true</item>
+    </style>
+
+    <style name="ThemeOverlay.KodaNetwork.Notion.Light" parent="">
+        <item name="colorPrimary">@color/notion_accent_light</item>
+        <item name="colorSurface">@color/notion_surface_light</item>
+        <item name="colorOnSurface">@color/notion_text_light</item>
+        <item name="android:colorBackground">@color/notion_bg_light</item>
+        <item name="android:textColorPrimary">@color/notion_text_light</item>
+        <item name="android:textColorSecondary">@color/notion_text_muted_light</item>
+        <item name="android:statusBarColor">@color/notion_bg_light</item>
+        <item name="android:navigationBarColor">@color/notion_bg_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="ThemeOverlay.KodaNetwork.Notion.Dark" parent="">
+        <item name="colorPrimary">@color/notion_accent_dark</item>
+        <item name="colorSurface">@color/notion_surface_dark</item>
+        <item name="colorOnSurface">@color/notion_text_dark</item>
+        <item name="android:colorBackground">@color/notion_bg_dark</item>
+        <item name="android:textColorPrimary">@color/notion_text_dark</item>
+        <item name="android:textColorSecondary">@color/notion_text_muted_dark</item>
+        <item name="android:statusBarColor">@color/notion_bg_dark</item>
+        <item name="android:navigationBarColor">@color/notion_bg_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- headings carry the serif, body text stays sans, like notion does it -->
+    <style name="TextAppearance.KodaNetwork.Notion.Heading" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:fontFamily">@font/literata</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.01</item>
+    </style>
+
+    <style name="TextAppearance.KodaNetwork.Notion.Body" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:fontFamily">@font/golos_text</item>
+        <item name="android:lineSpacingMultiplier">1.35</item>
+    </style>
+</resources>

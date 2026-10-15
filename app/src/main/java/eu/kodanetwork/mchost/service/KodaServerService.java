@@ -699,8 +699,14 @@ public class KodaServerService extends Service {
                 pDir.mkdirs();
 
                 if (srv.isBedrockSupport()) {
-                    downloadFromModrinth(id, "geyser", srv, new File(pDir, "Geyser.jar"));
-                    downloadFromModrinth(id, "floodgate", srv, new File(pDir, "Floodgate.jar"));
+                    File geyserTarget = new File(pDir, "Geyser.jar");
+                    if (!downloadFromGeyserCdn(id, "geyser", geyserTarget)) {
+                        downloadFromModrinth(id, "geyser", srv, geyserTarget);
+                    }
+                    File floodgateTarget = new File(pDir, "Floodgate.jar");
+                    if (!downloadFromGeyserCdn(id, "floodgate", floodgateTarget)) {
+                        downloadFromModrinth(id, "floodgate", srv, floodgateTarget);
+                    }
                 } else {
                     new File(pDir, "Geyser.jar").delete();
                     new File(pDir, "Geyser-Spigot.jar").delete();
@@ -3580,9 +3586,13 @@ public class KodaServerService extends Service {
                 File floodgateJar = new File(pDir, "Floodgate.jar");
                 if (!geyserJar.exists() || !floodgateJar.exists()) {
                     log(srv.getId(), "  🛡️ Downloading Bedrock Support (Geyser & Floodgate)...");
-                    downloadFromModrinth(srv.getId(), "geyser", srv, geyserJar);
+                    if (!downloadFromGeyserCdn(srv.getId(), "geyser", geyserJar)) {
+                        downloadFromModrinth(srv.getId(), "geyser", srv, geyserJar);
+                    }
                     stripNativeLibsFromJar(geyserJar);
-                    downloadFromModrinth(srv.getId(), "floodgate", srv, floodgateJar);
+                    if (!downloadFromGeyserCdn(srv.getId(), "floodgate", floodgateJar)) {
+                        downloadFromModrinth(srv.getId(), "floodgate", srv, floodgateJar);
+                    }
                     stripNativeLibsFromJar(floodgateJar);
                     log(srv.getId(), "  🛡️ Download Complete!");
                 }
@@ -3809,6 +3819,43 @@ public class KodaServerService extends Service {
      * Paper vs Fabric) and renames it to the name the rest of the code expects
      * (writeDynamicPluginConfigs and friends). true on success.
      */
+    /**
+     * geyser and floodgate come from the geysermc cdn: modrinth only carries their mod builds,
+     * the spigot jars a paper server needs live on download.geysermc.org. the newest version
+     * plus the spigot artifact works across server versions.
+     */
+    private boolean downloadFromGeyserCdn(String id, String project, File target) {
+        try {
+            java.net.HttpURLConnection list = (java.net.HttpURLConnection)
+                    new java.net.URL("https://download.geysermc.org/v2/projects/" + project).openConnection();
+            list.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+            if (list.getResponseCode() != 200) return false;
+            String body = new java.util.Scanner(list.getInputStream()).useDelimiter("\\A").next();
+            org.json.JSONArray versions = new org.json.JSONObject(body).optJSONArray("versions");
+            if (versions == null || versions.length() == 0) return false;
+            String newest = versions.getString(versions.length() - 1);
+            String url = "https://download.geysermc.org/v2/projects/" + project + "/versions/" + newest
+                    + "/builds/latest/downloads/spigot";
+            java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            c.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+            if (c.getResponseCode() != 200) return false;
+            target.getParentFile().mkdirs();
+            try (java.io.InputStream in = c.getInputStream();
+                 java.io.FileOutputStream out = new java.io.FileOutputStream(target)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            }
+            if (target.length() > 100000) {
+                log(id, "  \u2713 " + target.getName() + " von download.geysermc.org geladen");
+                return true;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "GeyserMC download failed for " + project + ": " + e.getMessage());
+        }
+        return false;
+    }
+
     private boolean downloadFromModrinth(String id, String slug, ServerInstance srv, File target) {
         try {
             File downloaded = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync(slug, srv);
@@ -4234,6 +4281,13 @@ public class KodaServerService extends Service {
         }
         if (s.getLevelSeed() != null && !s.getLevelSeed().isEmpty()) {
             updates.put("level-seed", s.getLevelSeed());
+        }
+        // security and reach from the wizard, only written when it asked for them
+        if (s.getOnlineMode() != null && !s.getOnlineMode().isEmpty()) {
+            updates.put("online-mode", s.getOnlineMode());
+        }
+        if (s.getViewDistance() != null && !s.getViewDistance().isEmpty()) {
+            updates.put("view-distance", s.getViewDistance());
         }
         
         java.util.Map<String, String> defaults = new java.util.HashMap<>();

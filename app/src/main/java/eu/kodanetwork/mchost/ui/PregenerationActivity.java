@@ -67,6 +67,7 @@ public class PregenerationActivity extends Activity {
     private KodaServerService.StateCallback stateCb;
 
     private TextView tvState, tvPercent, tvEta, tvLog, tvHead, tvStats;
+    private boolean logCardShown = false;
     private ProgressBar progressBar;
     private WorldGenView worldGen;
     private com.airbnb.lottie.LottieAnimationView lottieWait;
@@ -478,6 +479,17 @@ public class PregenerationActivity extends Activity {
         if (tvLog != null) {
             tvLog.setText(logText.toString());
             if (logScroll != null) logScroll.post(() -> logScroll.fullScroll(View.FOCUS_DOWN));
+            // the log card slides out of the layout as soon as chunky really talks
+            if (!logCardShown) {
+                logCardShown = true;
+                View logCard = findViewById(R.id.card_pregen_log);
+                if (logCard != null) {
+                    logCard.setVisibility(View.VISIBLE);
+                    logCard.setAlpha(0f);
+                    logCard.setTranslationY(48f * getResources().getDisplayMetrics().density);
+                    logCard.animate().alpha(1f).translationY(0f).setDuration(280).start();
+                }
+            }
         }
 
         // nothing counts before the service really started the task, and neither does a

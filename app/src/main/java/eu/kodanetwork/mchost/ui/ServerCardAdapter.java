@@ -127,18 +127,18 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
         }
 
         /** colored avatar circle with a letter (v2 card footer). */
-        private android.view.View makeAvatar(String label, int bgColor, boolean wide) {
+        private android.view.View makeAvatar(String label, int bgColor, boolean wide, boolean isLight) {
             float d = ctx.getResources().getDisplayMetrics().density;
             android.widget.TextView av = new android.widget.TextView(ctx);
             av.setText(label);
-            av.setTextColor(0xFFF7F3EB);
+            av.setTextColor(isLight ? 0xFFFFFFFF : 0xFFF7F3EB);
             av.setTextSize(10);
             av.setTypeface(null, android.graphics.Typeface.BOLD);
             av.setGravity(android.view.Gravity.CENTER);
             android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
             bg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
             bg.setColor(bgColor);
-            bg.setStroke((int) d, 0xFFF7F3EB); // ring so overlapping circles separate
+            bg.setStroke((int) d, isLight ? 0xFFFFFFFF : 0xFFF7F3EB); // ring in the card colour, so overlapping circles separate
             av.setBackground(bg);
             int size = (int) (28 * d);
             android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(size, size);
@@ -171,9 +171,9 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
             // the modern dark design is the default, light mode gets its own skin below
             if (isLight) {
                 android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
-                gd.setColor(0xFFF5E1F2); // light purple/pink card box, hard to miss
-                gd.setStroke(3, 0xFFFF8C38); // orange stroke
-                gd.setCornerRadius(24f);
+                gd.setColor(0xFFF5F5F5); // neutral row background, the card face sits on top
+                gd.setStroke(3, 0xFFE0E0E0); // neutral border
+                gd.setCornerRadius(12f * ctx.getResources().getDisplayMetrics().density);
                 int pL = itemView.getPaddingLeft(), pT = itemView.getPaddingTop(), pR = itemView.getPaddingRight(), pB = itemView.getPaddingBottom();
                 itemView.setBackground(gd);
                 itemView.setPadding(pL, pT, pR, pB);
@@ -393,7 +393,7 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
                 } else {
                     ivServerIcon.setImageResource(R.mipmap.ic_launcher);
                     if (isLight) {
-                        // the light cell background is pinkish, so tint the logo orange to stand out
+                        // the light cell is neutral, the logo still stands out in orange
                         ivServerIcon.setColorFilter(0xFFFF8C38, android.graphics.PorterDuff.Mode.SRC_IN);
                     } else {
                         ivServerIcon.clearColorFilter();
@@ -410,24 +410,24 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
                     chipVersion.setText((s.getType().name() + " " + shortVer).toUpperCase().trim());
                     chipVersion.setTag(R.id.tag_themed, "BLOCKED");
                     chipVersion.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
-                            isLight ? 0xFFE9E2D4 : 0xFF26221E));
-                    chipVersion.setTextColor(isLight ? 0xFF5C5344 : 0xFFB7AE9F);
+                            isLight ? 0xFFEEEEEE : 0xFF26221E));
+                    chipVersion.setTextColor(isLight ? 0xFF444444 : 0xFFB7AE9F);
                 }
                 if (cardFace != null) {
                     // keep the espresso elements out of ThemeHelper's BFS recoloring and
                     // tint the card face per mode ourselves
                     cardFace.setTag(R.id.tag_themed, "BLOCKED");
                     android.graphics.drawable.GradientDrawable face = new android.graphics.drawable.GradientDrawable();
-                    face.setCornerRadius(ctx.getResources().getDisplayMetrics().density * 20);
-                    face.setColor(isLight ? 0xFFF7F3EB : 0xFF1D1714);
+                    face.setCornerRadius(ctx.getResources().getDisplayMetrics().density * 12); // koda card corner
+                    face.setColor(isLight ? 0xFFFFFFFF : 0xFF1D1714);
                     face.setStroke((int)(ctx.getResources().getDisplayMetrics().density + 0.5f),
-                            isLight ? 0xFFE5DECF : 0xFF2A2A30);
+                            isLight ? 0xFFE0E0E0 : 0xFF2A2A30);
                     cardFace.setBackground(face);
                 }
                 if (statusPill != null) {
                     statusPill.setTag(R.id.tag_themed, "BLOCKED");
                     statusPill.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
-                            isLight ? 0xFFE9E2D4 : 0xFF26221E));
+                            isLight ? 0xFFEEEEEE : 0xFF26221E));
                 }
                 View tileTps = itemView.findViewById(R.id.tile_tps);
                 View tileRam = itemView.findViewById(R.id.tile_ram);
@@ -458,15 +458,15 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
                     int shown = Math.min(3, names.size());
                     for (int ai = 0; ai < shown; ai++) {
                         String letter = names.get(ai).isEmpty() ? "?" : names.get(ai).substring(0, 1).toUpperCase();
-                        layoutAvatars.addView(makeAvatar(letter, palette[ai % palette.length], false));
+                        layoutAvatars.addView(makeAvatar(letter, palette[ai % palette.length], false, isLight));
                     }
                     if (names.size() > 3) {
-                        layoutAvatars.addView(makeAvatar("+" + (names.size() - 3), 0xFF241207, true));
+                        layoutAvatars.addView(makeAvatar("+" + (names.size() - 3), 0xFF241207, true, isLight));
                     }
                     if (names.isEmpty()) {
                         TextView none = new TextView(ctx);
                         none.setText(s.getMaxPlayers() + " " + ctx.getString(R.string.players));
-                        none.setTextColor(isLight ? 0xFF8A8075 : 0xFF8A8A9A);
+                        none.setTextColor(isLight ? 0xFF6B6B6B : 0xFF8A8A9A);
                         none.setTextSize(12);
                         none.setFontFeatureSettings("");
                         none.setTypeface(name.getTypeface());
@@ -484,7 +484,7 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
                 case STARTING: label=ctx.getString(R.string.status_starting); dotDrw=R.drawable.dot_warn; textCol=0xFFFFCC00; break;
                 case STOPPING: label=ctx.getString(R.string.status_stopping); dotDrw=R.drawable.dot_warn; textCol=0xFFFF8800; break;
                 case RESTARTING: label=ctx.getString(R.string.status_restarting); dotDrw=R.drawable.dot_warn; textCol=0xFFFF8800; break;
-                case SETTING_UP: label=ctx.getString(R.string.status_setting_up); dotDrw=R.drawable.dot_warn; textCol=0xFF9C27B0; break;
+                case SETTING_UP: label=ctx.getString(R.string.status_setting_up); dotDrw=R.drawable.dot_warn; textCol=0xFFB388FF; break;
                 case CRASHED: label=ctx.getString(R.string.status_crashed); dotDrw=R.drawable.dot_err; textCol=0xFFFF3333; break;
                 case INSTALLING: label=ctx.getString(R.string.status_installing); dotDrw=R.drawable.dot_warn; textCol=0xFF2277FF; break;
                 case HIBERNATED: label=ctx.getString(R.string.hibernate); dotDrw=R.drawable.dot_offline; textCol=0xFF44AAFF; break;

@@ -476,14 +476,14 @@ public class CustomDnsWizardActivity extends AppCompatActivity {
                 if (isSuccess) {
                     vibrateSuccess();
                     tvStep3Title.setText(getString(R.string.cdns_success));
-                    tvStep3Title.setTextColor(0xFF00FF00); // Green
+                    tvStep3Title.setTextColor(0xFF00E676); // koda green
                     tvStep3Desc.setText("");
                     server.setCustomDomain(userDomain);
                     ServerRepo.get(CustomDnsWizardActivity.this).update(server);
                 } else {
                     vibrateError();
                     tvStep3Title.setText("Error");
-                    tvStep3Title.setTextColor(0xFFFF0000); // Red
+                    tvStep3Title.setTextColor(0xFFE8442E); // koda red
                     tvStep3Desc.setText(getString(R.string.cdns_error));
                     
                     // shake, no

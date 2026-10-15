@@ -156,7 +156,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/transfer_done_title"
-                android:textColor="#8BC34A"
+                android:textColor="#00E676"
                 android:textSize="11sp"
                 android:letterSpacing="0.1"
                 android:fontFamily="@font/font_koda" />

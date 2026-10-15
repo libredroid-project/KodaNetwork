@@ -118,6 +118,7 @@
     <string name="connection">VERBINDUNG</string>
     <string name="join_address_java">JOIN ADRESSE (JAVA)</string>
     <string name="bedrock_port">BEDROCK PORT</string>
+    <string name="bedrock_address">BEDROCK-ADRESSE</string>
     <string name="installing">INSTALLIERT...</string>
     <string name="controls">STEUERUNG</string>
     <string name="hard_reset">âš  HARD RESET</string>
@@ -339,6 +340,31 @@
     <string name="database_password_default">passwort</string>
     <string name="btn_create_database">DATENBANK ERSTELLEN</string>
     <string name="new_server">Neuer Server</string>
+    <string name="wizard_next">WEITER</string>
+    <string name="wizard_back">ZURÜCK</string>
+    <string name="wizard_summary_label">ZUSAMMENFASSUNG</string>
+    <string name="security_game_label">SICHERHEIT &amp; SPIEL</string>
+    <string name="extras_services_label">ZUSATZ-DIENSTE</string>
+    <string name="console_auto_scroll">KONSOLE AUTO-SCROLL</string>
+    <string name="wizard_step_options">OPTIONEN</string>
+    <string name="gamemode_label">SPIELMODUS</string>
+    <string name="motd_label">MOTD</string>
+    <string name="motd_hint">Steht in der Serverliste</string>
+    <string name="server_icon_label">SERVER-ICON</string>
+    <string name="pick_image">BILD WÄHLEN</string>
+    <string name="backup_mode_label">BACKUPS</string>
+    <string name="backup_off">Aus</string>
+    <string name="backup_daily">Täglich</string>
+    <string name="backup_on_stop">Beim Serverstop</string>
+    <string name="backup_keep_label">AUFBEWAHREN</string>
+    <string name="online_mode_label">ONLINE-MODUS</string>
+    <string name="online_mode_hint">AN: nur Microsoft-Konten kommen rein. AUS: gecrackte und Offline-Clients sind erlaubt.</string>
+    <string name="whitelist_label">WHITELIST</string>
+    <string name="pvp_label">PVP</string>
+    <string name="view_distance_label">SICHTWEITE</string>
+    <string name="wizard_step_server">SERVER</string>
+    <string name="wizard_step_power">LEISTUNG</string>
+    <string name="wizard_step_setup">EINRICHTUNG</string>
     <string name="import_folder">Ordner importieren</string>
     <string name="import_zip">ZIP importieren</string>
     <string name="server_name_label">SERVER NAME</string>
@@ -509,6 +535,10 @@
     <string name="pm_offline_hint">Keine Internetverbindung, Aktionen sind deaktiviert</string>
     <string name="pm_empty_players">Noch keine Spieler, joint dem Server!</string>
     <string name="sd_files_empty">Dieses Verzeichnis ist leer</string><string name="sd_close_loading">Ladebildschirm schließen</string>
+    <string name="sd_files_parent">.. (Ordner hoch)</string>
+    <string name="sd_files_not_downloaded">(noch nicht heruntergeladen)</string>
+    <string name="sd_runtime_download">⬇ OpenJDK %1$s wird beim Start geladen</string>
+    <string name="sd_file_path_label">Dateipfad:</string>
 
     <!-- warning when values were edited by hand in server.properties -->
     <string name="sd_props_changed_title">server.properties wurde geändert</string>
@@ -1125,6 +1155,7 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="pregen_minutes">%1$d Minuten</string>
     <string name="pregen_hours">%1$.1f Stunden</string>
     <string name="pregen_hint">Fang im Zweifel klein an. Die Welt kann später jederzeit weiter vorgeneriert werden, Chunky generiert keinen Chunk zweimal.</string>
+    <string name="pregen_background_hint">Die Welt wird auf dem Server generiert. Du kannst diese Seite jederzeit verlassen, es läuft im Hintergrund weiter.</string>
     <string name="pregen_cancel">ABBRECHEN</string>
     <string name="pregen_save">ÜBERNEHMEN</string>
     <string name="pregen_back">ZURÜCK</string>
@@ -1186,4 +1217,14 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="question">Frage</string>
     <string name="tickets_empty_title">Keine Tickets</string>
     <string name="tickets_empty_hint">Gerade ist alles ruhig. Wenn dich etwas stört, schreib uns einfach.</string>
+
+    <!-- skins: notion und apple, nur für entwickler, standardmäßig aus -->
+    <string name="dev_notion_skin">Notion-Design</string>
+    <string name="dev_notion_skin_hint">Weiße Fläche, Serif-Überschriften, blaue Links</string>
+    <string name="dev_notion_skin_on">Notion-Design an, die App lädt damit neu.</string>
+    <string name="dev_notion_skin_off">Notion-Design aus.</string>
+    <string name="dev_apple_skin">Apple-Design</string>
+    <string name="dev_apple_skin_hint">Gruppierte Karten, Chevrons, Systemblau</string>
+    <string name="dev_apple_skin_on">Apple-Design an, die App lädt damit neu.</string>
+    <string name="dev_apple_skin_off">Apple-Design aus.</string>
 </resources>

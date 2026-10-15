@@ -64,6 +64,16 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+        <!-- koda dialog form, also in M3: 12dp corners and the koda font -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.KodaNetwork.M3.MaterialAlertDialog</item>
+    </style>
+
+    <!-- M3 dialogs follow the koda shape canon (12dp) instead of the 28dp default. -->
+    <style name="ThemeOverlay.KodaNetwork.M3.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Koda.Dialog</item>
+        <item name="android:dialogCornerRadius" tools:targetApi="p">12dp</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="fontFamily">@font/font_koda</item>
     </style>
 
     <!-- laid over the DayNight theme when the in-app theme mode says light,

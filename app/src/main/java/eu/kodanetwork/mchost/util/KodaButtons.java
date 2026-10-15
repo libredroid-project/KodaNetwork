@@ -41,9 +41,9 @@ public class KodaButtons {
         return b;
     }
 
-    /** the orange primary button with black text, same shape as the DANGER ZONE ones. */
+    /** the orange primary button with white text, same shape as the DANGER ZONE ones. */
     public static com.google.android.material.button.MaterialButton primary(Context c, String text) {
-        return make(c, text, 0xFFFF6B00, 0xFF000000);
+        return make(c, text, 0xFFFF6B00, 0xFFFFFFFF);
     }
 
     /** dark card button, white text. */

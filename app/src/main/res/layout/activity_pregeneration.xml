@@ -17,16 +17,17 @@
   SPDX-FileCopyrightText: 2026 KodaHosting
   SPDX-License-Identifier: GPL-3.0-only
 -->
-<!-- live view of a running world pre-generation: progress, estimate and the console tail -->
+<!-- live view of a running world pre-generation: the map is the hero, the progress
+     sits in a card underneath and the console tail is a small collapsible strip -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:fitsSystemWindows="true"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:background="#080808">
+    android:orientation="vertical" android:background="#0A0807">
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="50dp"
+    <LinearLayout android:layout_width="match_parent" android:layout_height="56dp"
         android:orientation="horizontal" android:gravity="center_vertical"
-        android:background="#0C0C0C" android:paddingStart="16dp" android:paddingEnd="16dp">
+        android:background="#0A0807" android:paddingStart="16dp" android:paddingEnd="16dp">
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_pregen_back" style="@style/KodaButton.Outline"
             android:layout_width="wrap_content" android:layout_height="32dp"
@@ -42,10 +43,10 @@
 
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FF6B00"/>
 
-    <!-- before the task runs the three blocks of the server start screen hop, then the
-         world map takes over and grows with chunky -->
+    <!-- before the task runs the boot animation sits here, then the world map takes
+         over and grows with chunky -->
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1" android:background="#0A0A0E">
+        android:layout_weight="1" android:background="#0A0807">
 
         <com.airbnb.lottie.LottieAnimationView
             android:id="@+id/lottie_pregen_wait"
@@ -61,8 +62,10 @@
             android:visibility="gone"/>
     </FrameLayout>
 
+    <!-- the progress card: state line, bar, percent and eta, then the stats -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical" android:background="#0E0E14"
+        android:orientation="vertical" android:background="@drawable/cell_bg"
+        android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:layout_marginTop="10dp"
         android:paddingStart="16dp" android:paddingEnd="16dp" android:paddingTop="14dp"
         android:paddingBottom="14dp">
 
@@ -77,37 +80,59 @@
             android:progressTint="#FF6B00" android:progressBackgroundTint="#241C18"/>
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" android:orientation="horizontal">
+            android:layout_marginTop="8dp" android:orientation="horizontal" android:gravity="center_vertical">
             <TextView android:id="@+id/tv_pregen_percent"
                 android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:textColor="#FF6B00" android:textSize="13sp"
+                android:layout_weight="1" android:textColor="#FF6B00" android:textSize="20sp"
                 android:fontFamily="@font/font_koda" android:textStyle="bold"/>
             <TextView android:id="@+id/tv_pregen_eta"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:textColor="#FF6B00" android:textSize="12sp"
+                android:textColor="#B7AE9F" android:textSize="12sp"
                 android:fontFamily="@font/font_koda"/>
         </LinearLayout>
 
         <TextView android:id="@+id/tv_pregen_stats"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="6dp" android:textColor="#888899"
+            android:layout_marginTop="6dp" android:textColor="#B7AE9F"
             android:textSize="11sp" android:fontFamily="@font/font_koda"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_pregen_action" style="@style/KodaButton"
-            android:layout_width="match_parent" android:layout_height="46dp"
+            android:layout_width="match_parent" android:layout_height="48dp"
             android:layout_marginTop="12dp" android:visibility="gone"/>
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" android:text="@string/pregen_background_hint"
+            android:textColor="#B7AE9F" android:textSize="11sp"
+            android:fontFamily="@font/font_koda" android:lineSpacingMultiplier="1.15"/>
 
     </LinearLayout>
 
-    <ScrollView android:id="@+id/sv_pregen_log"
-        android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="0.6" android:background="#050505" android:padding="10dp">
-        <TextView android:id="@+id/tv_pregen_log"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:textColor="#CCCCCC" android:textSize="11sp"
-            android:fontFamily="@font/font_koda_mono"
-            android:lineSpacingMultiplier="1.25"
-            android:textIsSelectable="true"/>
-    </ScrollView>
+    <!-- the console tail stays a small strip, the map and the progress are the point.
+         it slides in on its own once the first chunky lines arrive -->
+    <LinearLayout android:id="@+id/card_pregen_log"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:background="@drawable/cell_bg"
+        android:visibility="gone"
+        android:layout_marginStart="12dp" android:layout_marginEnd="12dp"
+        android:layout_marginTop="10dp" android:layout_marginBottom="12dp"
+        android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingTop="10dp"
+        android:paddingBottom="8dp">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="LOG" android:textColor="#F2EFE9" android:textSize="11sp"
+            android:fontFamily="@font/font_koda" android:letterSpacing="0.1"
+            android:layout_marginBottom="6dp"/>
+
+        <ScrollView android:id="@+id/sv_pregen_log"
+            android:layout_width="match_parent" android:layout_height="128dp"
+            android:scrollbars="vertical">
+            <TextView android:id="@+id/tv_pregen_log"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textColor="#CCCCCC" android:textSize="11sp"
+                android:fontFamily="@font/font_koda_mono"
+                android:lineSpacingMultiplier="1.25"
+                android:textIsSelectable="true"/>
+        </ScrollView>
+    </LinearLayout>
 </LinearLayout>

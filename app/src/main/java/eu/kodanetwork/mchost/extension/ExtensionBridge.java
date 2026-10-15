@@ -115,7 +115,7 @@ public class ExtensionBridge {
                     final String msg = args.optString(1, "");
                     main.post(() -> {
                         try {
-                            new androidx.appcompat.app.AlertDialog.Builder(activity)
+                            new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
                                     .setTitle(title)
                                     .setMessage(msg)
                                     .setPositiveButton(android.R.string.ok, (d, w) -> safe.respond(ok()))

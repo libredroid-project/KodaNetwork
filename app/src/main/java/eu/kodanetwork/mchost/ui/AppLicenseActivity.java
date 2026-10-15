@@ -30,8 +30,10 @@ public class AppLicenseActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_app_license);
+        eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
 
         ImageButton btnBack = findViewById(R.id.btn_back);
         if (btnBack != null) {

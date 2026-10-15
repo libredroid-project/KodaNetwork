@@ -17,7 +17,7 @@
   SPDX-FileCopyrightText: 2026 KodaHosting
   SPDX-License-Identifier: GPL-3.0-only
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Theme.KodaNetwork" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">#FF6B00</item>
@@ -38,6 +38,9 @@
         <item name="android:textColor">#F0F0F0</item>
         <item name="android:fontFamily">@font/font_koda</item>
         <item name="fontFamily">@font/font_koda</item>
+        <!-- every alert dialog gets the koda dialog theme, no stock look -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.KodaNetwork.MaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.KodaNetwork.Dialog.Alert</item>
     </style>
 
     <style name="Theme.KodaNetwork.Translucent" parent="Theme.KodaNetwork">
@@ -64,7 +67,7 @@
 
     <!-- outlined orange button for the second-best action -->
     <style name="KodaButton.Outline" parent="Widget.MaterialComponents.Button.OutlinedButton">
-        <item name="strokeColor">#FF6B0088</item>
+        <item name="strokeColor">#88FF6B00</item>
         <item name="strokeWidth">1dp</item>
         <item name="android:textColor">#FF8C38</item>
         <item name="android:fontFamily">@font/font_koda</item>
@@ -81,7 +84,7 @@
         <item name="android:letterSpacing">0.04</item>
         <item name="android:textSize">13sp</item>
         <item name="cornerRadius">12dp</item>
-        <item name="strokeColor">#FF334488</item>
+        <item name="strokeColor">#88FF3344</item>
         <item name="strokeWidth">1dp</item>
     </style>
 
@@ -108,6 +111,47 @@
 
     <style name="KodaBottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
         <item name="backgroundTint">#0A0807</item>
+        <!-- koda sheets are rounded 24dp on the two top corners -->
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.Koda.BottomSheet</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.Koda.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!-- ── dialogs: one koda theme, the same look the hand-built dialogs carry
+         (bg_dialog_custom: #241C18 surface, 12dp corners) ── -->
+
+    <style name="ShapeAppearance.Koda.Dialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <!-- MaterialAlertDialogBuilder dialogs -->
+    <style name="ThemeOverlay.KodaNetwork.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">#241C18</item>
+        <item name="colorOnSurface">#F0F0F0</item>
+        <item name="colorPrimary">#FF6B00</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Koda.Dialog</item>
+        <!-- MaterialAlertDialogBuilder reads this one on api 28+ -->
+        <item name="android:dialogCornerRadius" tools:targetApi="p">12dp</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="fontFamily">@font/font_koda</item>
+    </style>
+
+    <!-- appcompat AlertDialog.Builder dialogs -->
+    <style name="ThemeOverlay.KodaNetwork.Dialog.Alert" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="colorSurface">#241C18</item>
+        <item name="colorBackgroundFloating">#241C18</item>
+        <item name="colorOnSurface">#F0F0F0</item>
+        <item name="colorPrimary">#FF6B00</item>
+        <item name="android:textColorPrimary">#F0F0F0</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="fontFamily">@font/font_koda</item>
     </style>
 
 </resources>

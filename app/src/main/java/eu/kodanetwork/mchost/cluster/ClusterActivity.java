@@ -50,6 +50,7 @@ public class ClusterActivity extends AppCompatActivity implements ClusterBus.Lis
 
     @Override
     protected void onCreate(Bundle b) {
+        eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(b);
         boolean de = getResources().getConfiguration().getLocales().get(0).getLanguage().equals("de");
 
@@ -91,6 +92,7 @@ public class ClusterActivity extends AppCompatActivity implements ClusterBus.Lis
         root.addView(sc, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
         setContentView(root);
+        eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
     }
 
     @Override
