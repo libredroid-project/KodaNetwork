@@ -247,12 +247,17 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
                 // status badge
                 ServerInstance.State st = s.state;
                 String label; int dotDrw; int textCol;
-                switch (st) {
-                    case ONLINE: label=ctx.getString(R.string.status_online); dotDrw=R.drawable.dot_online; textCol=0xFF69781D; break;
-                    case STARTING: label=ctx.getString(R.string.status_starting); dotDrw=R.drawable.dot_warn; textCol=0xFFFFCC00; break;
-                    case STOPPING: label=ctx.getString(R.string.status_stopping); dotDrw=R.drawable.dot_warn; textCol=0xFFFF8800; break;
-                    case CRASHED: label=ctx.getString(R.string.status_crashed); dotDrw=R.drawable.dot_err; textCol=0xFFFF3333; break;
-                    default: label=ctx.getString(R.string.status_offline); dotDrw=R.drawable.dot_offline; textCol=0xFF555555; break; // gray for offline
+                if (s.banned) {
+                    // server-level ban from the admin side, must stand out from every runtime state
+                    label = ctx.getString(R.string.status_banned); dotDrw = R.drawable.dot_err; textCol = 0xFFFF3333;
+                } else {
+                    switch (st) {
+                        case ONLINE: label=ctx.getString(R.string.status_online); dotDrw=R.drawable.dot_online; textCol=0xFF69781D; break;
+                        case STARTING: label=ctx.getString(R.string.status_starting); dotDrw=R.drawable.dot_warn; textCol=0xFFFFCC00; break;
+                        case STOPPING: label=ctx.getString(R.string.status_stopping); dotDrw=R.drawable.dot_warn; textCol=0xFFFF8800; break;
+                        case CRASHED: label=ctx.getString(R.string.status_crashed); dotDrw=R.drawable.dot_err; textCol=0xFFFF3333; break;
+                        default: label=ctx.getString(R.string.status_offline); dotDrw=R.drawable.dot_offline; textCol=0xFF555555; break; // gray for offline
+                    }
                 }
                 badge.setText(label);
                 badge.setTextColor(textCol);

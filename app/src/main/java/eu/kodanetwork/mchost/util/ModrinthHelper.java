@@ -363,7 +363,22 @@ public class ModrinthHelper {
                 }
             }
         }
+
+        // modrinth publishes sha512 (and sha1) for every file; a file that does not
+        // match never reaches plugins/ or mods/
+        String expectedSha512 = fileObj.optJSONObject("hashes") != null
+                ? fileObj.getJSONObject("hashes").optString("sha512", "") : "";
+        if (expectedSha512.matches("[0-9a-fA-F]{128}")) {
+            String actual = DownloadVerifier.hashHex(targetFile, "SHA-512");
+            if (!DownloadVerifier.matches(expectedSha512, actual)) {
+                //noinspection ResultOfMethodCallIgnored
+                targetFile.delete();
+                throw new IllegalStateException("Checksum mismatch (SHA-512), the file was discarded");
+            }
+        }
+
         server.pluginVersions.put(projectId, versionId);
+        server.pluginSources.put(fileName, "Modrinth \u00b7 " + projectId);
         return targetFile;
     }
 

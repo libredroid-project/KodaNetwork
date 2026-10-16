@@ -18,6 +18,7 @@
  */
 package eu.kodanetwork.mchost.util;
 
+import android.content.Context;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -29,6 +30,8 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import eu.kodanetwork.mchost.R;
+
 public class PaperMCDownloader {
     private static final String TAG = "PaperMCDownloader";
     private static final String API_BASE_URL = "https://fill.papermc.io/v3/projects/paper";
@@ -39,22 +42,22 @@ public class PaperMCDownloader {
         void onError(String error);
     }
 
-    public static void downloadLatestPaperMC(String version, File serverDir, DownloadCallback callback) {
+    public static void downloadLatestPaperMC(Context context, String version, File serverDir, DownloadCallback callback) {
         new Thread(() -> {
             try {
-                callback.onProgress("Prüfe aktuelle PaperMC Version für " + version + "...");
+                callback.onProgress(context.getString(R.string.con_version_check, version));
                 
                 // 1. the newest build for this version
                 String buildsUrl = API_BASE_URL + "/versions/" + version + "/builds";
                 String buildsJson = fetchJson(buildsUrl);
                 if (buildsJson == null) {
-                    callback.onError("Fehler beim Abrufen der Builds für Version " + version);
+                    callback.onError(context.getString(R.string.con_paper_error_builds, version));
                     return;
                 }
 
                 JSONArray buildsArray = new JSONArray(buildsJson);
                 if (buildsArray.length() == 0) {
-                    callback.onError("Keine Builds gefunden für " + version);
+                    callback.onError(context.getString(R.string.con_paper_error_no_builds, version));
                     return;
                 }
                 
@@ -65,7 +68,7 @@ public class PaperMCDownloader {
                 File targetJar = new File(serverDir, jarFileName);
 
                 if (targetJar.exists()) {
-                    callback.onProgress("Aktuellste Version (" + latestBuild + ") ist bereits installiert.");
+                    callback.onProgress(context.getString(R.string.con_version_current, latestBuild));
                     callback.onSuccess(targetJar);
                     return;
                 }
@@ -79,7 +82,7 @@ public class PaperMCDownloader {
                 }
 
                 // 2. and here comes the download
-                callback.onProgress("Lade PaperMC Build " + latestBuild + " herunter...");
+                callback.onProgress(context.getString(R.string.con_paper_download_build, latestBuild));
                 String downloadUrl = latestBuildObj.getJSONObject("downloads").getJSONObject("server:default").getString("url");
                 
                 HttpURLConnection conn = (HttpURLConnection) new URL(downloadUrl).openConnection();
@@ -87,7 +90,7 @@ public class PaperMCDownloader {
                 conn.connect();
                 
                 if (conn.getResponseCode() != 200) {
-                    callback.onError("Download fehlgeschlagen mit HTTP " + conn.getResponseCode());
+                    callback.onError(context.getString(R.string.con_paper_error_http, conn.getResponseCode()));
                     return;
                 }
 
@@ -99,28 +102,35 @@ public class PaperMCDownloader {
                     }
                 }
 
-                callback.onProgress("Download erfolgreich abgeschlossen.");
+                if (!verify(targetJar, latestBuildObj)) {
+                    //noinspection ResultOfMethodCallIgnored
+                    targetJar.delete();
+                    callback.onError(context.getString(R.string.con_checksum_mismatch));
+                    return;
+                }
+
+                callback.onProgress(context.getString(R.string.con_paper_download_done));
                 callback.onSuccess(targetJar);
 
             } catch (Exception e) {
-                Log.e(TAG, "Fehler beim PaperMC Download", e);
-                callback.onError("Fehler: " + e.getMessage());
+                Log.e(TAG, "paper download failed", e);
+                callback.onError(context.getString(R.string.con_paper_error, e.getMessage()));
             }
         }).start();
     }
 
-    public static File downloadLatestPaperSync(String version, File serverDir, DownloadCallback callback) throws Exception {
-        if (callback != null) callback.onProgress("Prüfe aktuelle PaperMC Version für " + version + "...");
+    public static File downloadLatestPaperSync(Context context, String version, File serverDir, DownloadCallback callback) throws Exception {
+        if (callback != null) callback.onProgress(context.getString(R.string.con_version_check, version));
         
         String buildsUrl = API_BASE_URL + "/versions/" + version + "/builds";
         String buildsJson = fetchJson(buildsUrl);
         if (buildsJson == null) {
-            throw new Exception("Fehler beim Abrufen der Builds für Version " + version);
+            throw new Exception(context.getString(R.string.con_paper_error_builds, version));
         }
 
         JSONArray buildsArray = new JSONArray(buildsJson);
         if (buildsArray.length() == 0) {
-            throw new Exception("Keine Builds gefunden für " + version);
+            throw new Exception(context.getString(R.string.con_paper_error_no_builds, version));
         }
         
         JSONObject latestBuildObj = buildsArray.getJSONObject(0);
@@ -130,7 +140,7 @@ public class PaperMCDownloader {
         File targetJar = new File(serverDir, jarFileName);
 
         if (targetJar.exists()) {
-            if (callback != null) callback.onProgress("Aktuellste Version (" + latestBuild + ") ist bereits installiert.");
+            if (callback != null) callback.onProgress(context.getString(R.string.con_version_current, latestBuild));
             return targetJar;
         }
 
@@ -141,7 +151,7 @@ public class PaperMCDownloader {
             }
         }
 
-        if (callback != null) callback.onProgress("Lade PaperMC Build " + latestBuild + " herunter...");
+        if (callback != null) callback.onProgress(context.getString(R.string.con_paper_download_build, latestBuild));
         String downloadUrl = latestBuildObj.getJSONObject("downloads").getJSONObject("server:default").getString("url");
         
         HttpURLConnection conn = (HttpURLConnection) new URL(downloadUrl).openConnection();
@@ -149,7 +159,7 @@ public class PaperMCDownloader {
         conn.connect();
         
         if (conn.getResponseCode() != 200) {
-            throw new Exception("Download fehlgeschlagen mit HTTP " + conn.getResponseCode());
+            throw new Exception(context.getString(R.string.con_paper_error_http, conn.getResponseCode()));
         }
 
         try (InputStream is = conn.getInputStream(); FileOutputStream fos = new FileOutputStream(targetJar)) {
@@ -159,7 +169,35 @@ public class PaperMCDownloader {
                 fos.write(buffer, 0, len);
             }
         }
+        if (!verify(targetJar, latestBuildObj)) {
+            //noinspection ResultOfMethodCallIgnored
+            targetJar.delete();
+            throw new Exception(context.getString(R.string.con_checksum_mismatch));
+        }
         return targetJar;
+    }
+
+    /** sha256 the fill v3 api publishes for the artifact, "" when it is missing. */
+    private static String sha256Of(JSONObject build) {
+        try {
+            JSONObject checksums = build.getJSONObject("downloads")
+                    .getJSONObject("server:default").optJSONObject("checksums");
+            String sha = checksums != null ? checksums.optString("sha256", "") : "";
+            return sha.matches("[0-9a-fA-F]{64}") ? sha.toLowerCase() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** verifies the finished download against the published sha256. */
+    private static boolean verify(File jar, JSONObject build) {
+        String expected = sha256Of(build);
+        if (expected.isEmpty()) return true;
+        try {
+            return DownloadVerifier.matches(expected, DownloadVerifier.hashHex(jar, "SHA-256"));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
@@ -217,7 +255,7 @@ public class PaperMCDownloader {
                 return sb.toString();
             }
         } catch (Exception e) {
-            Log.e(TAG, "Fehler beim API Aufruf", e);
+            Log.e(TAG, "API call failed", e);
             return null;
         }
     }

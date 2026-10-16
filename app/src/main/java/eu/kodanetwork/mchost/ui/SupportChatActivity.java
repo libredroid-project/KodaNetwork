@@ -410,11 +410,13 @@ public class SupportChatActivity extends AppCompatActivity {
                     failPending(getString(R.string.chat_photo_failed));
                     return;
                 }
-                String fileName = System.currentTimeMillis() + "_photo.jpg";
-                HttpURLConnection conn = (HttpURLConnection) new URL(
-                        PraetorSecurity.getSupabaseUrl() + "/storage/v1/object/support_attachments/" + fileName)
-                        .openConnection();
-                conn.setRequestMethod("POST");
+                // the bucket takes no anonymous inserts any more: the device checked
+                // function hands out a short lived signed upload URL
+                eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient.SupportUploadSlot slot =
+                        new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(SupportChatActivity.this)
+                                .requestSupportUploadSlot();
+                HttpURLConnection conn = (HttpURLConnection) new URL(slot.uploadUrl).openConnection();
+                conn.setRequestMethod("PUT");
                 conn.setRequestProperty("Authorization", "Bearer " + PraetorSecurity.getSupabaseKey());
                 conn.setRequestProperty("apikey", PraetorSecurity.getSupabaseKey());
                 conn.setRequestProperty("Content-Type", "image/jpeg");
@@ -426,9 +428,7 @@ public class SupportChatActivity extends AppCompatActivity {
                 }
                 int code = conn.getResponseCode();
                 if (code == 200 || code == 201) {
-                    String url = PraetorSecurity.getSupabaseUrl()
-                            + "/storage/v1/object/public/support_attachments/" + fileName;
-                    sendText(text, url);
+                    sendText(text, slot.publicUrl);
                 } else {
                     failPending(getString(R.string.chat_upload_failed) + " (" + code + ")");
                 }

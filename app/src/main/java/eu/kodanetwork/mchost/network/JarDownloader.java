@@ -47,6 +47,11 @@ public class JarDownloader {
     private final Handler         main = new Handler(Looper.getMainLooper());
     private final Context         context;
 
+    // what resolve() found out about the file it is about to return: the published
+    // checksum and its algorithm (null = the source does not publish one)
+    private String pendingHash;
+    private String pendingAlgo;
+
     public JarDownloader(Context context) {
         this.context = context;
     }
@@ -84,18 +89,21 @@ public class JarDownloader {
     }
 
     private String resolve(ServerInstance srv, Cb cb) throws Exception {
+        pendingHash = null;
+        pendingAlgo = null;
         switch (srv.getType()) {
             case PAPER:
                 post(cb,2,context.getString(R.string.dl_checking_api, "PaperMC"));
                 return paper(srv.getVersion(), cb);
             case PURPUR:
                 post(cb,2,context.getString(R.string.dl_checking_api, "Purpur"));
-                return "https://api.purpurmc.org/v2/purpur/"+srv.getVersion()+"/latest/download";
+                return purpur(srv.getVersion(), cb);
             case VANILLA:
                 post(cb,2,context.getString(R.string.dl_checking_mojang));
                 return vanilla(srv.getVersion(), cb);
             case FABRIC:
                 post(cb,2,context.getString(R.string.dl_building_url, "Fabric"));
+                // the fabric meta publishes no checksum for the launcher jar
                 return "https://meta.fabricmc.net/v2/versions/loader/"+srv.getVersion()+"/stable/stable/server/jar";
             case FORGE:
                 post(cb,2,context.getString(R.string.dl_building_url, "Forge"));
@@ -141,7 +149,27 @@ public class JarDownloader {
         org.json.JSONObject latestBuildObj = builds.getJSONObject(0);
         int build = latestBuildObj.getInt("id");
         post(cb, 4, context.getString(R.string.dl_found_build, project, String.valueOf(build)));
-        return latestBuildObj.getJSONObject("downloads").getJSONObject("server:default").getString("url");
+        org.json.JSONObject dl = latestBuildObj.getJSONObject("downloads").getJSONObject("server:default");
+        // fill v3 publishes sha256 for every artifact, and the object url even carries it
+        if (dl.optJSONObject("checksums") != null) {
+            String sha = dl.getJSONObject("checksums").optString("sha256", "");
+            if (sha.matches("[0-9a-fA-F]{64}")) {
+                pendingHash = sha;
+                pendingAlgo = "SHA-256";
+            }
+        }
+        return dl.getString("url");
+    }
+
+    private String purpur(String ver, Cb cb) throws Exception {
+        // the purpur api knows an md5 for the latest build
+        String json = fetch("https://api.purpurmc.org/v2/purpur/" + ver + "/latest");
+        String md5 = new org.json.JSONObject(json).optString("md5", "");
+        if (md5.matches("[0-9a-fA-F]{32}")) {
+            pendingHash = md5;
+            pendingAlgo = "MD5";
+        }
+        return "https://api.purpurmc.org/v2/purpur/"+ver+"/latest/download";
     }
 
     private String forge(String mcVer, Cb cb) throws Exception {
@@ -155,7 +183,22 @@ public class JarDownloader {
         if (latest == null) throw new Exception(context.getString(R.string.dl_error_no_builds, "Forge", mcVer));
         post(cb, 4, context.getString(R.string.dl_found_version, "Forge", latest));
         
-        return "https://maven.minecraftforge.net/net/minecraftforge/forge/" + latest + "/forge-" + latest + "-installer.jar";
+        String url = "https://maven.minecraftforge.net/net/minecraftforge/forge/" + latest + "/forge-" + latest + "-installer.jar";
+        applyMavenSha1(url);
+        return url;
+    }
+
+    /** the forge/neoforge mavens publish a ".sha1" file next to every artifact. */
+    private void applyMavenSha1(String artifactUrl) throws Exception {
+        try {
+            String sha = fetch(artifactUrl + ".sha1").trim().split("\\s+")[0];
+            if (sha.matches("[0-9a-fA-F]{40}")) {
+                pendingHash = sha;
+                pendingAlgo = "SHA-1";
+            }
+        } catch (Exception e) {
+            // no published checksum, the download just runs unverified
+        }
     }
 
     private String vanilla(String ver, Cb cb) throws Exception {
@@ -164,10 +207,14 @@ public class JarDownloader {
         if (p<0) throw new Exception(context.getString(R.string.dl_error_mojang, ver));
         int us = manifest.indexOf("\"url\":\"",p)+7;
         String vUrl = manifest.substring(us, manifest.indexOf("\"",us));
-        String vj = fetch(vUrl);
-        int sp2 = vj.indexOf("\"server\"");
-        int ss = vj.indexOf("\"url\":\"",sp2)+7;
-        return vj.substring(ss, vj.indexOf("\"",ss));
+        org.json.JSONObject versionJson = new org.json.JSONObject(fetch(vUrl));
+        org.json.JSONObject server = versionJson.getJSONObject("downloads").getJSONObject("server");
+        String sha1 = server.optString("sha1", "");
+        if (sha1.matches("[0-9a-fA-F]{40}")) {
+            pendingHash = sha1;
+            pendingAlgo = "SHA-1";
+        }
+        return server.getString("url");
     }
 
     private String neoforge(String mcVer, Cb cb) throws Exception {
@@ -190,7 +237,9 @@ public class JarDownloader {
         post(cb, 4, context.getString(R.string.dl_found_version, "NeoForge", latest));
         
         // the installer jar, not the full server jar
-        return "https://maven.neoforged.net/releases/net/neoforged/neoforge/" + latest + "/neoforge-" + latest + "-installer.jar";
+        String neoUrl = "https://maven.neoforged.net/releases/net/neoforged/neoforge/" + latest + "/neoforge-" + latest + "-installer.jar";
+        applyMavenSha1(neoUrl);
+        return neoUrl;
     }
 
     private void dl(String urlStr, File dest, Cb cb) throws Exception {
@@ -218,6 +267,17 @@ public class JarDownloader {
             }
         }
         c.disconnect();
+
+        // verify what the source published before the file is used anywhere
+        if (pendingHash != null && pendingAlgo != null) {
+            post(cb, 97, context.getString(R.string.dl_verifying));
+            String actual = eu.kodanetwork.mchost.util.DownloadVerifier.hashHex(dest, pendingAlgo);
+            if (!eu.kodanetwork.mchost.util.DownloadVerifier.matches(pendingHash, actual)) {
+                //noinspection ResultOfMethodCallIgnored
+                dest.delete();
+                throw new Exception(context.getString(R.string.dl_error_checksum));
+            }
+        }
     }
 
     private String fetch(String url) throws Exception {

@@ -349,11 +349,11 @@ public class PregenerationActivity extends Activity {
         new eu.kodanetwork.mchost.network.JarDownloader(this).download(server,
                 new eu.kodanetwork.mchost.network.JarDownloader.Cb() {
                     @Override public void onProgress(int pct, String msg) {
-                        runOnUiThread(() -> onLogLine("KodaTransfer: " + msg + " (" + pct + "%)"));
+                        runOnUiThread(() -> onLogLine(getString(R.string.con_transfer_status, msg, pct)));
                     }
                     @Override public void onDone(java.io.File jar) {
                         runOnUiThread(() -> {
-                            onLogLine("Server jar ready: " + jar.getName());
+                            onLogLine(getString(R.string.con_jar_ready, jar.getName()));
                             prepareAndStart();
                         });
                     }

@@ -558,17 +558,54 @@ public class SettingsActivity extends Activity {
         if (btnNukeServers != null) {
             btnNukeServers.setOnClickListener(v -> {
                 eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
-                try {
-                    java.io.File serversDir = new java.io.File(getFilesDir(), "servers");
-                    if (serversDir.exists() && serversDir.isDirectory()) {
-                        Runtime.getRuntime().exec("rm -rf " + serversDir.getAbsolutePath());
-                        Toast.makeText(this, "All servers nuked!", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(this, "No servers directory found.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Deleting all servers (network entries included)...", Toast.LENGTH_SHORT).show();
+                new Thread(() -> {
+                    java.util.List<eu.kodanetwork.mchost.model.ServerInstance> servers =
+                            eu.kodanetwork.mchost.model.ServerRepo.get(this).all();
+                    eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient fn =
+                            new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(this);
+                    String appUuid = prefs.getString("app_uuid", "unknown");
+                    String deviceToken = prefs.getString("device_token", "");
+                    int cleaned = 0;
+                    for (eu.kodanetwork.mchost.model.ServerInstance srv : servers) {
+                        // 1. the DNS records go, otherwise the subdomain stays occupied
+                        if (srv.getSubdomain() != null && !srv.getSubdomain().isEmpty()) {
+                            try {
+                                fn.deleteDnsLink("", srv.getSubdomain(), srv.getBaseDomain());
+                            } catch (Exception ignored) { }
+                        }
+                        // 2. the tombstone through the RPC, exactly like the normal delete flow
+                        try {
+                            java.net.HttpURLConnection patchConn = (java.net.HttpURLConnection) new java.net.URL(
+                                    eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                                            + "/rest/v1/rpc/rpc_patch_server").openConnection();
+                            patchConn.setRequestMethod("POST");
+                            patchConn.setRequestProperty("apikey", eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                            patchConn.setRequestProperty("Authorization", "Bearer " + eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                            patchConn.setRequestProperty("Content-Type", "application/json");
+                            patchConn.setDoOutput(true);
+                            String jsonPatch = "{\"p_app_uuid\":\"" + appUuid + "\", \"p_device_token\":\"" + deviceToken
+                                    + "\", \"p_host\":\"" + srv.getSubdomain() + "\", \"p_payload\": {\"host\": \"deleted_"
+                                    + srv.getSubdomain() + "\", \"server_version\": \"DELETED\"}}";
+                            patchConn.getOutputStream().write(jsonPatch.getBytes("UTF-8"));
+                            patchConn.getResponseCode();
+                            patchConn.disconnect();
+                        } catch (Exception ignored) { }
+                        cleaned++;
                     }
-                } catch (Exception e) {
-                    Toast.makeText(this, "Failed to nuke: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
+                    // 3. local entries + files
+                    for (eu.kodanetwork.mchost.model.ServerInstance srv : servers) {
+                        eu.kodanetwork.mchost.model.ServerRepo.get(this).delete(srv.getId());
+                    }
+                    java.io.File serversDir = new java.io.File(getFilesDir(), "servers");
+                    if (serversDir.exists()) {
+                        deleteRecursive(serversDir, true);
+                    }
+                    final int count = cleaned;
+                    runOnUiThread(() -> Toast.makeText(this,
+                            "All servers deleted from the network and this device (" + count + " removed).",
+                            Toast.LENGTH_LONG).show());
+                }, "KodaNukeServers").start();
             });
         }
 

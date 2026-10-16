@@ -79,7 +79,7 @@
                     android:orientation="vertical">
                     <TextView android:id="@+id/tv_ext_store_empty"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp" android:text="@string/ext_store_soon"
+                        android:layout_marginTop="6dp" android:text="@string/ext_store_loading"
                         android:textColor="#8A8A9A" android:textSize="12sp"/>
                     <LinearLayout android:id="@+id/ll_ext_store"
                         android:layout_width="match_parent" android:layout_height="wrap_content"

@@ -14,8 +14,15 @@ file_size_limit = "2GiB"
 [functions.provision-java]
 verify_jwt = true
 
-[functions.bootstrap-playit]
-verify_jwt = true
-
 [functions.create-dns-link]
 verify_jwt = true
+
+# api.kodanetwork.eu: public routes (status, releases, store) must work without
+# a token, the /v1/me routes verify the supabase jwt themselves.
+# acme-dns: the wildcard DNS-01 hook. not public in the usual sense - it has its
+# own shared token (ACME_HOOK_TOKEN) and only touches _acme-challenge TXT records.
+[functions.acme-dns]
+verify_jwt = false
+
+[functions.api]
+verify_jwt = false

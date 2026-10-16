@@ -144,8 +144,8 @@ public class PraetorVersionActivity extends AppCompatActivity {
                 }
                 if (error == null) {
                     handler.post(() -> progress.setText(getString(R.string.praetor_version_step_download)));
-                    File jar = PaperMCDownloader.downloadLatestPaperSync(targetVersion,
-                            new File(server.getServerDir()), null);
+                    File jar = PaperMCDownloader.downloadLatestPaperSync(PraetorVersionActivity.this,
+                            targetVersion, new File(server.getServerDir()), null);
                     success = jar != null && jar.exists();
                     if (!success) error = getString(R.string.version_switch_failed);
                 }

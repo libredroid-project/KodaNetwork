@@ -378,10 +378,7 @@
     <string name="sd_unlock_manual_editing">UNLOCK MANUAL EDITING (PRAETOR)</string>
     <string name="sd_restore_auto_config">RESTORE AUTO-CONFIG</string>
     <string name="sd_native_mode_active">Native Mode: Active</string>
-    <string name="sd_tunnel_not_assigned">Tunnel: not assigned</string>
     <string name="sd_domain_not_linked">Domain: not linked</string>
-    <string name="sd_tunnel_starting">Tunnel: startin\'...</string>
-    <string name="sd_tunnel_running_pending">Tunnel: runnin\' (address pending)</string>
     <string name="sd_link_custom_domain">LINK CUSTOM DOMAIN</string>
     <string name="sd_toast_icon_updated">Serv Icon updated :)</string>
     <string name="sd_toast_error_loading_image">Oopsie xD loadin\' image: </string>
@@ -418,7 +415,6 @@
     <string name="sd_toast_download_error">Download oopsie xD</string>
     <string name="sd_toast_loading_error">Oopsie xD loadin\'</string>
     <string name="sd_toast_search_error">Search error: </string>
-    <string name="sd_toast_playit_error">Playit couldn\'t start :(</string>
     <string name="sd_toast_dns_failed">DNS request failed :(: </string>
     <string name="sd_toast_unlinked_domain">Unlinked from Custom Domain. Revertin\' to default.</string>
     <string name="sd_toast_addon_removed">Addon removed &amp; files cleaned up :)</string>

@@ -54,8 +54,17 @@ public class ExtensionsActivity extends AppCompatActivity {
     private TextView tvEmptyInstalled;
     private ScrollView svInstalled;
     private ScrollView svStore;
+    private LinearLayout llStore;
+    private TextView tvStoreEmpty;
     private boolean m3 = false;
     private int tab = 0;
+
+    // cached catalog of the public store on api.kodanetwork.eu, loaded in the background
+    private final java.util.List<ExtensionStoreApi.StoreExtension> storeList = new java.util.ArrayList<>();
+    private final java.util.Map<String, ExtensionStoreApi.StoreExtension> storeById = new java.util.HashMap<>();
+    private boolean storeLoading = false;
+    private boolean storeLoaded = false;
+    private boolean storeLoadFailed = false;
 
     private final Runnable refreshListener = this::refresh;
 
@@ -82,6 +91,12 @@ public class ExtensionsActivity extends AppCompatActivity {
         tvEmptyInstalled = findViewById(R.id.tv_ext_empty);
         svInstalled = findViewById(R.id.sv_ext_installed);
         svStore = findViewById(R.id.sv_ext_store);
+        llStore = findViewById(R.id.ll_ext_store);
+        tvStoreEmpty = findViewById(R.id.tv_ext_store_empty);
+        // after a failed load the hint line doubles as a retry button
+        tvStoreEmpty.setOnClickListener(v -> {
+            if (storeLoadFailed) loadStore();
+        });
 
         View tabs = makeTextTabs(
                 new String[]{getString(R.string.ext_tab_installed), getString(R.string.ext_tab_discover)},
@@ -97,6 +112,7 @@ public class ExtensionsActivity extends AppCompatActivity {
 
         repo.addListener(refreshListener);
         refresh();
+        loadStore();
     }
 
     private void applyTab() {
@@ -131,6 +147,28 @@ public class ExtensionsActivity extends AppCompatActivity {
 
             ((TextView) row.findViewById(R.id.tv_ext_meta)).setText(
                     "v" + ext.version + (ext.author == null || ext.author.isEmpty() ? "" : "  \u00B7  " + ext.author));
+
+            // store badges: "update available", or the gentle note that a package left the store
+            TextView tvUpdate = row.findViewById(R.id.tv_ext_update);
+            if (tvUpdate != null) {
+                tvUpdate.setVisibility(View.GONE);
+                if (storeLoaded && !storeLoadFailed) {
+                    ExtensionStoreApi.StoreExtension store = storeById.get(ext.id);
+                    if (store == null) {
+                        tvUpdate.setText(R.string.ext_store_not_in_store);
+                        tvUpdate.setTextColor(m3
+                                ? resolveThemeColor(com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF8A8A9A)
+                                : 0xFF8A8A9A);
+                        tvUpdate.setVisibility(View.VISIBLE);
+                    } else if (store.latest != null && store.latest.versionCode > ext.versionCode) {
+                        tvUpdate.setText(R.string.ext_store_update_available);
+                        tvUpdate.setTextColor(m3
+                                ? resolveThemeColor(com.google.android.material.R.attr.colorPrimary, 0xFFFF6B00)
+                                : 0xFFFF6B00);
+                        tvUpdate.setVisibility(View.VISIBLE);
+                    }
+                }
+            }
 
             SwitchMaterial sw = row.findViewById(R.id.switch_ext_enabled);
             sw.setChecked(ext.enabled);
@@ -221,6 +259,189 @@ public class ExtensionsActivity extends AppCompatActivity {
     protected void onDestroy() {
         repo.removeListener(refreshListener);
         super.onDestroy();
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // the store half of the hub: catalog from api.kodanetwork.eu
+    // ────────────────────────────────────────────────────────────────
+
+    private void loadStore() {
+        if (storeLoading) return;
+        storeLoading = true;
+        storeLoadFailed = false;
+        if (storeList.isEmpty()) {
+            tvStoreEmpty.setVisibility(View.VISIBLE);
+            tvStoreEmpty.setText(R.string.ext_store_loading);
+        }
+        new Thread(() -> {
+            try {
+                final java.util.List<ExtensionStoreApi.StoreExtension> fetched = ExtensionStoreApi.fetchCatalog();
+                runOnUiThread(() -> {
+                    storeLoading = false;
+                    storeLoaded = true;
+                    storeList.clear();
+                    storeList.addAll(fetched);
+                    storeById.clear();
+                    for (ExtensionStoreApi.StoreExtension ext : fetched) storeById.put(ext.extId, ext);
+                    renderStore();
+                    // repaint the installed list so update badges appear
+                    refresh();
+                });
+            } catch (final Exception e) {
+                android.util.Log.w("KodaExtensions", "store load failed", e);
+                runOnUiThread(() -> {
+                    storeLoading = false;
+                    storeLoadFailed = true;
+                    tvStoreEmpty.setVisibility(View.VISIBLE);
+                    tvStoreEmpty.setText(R.string.ext_store_error);
+                });
+            }
+        }, "KodaExtStore").start();
+    }
+
+    private void renderStore() {
+        if (llStore == null) return;
+        llStore.removeAllViews();
+        if (storeList.isEmpty()) {
+            tvStoreEmpty.setVisibility(View.VISIBLE);
+            tvStoreEmpty.setText(R.string.ext_store_empty);
+            return;
+        }
+        tvStoreEmpty.setVisibility(View.GONE);
+        java.util.Map<String, ExtensionRepository.InstalledExtension> installed = installedById();
+        for (final ExtensionStoreApi.StoreExtension ext : storeList) {
+            View row = getLayoutInflater().inflate(R.layout.item_extension_store, llStore, false);
+
+            ImageView icon = row.findViewById(R.id.iv_ext_store_icon);
+            if (ext.iconUrl != null && !ext.iconUrl.isEmpty()) {
+                try {
+                    com.bumptech.glide.Glide.with(this).load(ext.iconUrl).into(icon);
+                } catch (Throwable ignored) {}
+            }
+
+            ((TextView) row.findViewById(R.id.tv_ext_store_name)).setText(ext.name);
+            TextView desc = row.findViewById(R.id.tv_ext_store_desc);
+            if (ext.summary == null || ext.summary.isEmpty()) {
+                desc.setVisibility(View.GONE);
+            } else {
+                desc.setText(ext.summary);
+            }
+            String meta = (ext.author == null || ext.author.isEmpty() ? "" : ext.author + "  \u00B7  ")
+                    + (ext.latest != null && !ext.latest.version.isEmpty() ? "v" + ext.latest.version + "  \u00B7  " : "")
+                    + getString(R.string.ext_store_downloads, ext.downloads);
+            ((TextView) row.findViewById(R.id.tv_ext_store_meta)).setText(meta);
+
+            MaterialButton action = row.findViewById(R.id.btn_ext_store_action);
+            ExtensionRepository.InstalledExtension local = installed.get(ext.extId);
+            boolean isInstalled = local != null;
+            boolean update = isInstalled && ext.latest != null && ext.latest.versionCode > local.versionCode;
+            if (!isInstalled) {
+                action.setText(R.string.ext_store_install);
+            } else if (update) {
+                action.setText(R.string.ext_store_update);
+            } else {
+                action.setText(R.string.ext_store_installed);
+                action.setEnabled(false);
+            }
+            if (action.isEnabled()) {
+                action.setOnClickListener(v -> {
+                    HapticUtil.forceVibrate(this, 30);
+                    confirmStoreInstall(ext);
+                });
+            }
+
+            row.setOnClickListener(v -> {
+                HapticUtil.forceVibrate(this, 30);
+                openDetail(ext);
+            });
+            llStore.addView(row);
+        }
+    }
+
+    private java.util.Map<String, ExtensionRepository.InstalledExtension> installedById() {
+        java.util.Map<String, ExtensionRepository.InstalledExtension> map = new java.util.HashMap<>();
+        for (ExtensionRepository.InstalledExtension ext : repo.all()) map.put(ext.id, ext);
+        return map;
+    }
+
+    /** fetches the full detail (description, screenshots, versions) before opening the sheet. */
+    private void openDetail(final ExtensionStoreApi.StoreExtension ext) {
+        Toast.makeText(this, R.string.ext_store_loading_detail, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            ExtensionStoreApi.StoreExtension detail = ext;
+            try {
+                detail = ExtensionStoreApi.fetchDetail(ext.extId);
+            } catch (Exception e) {
+                // the list data alone still fills a usable sheet
+                android.util.Log.w("KodaExtensions", "detail fetch failed", e);
+            }
+            final ExtensionStoreApi.StoreExtension shown = detail;
+            runOnUiThread(() -> {
+                ExtensionRepository.InstalledExtension local = installedById().get(shown.extId);
+                ExtensionStoreSheet.show(this, shown, local == null ? 0 : local.versionCode,
+                        this::confirmStoreInstall);
+            });
+        }, "KodaExtDetail").start();
+    }
+
+    /** permission consent before anything is downloaded. */
+    private void confirmStoreInstall(final ExtensionStoreApi.StoreExtension ext) {
+        HapticUtil.forceVibrate(this, 30);
+        boolean isUpdate = installedById().containsKey(ext.extId);
+        java.util.List<String> permissions = ext.latest == null
+                ? java.util.Collections.<String>emptyList() : ext.latest.permissions;
+
+        StringBuilder message = new StringBuilder();
+        if (isUpdate) message.append(getString(R.string.ext_store_update_body)).append("\n\n");
+        if (permissions.isEmpty()) {
+            message.append(getString(R.string.ext_store_confirm_none));
+        } else {
+            message.append(getString(R.string.ext_store_confirm_body)).append('\n');
+            for (String permission : permissions) {
+                message.append("\u2022 ").append(ExtensionStoreSheet.permissionLabel(this, permission)).append('\n');
+            }
+        }
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.ext_store_confirm_title, ext.name))
+                .setMessage(message.toString().trim())
+                .setPositiveButton(isUpdate ? R.string.ext_store_update : R.string.ext_store_install,
+                        (d, w) -> downloadAndInstall(ext))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** downloads the package (sha256 verified) and hands it to the installer. */
+    private void downloadAndInstall(final ExtensionStoreApi.StoreExtension ext) {
+        Toast.makeText(this, getString(R.string.ext_store_downloading, ext.name), Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            final File tmp = new File(getCacheDir(), "kodaext-store.zip");
+            try {
+                ExtensionStoreApi.downloadPackage(ext, tmp);
+                repo.installFromZip(tmp, BuildConfig.VERSION_CODE);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, R.string.ext_installed, Toast.LENGTH_SHORT).show();
+                    refresh();
+                    renderStore();
+                });
+            } catch (final Exception e) {
+                android.util.Log.e("KodaExtensions", "store install failed", e);
+                final String reason = "sha256 mismatch".equals(e.getMessage())
+                        ? getString(R.string.ext_store_verify_failed)
+                        : String.valueOf(e.getMessage());
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.ext_install_failed, reason), Toast.LENGTH_LONG).show());
+            } finally {
+                //noinspection ResultOfMethodCallIgnored
+                tmp.delete();
+            }
+        }, "KodaExtStoreInstall").start();
+    }
+
+    private int resolveThemeColor(int attribute, int fallback) {
+        android.util.TypedValue value = new android.util.TypedValue();
+        if (getTheme().resolveAttribute(attribute, value, true)) return value.data;
+        return fallback;
     }
 
     /**

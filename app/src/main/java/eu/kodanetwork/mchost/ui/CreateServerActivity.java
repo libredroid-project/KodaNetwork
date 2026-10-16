@@ -495,7 +495,32 @@ public class CreateServerActivity extends AppCompatActivity {
         }
 
         setupThemeColors();
-        
+
+        // domains the admins paused (no_new/off) cannot be picked for new servers
+        if (btnKodaNetwork != null && btnKodaServ != null && wrapperKodaNetwork != null && wrapperKodaServ != null) {
+            new Thread(() -> {
+                String modeKn = eu.kodanetwork.mchost.util.DomainStates.modeOf(getApplicationContext(), "kodanetwork.eu");
+                String modeKs = eu.kodanetwork.mchost.util.DomainStates.modeOf(getApplicationContext(), "kodaserv.eu");
+                runOnUiThread(() -> {
+                    boolean knOk = eu.kodanetwork.mchost.util.DomainStates.allowsNewServers(modeKn);
+                    boolean ksOk = eu.kodanetwork.mchost.util.DomainStates.allowsNewServers(modeKs);
+                    applyDomainAvailability(btnKodaNetwork, wrapperKodaNetwork, knOk);
+                    applyDomainAvailability(btnKodaServ, wrapperKodaServ, ksOk);
+                    if (!knOk && ksOk && "kodanetwork.eu".equals(selectedBaseDomain)) {
+                        selectedBaseDomain = "kodaserv.eu";
+                        updateDomainUI();
+                        updatePreview();
+                    } else if (!ksOk && knOk && "kodaserv.eu".equals(selectedBaseDomain)) {
+                        selectedBaseDomain = "kodanetwork.eu";
+                        updateDomainUI();
+                        updatePreview();
+                    } else if (!knOk && !ksOk) {
+                        android.widget.Toast.makeText(this, R.string.domain_new_none, android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
+            }, "KodaDomainGate").start();
+        }
+
         String email = eu.kodanetwork.mchost.App.getPrefs(this).getString("account_email", "");
         if (eu.kodanetwork.mchost.util.OwnerCheck.isOwnerEmail(email)) {
             android.widget.RadioButton rbAi = findViewById(R.id.rb_setup_ai);
@@ -552,7 +577,6 @@ public class CreateServerActivity extends AppCompatActivity {
                                 if (tvMsg != null) tvMsg.setText(message);
                             });
                         }
-                        @Override public void onCompleted(String playitAddress, String domainLink) {}
                         @Override public void requestServerStartIntent() {}
                         @Override
                         public void onError(eu.kodanetwork.mchost.orchestration.StartOrchestrator.Step step, String message) {
@@ -928,6 +952,16 @@ public class CreateServerActivity extends AppCompatActivity {
                 Toast.makeText(this, "Detected: " + fType + " " + (fVersion!=null?fVersion:"?"), Toast.LENGTH_LONG).show();
             });
         });
+    }
+
+    /** greys a domain out once the admins paused it for new servers. */
+    private void applyDomainAvailability(android.widget.TextView button, android.view.View wrapper, boolean available) {
+        button.setEnabled(available);
+        wrapper.setEnabled(available);
+        wrapper.setClickable(available);
+        float alpha = available ? 1f : 0.35f;
+        button.setAlpha(alpha);
+        wrapper.setAlpha(alpha);
     }
 
     private void setupThemeColors() {

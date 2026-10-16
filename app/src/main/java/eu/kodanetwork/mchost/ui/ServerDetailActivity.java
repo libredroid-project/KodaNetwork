@@ -57,7 +57,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import eu.kodanetwork.mchost.R;
-import eu.kodanetwork.mchost.integration.PlayitManager;
 import eu.kodanetwork.mchost.integration.TermuxBridge;
 import eu.kodanetwork.mchost.integration.TermuxScriptInstaller;
 import eu.kodanetwork.mchost.model.ServerInstance;
@@ -119,9 +118,11 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     // settings
     private TextView tvSettingsInfo;
-    private TextView tvTermuxStatus, tvTunnelStatus, tvDomainStatus;
+    private TextView tvTermuxStatus, tvDomainStatus;
     private MaterialButton btnDlJar, btnDelServer;
-    private MaterialButton btnTermuxSetup, btnStartTunnel, btnLinkDomain;
+    private MaterialButton btnTermuxSetup, btnLinkDomain;
+    private MaterialButton btnCreateInvite;
+    private android.widget.LinearLayout layoutInvites;
     private java.util.List<TiltEffectHelper> tiltHelpers = new java.util.ArrayList<>();
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private android.view.View layoutFullLoading;
@@ -306,18 +307,24 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         TextView tvTitle = findViewById(R.id.tv_title);
         tvTitle.setText(server.getName());
-        tvTitle.setClickable(true);
-        tvTitle.setFocusable(true);
-        android.util.TypedValue outValue = new android.util.TypedValue();
-        getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-        tvTitle.setBackgroundResource(outValue.resourceId);
-        tvTitle.setOnClickListener(v -> showNameEditDialog());
+        if (isServerBannedCached()) {
+            // banned: the name stays readable but is no button anymore
+            tvTitle.setClickable(false);
+            tvTitle.setFocusable(false);
+        } else {
+            tvTitle.setClickable(true);
+            tvTitle.setFocusable(true);
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+            tvTitle.setBackgroundResource(outValue.resourceId);
+            tvTitle.setOnClickListener(v -> showNameEditDialog());
+        }
         
         android.widget.ImageButton btnBack = findViewById(R.id.btn_back);
         btnBack.setOnClickListener(v -> finish());
         
         android.view.View btnChangeName = findViewById(R.id.btn_change_name);
-        if (btnChangeName != null) {
+        if (btnChangeName != null && !isServerBannedCached()) {
             btnChangeName.setOnClickListener(v -> showNameEditDialog());
         }
 
@@ -471,12 +478,10 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         tvSettingsInfo = findViewById(R.id.tv_settings_info);
         tvTermuxStatus = findViewById(R.id.tv_termux_status);
-        tvTunnelStatus = findViewById(R.id.tv_tunnel_status);
         tvDomainStatus = findViewById(R.id.tv_domain_status);
         btnDlJar       = findViewById(R.id.btn_dl_jar);
         btnDelServer   = findViewById(R.id.btn_del_server);
         btnTermuxSetup = findViewById(R.id.btn_termux_setup);
-        btnStartTunnel = findViewById(R.id.btn_start_tunnel);
         btnLinkDomain = findViewById(R.id.btn_link_domain);
         
         android.view.View btnCustomDnsWizard = findViewById(R.id.btn_custom_dns_wizard);
@@ -1471,6 +1476,8 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showTab(int i) {
+        // a banned server never shows a tab panel, the ban overlay owns the screen
+        if (isServerBannedCached()) i = -1;
         // on the console tab sync the follow state with the server preference
         consoleAutoScroll = server == null || server.isConsoleAutoScroll();
         updateScrollButton();
@@ -1847,27 +1854,11 @@ public class ServerDetailActivity extends AppCompatActivity {
                             case JAVA_INSTALL:
                                 if (tvFullLoadingMsg != null) tvFullLoadingMsg.setText(message);
                                 break;
-                            case SERVER_START:
-                            case TUNNEL_START:
-                                tvTunnelStatus.setText("Tunnel: " + message);
-                                break;
                             case DNS_LINK:
                             case READY:
                                 tvDomainStatus.setText("Domain: " + message);
                                 break;
                         }
-                    });
-                }
-
-                @Override
-                public void onCompleted(String playitAddress, String domainLink) {
-                    server.setPlayitAddress(playitAddress);
-                    server.setDomainLink(domainLink);
-                    repo.update(server);
-                    runOnUiThread(() -> {
-                        tvTunnelStatus.setText("Tunnel: " + playitAddress);
-                        tvDomainStatus.setText("Domain: " + domainLink);
-                        updateJoinAddressDisplay();
                     });
                 }
 
@@ -2013,7 +2004,9 @@ public class ServerDetailActivity extends AppCompatActivity {
     private Runnable autoCloseRunnable;
 
     private void updateDash() {
+        maybeOfferDomainSwitch();
         ServerInstance.State st = server.state;
+        boolean bannedNow = isServerBannedCached();
         String label; int col;
         switch (st) {
             case ONLINE:     label = "● ONLINE";     col = 0xFF69781D; break;
@@ -2048,6 +2041,11 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (server.isUpdating()) {
             label = "⬇ UPDATING…";
             col = 0xFF00E676;
+        }
+        // the ban beats every other state, that is the one thing the user must see
+        if (bannedNow) {
+            label = getString(R.string.status_banned);
+            col = 0xFFFF3333;
         }
         if (tvBadge != null) {
             tvBadge.setText(label);
@@ -2124,6 +2122,18 @@ public class ServerDetailActivity extends AppCompatActivity {
             if (btnWakeUpDash != null) btnWakeUpDash.setVisibility(View.GONE);
             if (btnChangeDns != null) btnChangeDns.setVisibility(View.GONE);
         }
+
+        // a banned server keeps the ban screen on every refresh: tab strip, controls
+        // and wake buttons stay away and the overlay stays on top
+        if (bannedNow) {
+            if (cardControls != null) cardControls.setVisibility(View.GONE);
+            if (tabLayout != null) tabLayout.setVisibility(View.GONE);
+            if (btnWakeUpDash != null) btnWakeUpDash.setVisibility(View.GONE);
+            if (btnChangeDns != null) btnChangeDns.setVisibility(View.GONE);
+            if (!bannedOverlayShown) showBannedOverlay(banReasonForUi());
+        } else if (bannedOverlayShown) {
+            hideBannedOverlay();
+        }
         
         boolean updating = server.isUpdating();
         if (btnStart != null) btnStart.setEnabled(!running && st != ServerInstance.State.INSTALLING && !restarting && !settingUp && !hibernated && !updating);
@@ -2147,6 +2157,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                 case CRASHED:  dotDrw = R.drawable.dot_err;    break;
                 default:       dotDrw = R.drawable.dot_offline; break;
             }
+            if (bannedNow) dotDrw = R.drawable.dot_err;
             dot.setBackgroundResource(dotDrw);
         }
 
@@ -2641,7 +2652,7 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     private void sendCmd(String cmd) {
         if (bound && svc != null) svc.sendCmd(server.getId(), cmd);
-        else appendLog("Service nicht verbunden.");
+        else appendLog(getString(R.string.con_ui_service_not_connected));
     }
 
     private long lastScrollTime = 0;
@@ -2889,6 +2900,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                         getString(R.string.sd_action_cut), getString(R.string.sd_action_delete),
                         getString(R.string.sd_files_export)));
                 if (isZip) actionList.add(getString(R.string.sd_files_unpack));
+                actionList.add(getString(R.string.sd_files_info));
                 String[] actions = actionList.toArray(new String[0]);
                 new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(file.getName())
@@ -2926,6 +2938,8 @@ public class ServerDetailActivity extends AppCompatActivity {
                             intent.setType("*/*");
                             intent.putExtra(Intent.EXTRA_TITLE, file.getName());
                             startActivityForResult(intent, REQ_EXPORT_FILE);
+                        } else if (actions[which].equals(getString(R.string.sd_files_info))) {
+                            showFileInfo(file);
                         } else if (isZip && actions[which].equals(getString(R.string.sd_files_unpack))) {
                             unpackZipHere(file);
                         }
@@ -2995,6 +3009,154 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
         }
         fileOrDirectory.delete();
+    }
+
+    /** "Info" dialog from the files tab: type, size, date, path and the sha256. */
+    private void showFileInfo(final File file) {
+        final float d = getResources().getDisplayMetrics().density;
+        final boolean light = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this);
+        final android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        final LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding((int) (20 * d), (int) (4 * d), (int) (20 * d), 0);
+        scroll.addView(root);
+
+        java.util.function.BiConsumer<String, String> addRow = (label, value) -> {
+            TextView tvLabel = new TextView(this);
+            tvLabel.setText(label.toUpperCase());
+            tvLabel.setTextColor(light ? 0xFF6B6B6B : 0xFF8A8A9A);
+            tvLabel.setTextSize(10);
+            tvLabel.setLetterSpacing(0.08f);
+            tvLabel.setPadding(0, (int) (14 * d), 0, 0);
+            root.addView(tvLabel);
+            TextView tvValue = new TextView(this);
+            tvValue.setText(value);
+            tvValue.setTextColor(light ? 0xFF1A1A1A : 0xFFF0F0F0);
+            tvValue.setTextSize(13);
+            tvValue.setTextIsSelectable(true);
+            root.addView(tvValue);
+        };
+
+        String name = file.getName();
+        String ext = name.contains(".")
+                ? name.substring(name.lastIndexOf('.') + 1).toUpperCase(java.util.Locale.US) : "";
+        addRow.accept(getString(R.string.file_info_type), file.isDirectory()
+                ? getString(R.string.file_info_folder)
+                : (ext.isEmpty() ? getString(R.string.file_info_file) : ext + " " + getString(R.string.file_info_file)));
+
+        if (file.isDirectory()) {
+            File[] kids = file.listFiles();
+            addRow.accept(getString(R.string.file_info_items), String.valueOf(kids == null ? 0 : kids.length));
+            addRow.accept(getString(R.string.file_info_size), getString(R.string.jdk_info_calculating));
+            final TextView sizeView = (TextView) root.getChildAt(root.getChildCount() - 1);
+            final File dir = file;
+            new Thread(() -> {
+                long bytes = eu.kodanetwork.mchost.util.RuntimeManager.dirSize(dir);
+                final String text = eu.kodanetwork.mchost.util.DownloadVerifier.humanBytes(bytes);
+                runOnUiThread(() -> sizeView.setText(text));
+            }, "KodaDirSize").start();
+        } else {
+            addRow.accept(getString(R.string.file_info_size), eu.kodanetwork.mchost.util.DownloadVerifier.humanBytes(file.length()));
+        }
+
+        addRow.accept(getString(R.string.file_info_modified),
+                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US)
+                        .format(new java.util.Date(file.lastModified())));
+        addRow.accept(getString(R.string.file_info_path), file.getAbsolutePath());
+
+        // where the file came from: recorded at download time, with a fallback for
+        // files that were installed before the recording existed
+        String source = server.pluginSources.get(file.getName());
+        if (source == null) source = guessFileSource(file);
+        if (source != null) addRow.accept(getString(R.string.jdk_info_source), source);
+
+        if (!file.isDirectory()) {
+            final boolean[] computed = {false};
+            final boolean big = file.length() > 64L * 1024 * 1024;
+            addRow.accept(getString(R.string.jdk_info_sha),
+                    big ? "\u2014" : getString(R.string.jdk_info_calculating));
+            final TextView shaView = (TextView) root.getChildAt(root.getChildCount() - 1);
+
+            final MaterialButton copy = eu.kodanetwork.mchost.util.KodaButtons.dark(this, getString(R.string.jdk_info_copy));
+            LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, (int) (40 * d));
+            copyLp.topMargin = (int) (10 * d);
+            copy.setOnClickListener(v -> {
+                if (!computed[0]) {
+                    Toast.makeText(this, R.string.jdk_info_calculating, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(android.content.ClipData.newPlainText("sha256", shaView.getText()));
+                Toast.makeText(this, R.string.jdk_info_copied, Toast.LENGTH_SHORT).show();
+            });
+
+            if (big) {
+                // big files (worlds, big jars) only hash on request
+                final MaterialButton calculate = eu.kodanetwork.mchost.util.KodaButtons.dark(this, getString(R.string.file_info_calculate));
+                LinearLayout.LayoutParams calcLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, (int) (40 * d));
+                calcLp.topMargin = (int) (10 * d);
+                calculate.setOnClickListener(v -> {
+                    calculate.setEnabled(false);
+                    shaView.setText(getString(R.string.jdk_info_calculating));
+                    computeFileSha(file, shaView, computed);
+                });
+                root.addView(calculate, calcLp);
+            } else {
+                computeFileSha(file, shaView, computed);
+            }
+            root.addView(copy, copyLp);
+        }
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(name)
+                .setView(scroll)
+                .setPositiveButton(getString(R.string.sd_action_ok), null)
+                .show();
+    }
+
+    private void computeFileSha(final File file, final TextView target, final boolean[] computed) {
+        new Thread(() -> {
+            String text;
+            boolean ok = true;
+            try {
+                text = eu.kodanetwork.mchost.util.DownloadVerifier.hashHex(file, "SHA-256");
+            } catch (Exception e) {
+                text = getString(R.string.file_info_read_failed);
+                ok = false;
+            }
+            final String out = text;
+            final boolean success = ok;
+            runOnUiThread(() -> {
+                target.setText(out);
+                if (success) computed[0] = true;
+            });
+        }, "KodaFileSha").start();
+    }
+
+    /**
+     * known sources by file name, for files that were downloaded before the app
+     * started recording where things come from. only names the app itself installs.
+     */
+    private String guessFileSource(File file) {
+        String n = file.getName().toLowerCase(java.util.Locale.US);
+        File parentFile = file.getParentFile();
+        String parent = parentFile != null ? parentFile.getName().toLowerCase(java.util.Locale.US) : "";
+        if (n.startsWith("paper-") || n.startsWith("folia-") || n.startsWith("velocity-")) return "fill.papermc.io";
+        if (n.equals("fabric-server.jar")) return "meta.fabricmc.net";
+        if (n.equals("server.jar")) return "piston-meta.mojang.com";
+        if (n.startsWith("forge-")) return "maven.minecraftforge.net";
+        if (n.startsWith("neoforge-")) return "maven.neoforged.net";
+        if (n.startsWith("pumpkin")) return "github.com/Pumpkin-MC/Pumpkin";
+        if (n.equals("geyser.jar") || n.equals("floodgate.jar")) return "download.geysermc.org";
+        if (parent.equals("plugins") || parent.equals("mods")) {
+            if (n.startsWith("chunky") || n.startsWith("voicechat") || n.equals("luckperms.jar")
+                    || n.startsWith("placeholderapi") || n.startsWith("tab")) {
+                return "Modrinth (api.modrinth.com)";
+            }
+        }
+        return null;
     }
 
     /** the Praetor-styled action picker behind the plus button in the files tab. */
@@ -3180,9 +3342,148 @@ public class ServerDetailActivity extends AppCompatActivity {
                 sheet.dismiss();
                 applyJavaRuntimeChange();
             });
-            container.addView(btn, lp);
+
+            // the row: the button plus an explicit "more infos" button (file, source,
+            // size and the sha256 the download is checked against)
+            LinearLayout rowWrap = new LinearLayout(this);
+            rowWrap.setOrientation(LinearLayout.HORIZONTAL);
+            rowWrap.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            rowWrap.addView(btn, new LinearLayout.LayoutParams(
+                    0, (int)(52 * getResources().getDisplayMetrics().density), 1f));
+
+            android.widget.ImageButton btnInfo = new android.widget.ImageButton(this);
+            btnInfo.setImageResource(android.R.drawable.ic_menu_info_details);
+            btnInfo.setColorFilter(0xFFB7AE9F);
+            btnInfo.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            btnInfo.setContentDescription(getString(R.string.jdk_info_button));
+            btnInfo.setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
+                showJavaRuntimeInfo(sel);
+            });
+            LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(
+                    (int)(44 * getResources().getDisplayMetrics().density),
+                    (int)(44 * getResources().getDisplayMetrics().density));
+            infoLp.leftMargin = (int)(6 * getResources().getDisplayMetrics().density);
+            rowWrap.addView(btnInfo, infoLp);
+
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rowLp.bottomMargin = (int)(8 * getResources().getDisplayMetrics().density);
+            container.addView(rowWrap, rowLp);
         }
         sheet.setContentView(container);
+        eu.kodanetwork.mchost.util.SheetFix.apply(sheet);
+        sheet.show();
+    }
+
+    /** "more infos" for one java runtime: file, source, size on disk and the checksum. */
+    private void showJavaRuntimeInfo(int choice) {
+        final int version = choice == 0
+                ? eu.kodanetwork.mchost.util.RuntimeManager.resolveAutoVersion(server) : choice;
+        final float d = getResources().getDisplayMetrics().density;
+
+        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(0xFF0A0807);
+        int pad = (int)(20 * d);
+        root.setPadding(pad, pad, pad, pad);
+        scroll.addView(root);
+
+        TextView title = new TextView(this);
+        title.setText(getString(R.string.jdk_info_title, version));
+        title.setTextColor(0xFFFF6B00);
+        title.setTextSize(13);
+        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setLetterSpacing(0.12f);
+        root.addView(title);
+
+        java.util.function.BiConsumer<String, String> addRow = (label, value) -> {
+            TextView tvLabel = new TextView(this);
+            tvLabel.setText(label.toUpperCase());
+            tvLabel.setTextColor(0xFF8A8A9A);
+            tvLabel.setTextSize(10);
+            tvLabel.setLetterSpacing(0.08f);
+            tvLabel.setPadding(0, (int)(14 * d), 0, 0);
+            root.addView(tvLabel);
+            TextView tvValue = new TextView(this);
+            tvValue.setText(value);
+            tvValue.setTextColor(0xFFF0F0F0);
+            tvValue.setTextSize(13);
+            tvValue.setTextIsSelectable(true);
+            root.addView(tvValue);
+        };
+
+        if (choice == 0) {
+            TextView auto = new TextView(this);
+            auto.setText(getString(R.string.jdk_info_auto, version));
+            auto.setTextColor(0xFFB7AE9F);
+            auto.setTextSize(12);
+            auto.setPadding(0, (int)(10 * d), 0, 0);
+            root.addView(auto);
+        }
+
+        if (version == 25) {
+            addRow.accept(getString(R.string.jdk_info_file), "jre25 (assets, java-runtime)");
+            addRow.accept(getString(R.string.jdk_info_status), getString(R.string.jdk_info_status_bundled));
+        } else {
+            addRow.accept(getString(R.string.jdk_info_file), eu.kodanetwork.mchost.util.RuntimeManager.runtimeFileName(version));
+            String host = eu.kodanetwork.mchost.util.RuntimeManager.archiveHost(version);
+            if (host != null) addRow.accept(getString(R.string.jdk_info_source), host);
+            boolean installed = eu.kodanetwork.mchost.util.RuntimeManager.isRuntimeInstalled(this, version);
+            addRow.accept(getString(R.string.jdk_info_status),
+                    installed ? getString(R.string.jdk_info_status_installed) : getString(R.string.jdk_info_status_missing));
+
+            if (installed) {
+                final TextView sizeLabel = new TextView(this);
+                sizeLabel.setText(getString(R.string.jdk_info_size).toUpperCase());
+                sizeLabel.setTextColor(0xFF8A8A9A);
+                sizeLabel.setTextSize(10);
+                sizeLabel.setLetterSpacing(0.08f);
+                sizeLabel.setPadding(0, (int)(14 * d), 0, 0);
+                root.addView(sizeLabel);
+                final TextView sizeValue = new TextView(this);
+                sizeValue.setText(getString(R.string.jdk_info_calculating));
+                sizeValue.setTextColor(0xFFF0F0F0);
+                sizeValue.setTextSize(13);
+                root.addView(sizeValue);
+                final java.io.File dir = new java.io.File(getFilesDir(), "jre" + version);
+                new Thread(() -> {
+                    long bytes = eu.kodanetwork.mchost.util.RuntimeManager.dirSize(dir);
+                    String text = String.format(java.util.Locale.US, "%.0f MB", bytes / 1048576.0);
+                    runOnUiThread(() -> sizeValue.setText(text));
+                }, "KodaJreSize").start();
+            }
+
+            String sha = eu.kodanetwork.mchost.util.RuntimeManager.expectedSha256(version);
+            addRow.accept(getString(R.string.jdk_info_sha), sha != null ? sha : getString(R.string.jdk_info_sha_missing));
+            if (sha != null) {
+                MaterialButton copy = eu.kodanetwork.mchost.util.KodaButtons.dark(this, getString(R.string.jdk_info_copy));
+                LinearLayout.LayoutParams copyLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, (int)(40 * d));
+                copyLp.topMargin = (int)(10 * d);
+                final String shaFinal = sha;
+                copy.setOnClickListener(v -> {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (cm != null) cm.setPrimaryClip(android.content.ClipData.newPlainText("sha256", shaFinal));
+                    Toast.makeText(this, R.string.jdk_info_copied, Toast.LENGTH_SHORT).show();
+                });
+                root.addView(copy, copyLp);
+            }
+            addRow.accept(getString(R.string.jdk_info_path), new java.io.File(getFilesDir(), "jre" + version).getAbsolutePath());
+        }
+
+        TextView note = new TextView(this);
+        note.setText(getString(R.string.jdk_info_verified_note));
+        note.setTextColor(0xFF8A8A9A);
+        note.setTextSize(11);
+        note.setLineSpacing(0, 1.2f);
+        note.setPadding(0, (int)(16 * d), 0, 0);
+        root.addView(note);
+
+        sheet.setContentView(scroll);
         eu.kodanetwork.mchost.util.SheetFix.apply(sheet);
         sheet.show();
     }
@@ -3318,8 +3619,32 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         btnDlJar.setOnClickListener(v -> downloadJar());
         btnTermuxSetup.setVisibility(android.view.View.GONE);
-        btnStartTunnel.setOnClickListener(v -> startTunnel());
         btnLinkDomain.setOnClickListener(v -> handleDomainLink());
+
+        btnCreateInvite = findViewById(R.id.btn_create_invite);
+        layoutInvites = findViewById(R.id.layout_invites);
+        if (btnCreateInvite != null) {
+            btnCreateInvite.setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+                showCreateInviteSheet();
+            });
+            loadInvites();
+        }
+
+        // the controls tilt in LiquidGlass, and only there
+        if (eu.kodanetwork.mchost.util.ThemeHelper.isLiquidGlass(this)) {
+            android.view.View[] controlsToTilt = new android.view.View[] {
+                btnStart, btnStop, btnRestart, btnKill,
+                btnDlJar, btnTermuxSetup, btnLinkDomain
+            };
+            for (android.view.View v : controlsToTilt) {
+                if (v != null) {
+                    TiltEffectHelper helper = new TiltEffectHelper(this, v, true);
+                    tiltHelpers.add(helper);
+                    helper.register(); // make it work right away, not on the next resume
+                }
+            }
+        }
 
 
 
@@ -3714,11 +4039,6 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     private void updateIntegrationStatus() {
         tvTermuxStatus.setText(getString(R.string.sd_native_mode_active));
-        if (server.getPlayitAddress().isEmpty()) {
-            tvTunnelStatus.setText(getString(R.string.sd_tunnel_not_assigned));
-        } else {
-            tvTunnelStatus.setText("Tunnel: " + server.getPlayitAddress());
-        }
         if (server.getDomainLink().isEmpty()) {
             tvDomainStatus.setText(getString(R.string.sd_domain_not_linked));
         } else {
@@ -3974,8 +4294,21 @@ public class ServerDetailActivity extends AppCompatActivity {
                                                     byte[] buf = new byte[8192]; int r;
                                                     while ((r = dlIs.read(buf)) != -1) fos.write(buf, 0, r);
                                                     fos.close(); dlIs.close();
+
+                                                    // modrinth publishes sha512 for every file
+                                                    String expectedSha = fileObj.optJSONObject("hashes") != null
+                                                            ? fileObj.getJSONObject("hashes").optString("sha512", "") : "";
+                                                    if (expectedSha.matches("[0-9a-fA-F]{128}")) {
+                                                        String actual = eu.kodanetwork.mchost.util.DownloadVerifier.hashHex(targetFile, "SHA-512");
+                                                        if (!eu.kodanetwork.mchost.util.DownloadVerifier.matches(expectedSha, actual)) {
+                                                            //noinspection ResultOfMethodCallIgnored
+                                                            targetFile.delete();
+                                                            throw new IllegalStateException("Checksum mismatch (SHA-512), the file was discarded");
+                                                        }
+                                                    }
                                                     
                                                     server.pluginVersions.put(p.id, selectedVer.getString("id"));
+                                                    server.pluginSources.put(fName, "Modrinth \u00b7 " + p.id);
                                                     ServerRepo.get(ServerDetailActivity.this).update(server);
                                                     
                                                     runOnUiThread(() -> {
@@ -4076,49 +4409,6 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (msg.contains("invalid_characters")) return getString(R.string.error_invalid_characters);
         if (msg.contains("length_invalid")) return getString(R.string.error_length_invalid);
         return msg;
-    }
-
-    private void startTunnel() {
-        io.execute(() -> {
-            PlayitManager manager = new PlayitManager(this);
-            Process started = manager.startTunnelNative(server.getId(), "");
-            if (started == null) {
-                runOnUiThread(() -> Toast.makeText(this, getString(R.string.sd_toast_playit_error), Toast.LENGTH_LONG).show());
-                return;
-            }
-            runOnUiThread(() -> tvTunnelStatus.setText(getString(R.string.sd_tunnel_starting)));
-            try {
-                Thread.sleep(3000);
-                String addr = manager.readAssignedAddress(server.getId());
-                runOnUiThread(() -> {
-                    if (addr != null && !addr.isEmpty()) {
-                        server.setPlayitAddress(addr);
-                        repo.update(server);
-                        tvTunnelStatus.setText("Tunnel: " + addr);
-                    } else {
-                        tvTunnelStatus.setText(getString(R.string.sd_tunnel_running_pending));
-                    }
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> tvTunnelStatus.setText("Tunnel error: " + e.getMessage()));
-            }
-            repo.update(server);
-        });
-        
-        // the controls tilt in LiquidGlass, and only there
-        if (eu.kodanetwork.mchost.util.ThemeHelper.isLiquidGlass(this)) {
-            android.view.View[] controlsToTilt = new android.view.View[] {
-                btnStart, btnStop, btnRestart, btnKill, 
-                btnDlJar, btnTermuxSetup, btnStartTunnel, btnLinkDomain
-            };
-            for (android.view.View v : controlsToTilt) {
-                if (v != null) {
-                    TiltEffectHelper helper = new TiltEffectHelper(this, v, true);
-                    tiltHelpers.add(helper);
-                    helper.register(); // make it work right away, not on the next resume
-                }
-            }
-        }
     }
 
     private void handleDomainLink() {
@@ -4261,18 +4551,14 @@ public class ServerDetailActivity extends AppCompatActivity {
                 String oldBaseDomain = server.getBaseDomain();
                 boolean oldDnsDeleted = false;
                 boolean newDnsCreated = false;
-                String target = null;
+                // the VPS proxy is the DNS target, exactly like every other link flow
+                String target = eu.kodanetwork.mchost.security.PraetorSecurity.getBoreHost();
+                try {
+                    target = java.net.InetAddress.getByName(target).getHostAddress();
+                } catch (Exception ignored) { /* plain hostname is fine for the record */ }
                 int port = server.getPort();
-                if (server.getPlayitAddress() != null && !server.getPlayitAddress().isEmpty()) {
-                    String[] parts = server.getPlayitAddress().split(":");
-                    target = parts[0];
-                    if (parts.length > 1) {
-                        try { port = Integer.parseInt(parts[1]); } catch (Exception ignored) {}
-                    }
-                }
                 eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient client =
                         new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(this);
-                final String finalTarget = target;
                 try {
                     // step 1: delete the old DNS entry (old zone)
                     setStep[0].accept(0, ST_ACTIVE);
@@ -4282,12 +4568,10 @@ public class ServerDetailActivity extends AppCompatActivity {
                     oldDnsDeleted = true;
                     setStep[0].accept(0, ST_OK);
 
-                    // step 2: create the new DNS entry (new zone), only if a tunnel exists
+                    // step 2: create the new DNS entry (new zone)
                     setStep[0].accept(1, ST_ACTIVE);
-                    if (target != null) {
-                        client.createDnsLink("", newSubdomain, newBaseDomain, target, port, "tcp");
-                        newDnsCreated = true;
-                    }
+                    client.createDnsLink("", newSubdomain, newBaseDomain, target, port, "tcp");
+                    newDnsCreated = true;
                     setStep[0].accept(1, ST_OK);
 
                     // step 3: sync the database
@@ -4299,11 +4583,7 @@ public class ServerDetailActivity extends AppCompatActivity {
 
                     // all network steps are done, now the local state catches up
                     String domain = newSubdomain + "." + newBaseDomain;
-                    if (target != null) {
-                        server.setDomainLink(domain + " -> " + server.getPlayitAddress());
-                    } else {
-                        server.setDomainLink("");
-                    }
+                    server.setDomainLink(domain);
                     server.setSubdomain(newSubdomain);
                     server.setBaseDomain(newBaseDomain);
                     repo.update(server);
@@ -4312,23 +4592,19 @@ public class ServerDetailActivity extends AppCompatActivity {
 
                     setStep[0].accept(3, ST_OK);
                     runOnUiThread(() -> {
-                        if (finalTarget != null) {
-                            tvDomainStatus.setText("Domain: " + server.getDomainLink());
-                        } else {
-                            tvDomainStatus.setText("Domain: " + domain + " (offline)");
-                        }
+                        tvDomainStatus.setText("Domain: " + server.getDomainLink());
                         updateJoinAddressDisplay();
                         Toast.makeText(this, getString(R.string.sd_toast_subdomain_updated), Toast.LENGTH_SHORT).show();
                     });
                     new android.os.Handler(android.os.Looper.getMainLooper())
                             .postDelayed(dialog::dismiss, 900);
                 } catch (Exception e) {
-                    int failedIdx = !oldDnsDeleted ? 0 : (!newDnsCreated && target != null ? 1 : 2);
+                    int failedIdx = !oldDnsDeleted ? 0 : (!newDnsCreated ? 1 : 2);
                     setStep[0].accept(failedIdx, ST_FAIL);
                     // roll back everything that already went through, in reverse order
                     runOnUiThread(() -> stepTexts[failedIdx].setText(getString(R.string.join_rollback)));
                     try { if (newDnsCreated) client.deleteDnsLink("", newSubdomain, newBaseDomain); } catch (Exception ignored) {}
-                    try { if (oldDnsDeleted && target != null) client.createDnsLink("", oldSubdomain, oldBaseDomain, target, port, "tcp"); } catch (Exception ignored) {}
+                    try { if (oldDnsDeleted) client.createDnsLink("", oldSubdomain, oldBaseDomain, target, port, "tcp"); } catch (Exception ignored) {}
                     String msg = e.getMessage() == null ? "unknown" : e.getMessage();
                     java.util.regex.Matcher m = java.util.regex.Pattern.compile("HTTP (\\d{3})").matcher(msg);
                     int code = m.find() ? Integer.parseInt(m.group(1)) : 0;
@@ -4343,6 +4619,240 @@ public class ServerDetailActivity extends AppCompatActivity {
             });
         });
         dialog.show();
+    }
+
+    // ── guest invite links (share the server with friends) ──────────────
+
+    private static final String INVITE_BASE_URL = "https://host.kodanetwork.eu/invite/";
+
+    /** device authorised rpc call, returns the raw JSON body. */
+    private String postRpc(String fn, org.json.JSONObject params) throws Exception {
+        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(
+                eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl() + "/rest/v1/rpc/" + fn).openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        String key = eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey();
+        conn.setRequestProperty("apikey", key);
+        conn.setRequestProperty("Authorization", "Bearer " + key);
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(params.toString().getBytes());
+        int code = conn.getResponseCode();
+        java.io.InputStream in = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+        StringBuilder sb = new StringBuilder();
+        if (in != null) {
+            byte[] buf = new byte[4096];
+            int len;
+            while ((len = in.read(buf)) > 0) sb.append(new String(buf, 0, len, java.nio.charset.StandardCharsets.UTF_8));
+            in.close();
+        }
+        conn.disconnect();
+        if (code >= 400) throw new Exception(sb.toString());
+        return sb.toString().trim();
+    }
+
+    private org.json.JSONObject inviteParams() throws org.json.JSONException {
+        android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
+        return new org.json.JSONObject()
+                .put("p_app_uuid", prefs.getString("app_uuid", ""))
+                .put("p_device_token", prefs.getString("device_token", ""))
+                .put("p_host", server.getSubdomain());
+    }
+
+    private void loadInvites() {
+        if (layoutInvites == null || server == null) return;
+        new Thread(() -> {
+            org.json.JSONArray arr = new org.json.JSONArray();
+            try {
+                arr = new org.json.JSONArray(postRpc("rpc_list_server_invites", inviteParams()));
+            } catch (Exception ignored) { /* offline: show the empty state */ }
+            final org.json.JSONArray rows = arr;
+            runOnUiThread(() -> renderInvites(rows));
+        }, "KodaInvites").start();
+    }
+
+    /** rows are built here, the card itself lives in the layout. */
+    private void renderInvites(org.json.JSONArray arr) {
+        if (layoutInvites == null) return;
+        layoutInvites.removeAllViews();
+        float d = getResources().getDisplayMetrics().density;
+        if (arr.length() == 0) {
+            android.widget.TextView empty = new android.widget.TextView(this);
+            empty.setText(getString(R.string.share_list_empty));
+            empty.setTextColor(0xFF8A8A9A);
+            empty.setTextSize(12);
+            layoutInvites.addView(empty);
+            return;
+        }
+        for (int i = 0; i < arr.length(); i++) {
+            org.json.JSONObject o = arr.optJSONObject(i);
+            if (o == null) continue;
+            final String token = o.optString("token", "");
+            final String url = INVITE_BASE_URL + token;
+            int uses = o.optInt("uses", 0);
+            int maxUses = o.optInt("max_uses", 0);
+            String expiresAt = o.isNull("expires_at") ? "" : o.optString("expires_at", "");
+            String expiry = expiresAt.length() >= 10
+                    ? getString(R.string.share_expires_in, expiresAt.substring(0, 10))
+                    : getString(R.string.share_expires_never);
+            String usesText = maxUses > 0 ? (uses + "/" + maxUses) : String.valueOf(uses);
+            String meta = getString(R.string.share_row_meta, usesText, expiry);
+            if (o.optBoolean("can_control", false)) {
+                meta = meta + " · " + getString(R.string.share_row_control);
+            }
+
+            android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            android.widget.LinearLayout.LayoutParams rowLp = new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            rowLp.topMargin = (int) (12 * d);
+            row.setLayoutParams(rowLp);
+
+            android.widget.LinearLayout texts = new android.widget.LinearLayout(this);
+            texts.setOrientation(android.widget.LinearLayout.VERTICAL);
+            texts.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                    0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+            android.widget.TextView tvUrl = new android.widget.TextView(this);
+            tvUrl.setText(url);
+            tvUrl.setTextColor(0xFFF0F0F0);
+            tvUrl.setTextSize(12);
+            tvUrl.setTypeface(android.graphics.Typeface.MONOSPACE);
+            tvUrl.setMaxLines(1);
+            tvUrl.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+            android.widget.TextView tvMeta = new android.widget.TextView(this);
+            tvMeta.setText(meta);
+            tvMeta.setTextColor(0xFF8A8A9A);
+            tvMeta.setTextSize(10);
+            texts.addView(tvUrl);
+            texts.addView(tvMeta);
+            row.addView(texts);
+
+            android.widget.TextView btnRevoke = new android.widget.TextView(this);
+            btnRevoke.setText("✕");
+            btnRevoke.setTextColor(0xFFFF6666);
+            btnRevoke.setTextSize(16);
+            btnRevoke.setPadding((int) (12 * d), (int) (6 * d), (int) (4 * d), (int) (6 * d));
+            btnRevoke.setContentDescription(getString(R.string.share_revoke));
+            row.addView(btnRevoke);
+
+            texts.setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
+                copyToClipboard(getString(R.string.share_copied_label), url);
+            });
+            btnRevoke.setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+                new Thread(() -> {
+                    try {
+                        postRpc("rpc_revoke_server_invite", inviteParams().put("p_token", token));
+                        runOnUiThread(() -> {
+                            android.widget.Toast.makeText(this, getString(R.string.share_revoked),
+                                    android.widget.Toast.LENGTH_SHORT).show();
+                            loadInvites();
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> android.widget.Toast.makeText(this, getString(R.string.share_create_failed),
+                                android.widget.Toast.LENGTH_LONG).show());
+                    }
+                }, "KodaInviteRevoke").start();
+            });
+
+            layoutInvites.addView(row);
+        }
+    }
+
+    private void showCreateInviteSheet() {
+        float d = getResources().getDisplayMetrics().density;
+        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+
+        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
+        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
+        root.setOrientation(android.widget.LinearLayout.VERTICAL);
+        root.setBackgroundColor(0xFF1D1714);
+        int pad = (int) (20 * d);
+        root.setPadding(pad, pad, pad, pad);
+        scroller.addView(root);
+
+        android.widget.TextView title = new android.widget.TextView(this);
+        title.setText(getString(R.string.share_sheet_title));
+        title.setTextColor(0xFFF0F0F0);
+        title.setTextSize(18);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        root.addView(title);
+
+        final int[] hours = {168};
+        android.widget.TextView validityLabel = new android.widget.TextView(this);
+        validityLabel.setText(getString(R.string.share_validity_label));
+        validityLabel.setTextColor(0xFF8A8A9A);
+        validityLabel.setTextSize(11);
+        validityLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
+        root.addView(validityLabel);
+        android.widget.FrameLayout validityPill = makePillSwitch(
+                new String[]{getString(R.string.share_hours_24), getString(R.string.share_days_7),
+                        getString(R.string.share_days_30), getString(R.string.share_unlimited)},
+                1, sel -> hours[0] = new int[]{24, 168, 720, 0}[sel]);
+        root.addView(validityPill);
+
+        final int[] maxUses = {0};
+        android.widget.TextView usesLabel = new android.widget.TextView(this);
+        usesLabel.setText(getString(R.string.share_uses_label));
+        usesLabel.setTextColor(0xFF8A8A9A);
+        usesLabel.setTextSize(11);
+        usesLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
+        root.addView(usesLabel);
+        android.widget.FrameLayout usesPill = makePillSwitch(
+                new String[]{getString(R.string.share_unlimited), getString(R.string.share_once)},
+                0, sel -> maxUses[0] = sel == 0 ? 0 : 1);
+        root.addView(usesPill);
+
+        final boolean[] withControl = {false};
+        android.widget.TextView permLabel = new android.widget.TextView(this);
+        permLabel.setText(getString(R.string.share_perm_label));
+        permLabel.setTextColor(0xFF8A8A9A);
+        permLabel.setTextSize(11);
+        permLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
+        root.addView(permLabel);
+        android.widget.FrameLayout permPill = makePillSwitch(
+                new String[]{getString(R.string.share_perm_join), getString(R.string.share_perm_control)},
+                0, sel -> withControl[0] = sel == 1);
+        root.addView(permPill);
+
+        final com.google.android.material.button.MaterialButton create =
+                eu.kodanetwork.mchost.util.KodaButtons.primary(this, getString(R.string.share_create_button));
+        android.widget.LinearLayout.LayoutParams createLp = new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (48 * d));
+        createLp.topMargin = (int) (22 * d);
+        root.addView(create, createLp);
+
+        create.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 50);
+            create.setEnabled(false);
+            new Thread(() -> {
+                try {
+                    String raw = postRpc("rpc_create_server_invite", inviteParams()
+                            .put("p_hours", hours[0]).put("p_max_uses", maxUses[0])
+                            .put("p_can_control", withControl[0]));
+                    String token = raw.replace("\"", "").trim();
+                    final String url = INVITE_BASE_URL + token;
+                    runOnUiThread(() -> {
+                        copyToClipboard(getString(R.string.share_copied_label), url);
+                        sheet.dismiss();
+                        loadInvites();
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        create.setEnabled(true);
+                        android.widget.Toast.makeText(this, getString(R.string.share_create_failed),
+                                android.widget.Toast.LENGTH_LONG).show();
+                    });
+                }
+            }, "KodaInviteCreate").start();
+        });
+
+        sheet.setContentView(scroller);
+        sheet.show();
     }
 
     /** patches host (+ base_domain) of the koda_servers row so the DB matches the app. */
@@ -6550,6 +7060,84 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
+    private boolean domainSwitchOffered = false;
+
+    /**
+     * when the server's own domain is switched off, offer a temporary move to the
+     * other domain. the service moves it back automatically once the domain returns
+     * (see checkRemoteCommands), so this is only the first half of the round trip.
+     */
+    private void maybeOfferDomainSwitch() {
+        if (domainSwitchOffered) return;
+        final String ownDomain = server.getBaseDomain();
+        if (ownDomain == null || ownDomain.isEmpty()) return;
+        if (server.domainSwitchedFrom != null) return; // already on a temporary domain
+        domainSwitchOffered = true;
+        new Thread(() -> {
+            String mode = eu.kodanetwork.mchost.util.DomainStates.modeOf(this, ownDomain);
+            if (!eu.kodanetwork.mchost.util.DomainStates.isOff(mode)) return;
+            final String fallback = eu.kodanetwork.mchost.util.DomainStates.fallbackDomain(this, ownDomain);
+            if (fallback == null) return;
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                        .setTitle(R.string.domain_off_title)
+                        .setMessage(getString(R.string.domain_off_body, ownDomain, fallback))
+                        .setPositiveButton(R.string.domain_off_move, (d, w) -> switchDomainNow(fallback, ownDomain))
+                        .setNegativeButton(R.string.domain_off_later, null)
+                        .show();
+            });
+        }, "KodaDomainOffer").start();
+    }
+
+    private void switchDomainNow(final String toDomain, final String fromDomain) {
+        android.widget.Toast.makeText(this, getString(R.string.domain_switch_running, toDomain),
+                android.widget.Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(this)
+                        .switchDomain(server.getSubdomain(), toDomain,
+                                eu.kodanetwork.mchost.security.PraetorSecurity.getBoreHost(),
+                                server.getPort(), server.getVoicechatPort());
+                server.setBaseDomain(toDomain);
+                server.domainSwitchedFrom = fromDomain;
+                ServerRepo.get(this).update(server);
+                runOnUiThread(() -> {
+                    android.widget.Toast.makeText(this,
+                            getString(R.string.domain_switch_done, server.getSubdomain() + "." + toDomain),
+                            android.widget.Toast.LENGTH_LONG).show();
+                    updateJoinAddressDisplay();
+                    updateDash();
+                });
+            } catch (final Exception e) {
+                runOnUiThread(() -> android.widget.Toast.makeText(this,
+                        getString(R.string.domain_switch_failed, String.valueOf(e.getMessage())),
+                        android.widget.Toast.LENGTH_LONG).show());
+            }
+        }, "KodaDomainSwitch").start();
+    }
+
+    /** true while the ban overlay owns this screen. */
+    private boolean bannedOverlayShown = false;
+
+    /** banned state for the UI: live model first, offline cache as fallback. */
+    private boolean isServerBannedCached() {
+        if (server == null) return false;
+        if (server.banned) return true;
+        return eu.kodanetwork.mchost.App.getPrefs(this)
+                .getBoolean("banned_server_" + server.getId(), false);
+    }
+
+    private String banReasonForUi() {
+        if (server != null && server.banReason != null && !server.banReason.trim().isEmpty()) {
+            return server.banReason;
+        }
+        String cached = server == null ? null : eu.kodanetwork.mchost.App.getPrefs(this)
+                .getString("banned_reason_" + server.getId(), null);
+        if (cached != null && !cached.trim().isEmpty()) return cached;
+        return getString(R.string.server_banned_generic);
+    }
+
     private void checkServerBanStatus() {
         android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
         String sessionToken = prefs.getString("koda_session_token", null);
@@ -6577,6 +7165,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                         runOnUiThread(() -> showBannedOverlay(banReason));
                     } else {
                         prefs.edit().remove(cacheKey).remove(reasonKey).apply();
+                        runOnUiThread(this::hideBannedOverlay);
                     }
                 }
             } catch (Exception ignored) {}
@@ -6587,6 +7176,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         View layoutBanned = findViewById(R.id.layout_server_banned);
         TextView tvBannedReason = findViewById(R.id.tv_banned_reason);
         if (layoutBanned != null && tvBannedReason != null) {
+            bannedOverlayShown = true;
             tvBannedReason.setText(reason);
             layoutBanned.setVisibility(View.VISIBLE);
             
@@ -6605,7 +7195,56 @@ public class ServerDetailActivity extends AppCompatActivity {
             if (panelSettings != null) panelSettings.setVisibility(View.GONE);
             View restartHeader = findViewById(R.id.layout_header_restart);
             if (restartHeader != null) restartHeader.setVisibility(View.GONE);
+
+            // no way back into the controls from here
+            View cardControls = findViewById(R.id.card_controls);
+            if (cardControls != null) cardControls.setVisibility(View.GONE);
+            View btnWakeUpDash = findViewById(R.id.btn_wake_up_dash);
+            if (btnWakeUpDash != null) btnWakeUpDash.setVisibility(View.GONE);
+            View btnChangeDns = findViewById(R.id.btn_change_dns_hibernated);
+            if (btnChangeDns != null) btnChangeDns.setVisibility(View.GONE);
+
+            // the name is a label on this screen, not a door to the rename dialog
+            TextView tvTitle = findViewById(R.id.tv_title);
+            if (tvTitle != null) {
+                tvTitle.setOnClickListener(null);
+                tvTitle.setClickable(false);
+                tvTitle.setFocusable(false);
+                tvTitle.setBackground(null);
+            }
+
+            // the header status reads BANNED in red, same as the list card
+            if (tvBadge != null) {
+                tvBadge.setText(getString(R.string.status_banned));
+                tvBadge.setTextColor(0xFFFF3333);
+            }
+            if (dot != null) dot.setBackgroundResource(R.drawable.dot_err);
         }
+    }
+
+    /** the ban is gone: give the normal screen its controls back. */
+    private void hideBannedOverlay() {
+        bannedOverlayShown = false;
+        View layoutBanned = findViewById(R.id.layout_server_banned);
+        if (layoutBanned == null || layoutBanned.getVisibility() != View.VISIBLE) return;
+        layoutBanned.setVisibility(View.GONE);
+
+        TextView tvTitle = findViewById(R.id.tv_title);
+        if (tvTitle != null) {
+            tvTitle.setClickable(true);
+            tvTitle.setFocusable(true);
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+            tvTitle.setBackgroundResource(outValue.resourceId);
+            tvTitle.setOnClickListener(v -> showNameEditDialog());
+        }
+        View cardControls = findViewById(R.id.card_controls);
+        if (cardControls != null) cardControls.setVisibility(View.VISIBLE);
+        View btnChangeName = findViewById(R.id.btn_change_name);
+        if (btnChangeName != null) btnChangeName.setOnClickListener(v -> showNameEditDialog());
+        // bring the panel of the active tab back
+        if (tabs != null && tabs.getSelectedTabPosition() >= 0) showTab(tabs.getSelectedTabPosition());
+        else showTab(0);
     }
     
     private void exportZip() {
@@ -6675,6 +7314,10 @@ public class ServerDetailActivity extends AppCompatActivity {
                 if (tvUptime != null) tvUptime.setText(server.getFormattedUptime());
                 // second safety net, a late callback must not bring the chrome back
                 if (consoleFullscreen) hideConsoleChrome(false);
+                // the service clears a stale "switched" mark while we sit here
+                // (domain bookkeeping sync) - offer the move once it is gone,
+                // otherwise that offer only came with the next state change
+                maybeOfferDomainSwitch();
                 h.postDelayed(this, 1000);
             }
         };
@@ -6887,6 +7530,7 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showNameEditDialog() {
+        if (isServerBannedCached()) return; // banned servers have a frozen name
         if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(this)) return;
         android.app.Dialog dialog = new android.app.Dialog(this);
         dialog.setContentView(R.layout.dialog_praetor_input);
@@ -7086,6 +7730,12 @@ public class ServerDetailActivity extends AppCompatActivity {
         TextView tvStatus = findViewById(R.id.tv_status);
         View dotStatus = findViewById(R.id.dot_status);
         if (tvStatus == null && dotStatus == null) return;
+
+        // the ban beats every other state here as well
+        if (server != null && isServerBannedCached()) {
+            label = getString(R.string.status_banned);
+            col = 0xFFFF3333;
+        }
 
         if (label == null) {
             switch (st) {

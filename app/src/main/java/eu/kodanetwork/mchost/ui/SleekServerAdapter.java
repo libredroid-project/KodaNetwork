@@ -76,11 +76,15 @@ public class SleekServerAdapter extends RecyclerView.Adapter<SleekServerAdapter.
 
         // dot color, one per server state
         int dotColor;
-        switch (s.state) {
-            case ONLINE: dotColor = 0xFF69781D; break;
-            case STARTING: case RESTARTING: dotColor = 0xFFF5A623; break;
-            case CRASHED: dotColor = 0xFFE8442E; break;
-            default: dotColor = 0xFF5C5852; break;
+        if (s.banned) {
+            dotColor = 0xFFE8442E;
+        } else {
+            switch (s.state) {
+                case ONLINE: dotColor = 0xFF69781D; break;
+                case STARTING: case RESTARTING: dotColor = 0xFFF5A623; break;
+                case CRASHED: dotColor = 0xFFE8442E; break;
+                default: dotColor = 0xFF5C5852; break;
+            }
         }
         holder.dotStatus.setBackgroundTintList(
                 android.content.res.ColorStateList.valueOf(dotColor));

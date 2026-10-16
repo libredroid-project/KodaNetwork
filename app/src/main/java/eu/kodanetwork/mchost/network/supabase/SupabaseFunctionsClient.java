@@ -85,24 +85,23 @@ public class SupabaseFunctionsClient {
         );
     }
 
-    public PlayitBootstrapResponse bootstrapPlayit(String userJwt, String serverId, int port) throws IOException {
+    /** one short lived signed upload slot for a support chat photo. the bucket no
+     *  longer accepts anonymous inserts, this device checked call is the way in. */
+    public SupportUploadSlot requestSupportUploadSlot() throws IOException {
         Map<String, Object> body = new HashMap<>();
-        body.put("serverId", serverId);
-        body.put("port", port);
-        // the playit agent token is infrastructure, so the function only answers
-        // a verified device now
+        body.put("content_type", "image/jpeg");
         body.putAll(deviceAuth);
         Response<Map<String, Object>> response = api.callFunction(
-            "bootstrap-playit",
+            "support-upload",
             anonKey,
-            withBearer(userJwt),
+            withBearer(anonKey),
             body
         ).execute();
         if (!response.isSuccessful() || response.body() == null) {
-            throw new IOException("bootstrap-playit failed: HTTP " + response.code());
+            throw new IOException(extractErrorMsg(response, "support-upload failed: HTTP " + response.code()));
         }
         Map<String, Object> map = response.body();
-        return new PlayitBootstrapResponse(str(map.get("token")), str(map.get("mode")));
+        return new SupportUploadSlot(str(map.get("upload_url")), str(map.get("public_url")));
     }
 
     public void createDnsLink(String userJwt, String host, String baseDomain, String target, int port, String type) throws IOException {
@@ -126,6 +125,45 @@ public class SupabaseFunctionsClient {
         ).execute();
         if (!response.isSuccessful()) {
             throw new IOException(extractErrorMsg(response, "create-dns-link failed: HTTP " + response.code()));
+        }
+    }
+
+    /** moves a server to another domain while its own domain is switched off. */
+    public void switchDomain(String host, String toDomain, String target, int port, int voicechatPort) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("host", host);
+        body.put("to_domain", toDomain);
+        body.put("target", target);
+        // the device owns these ports, and koda_ports does not know every host
+        // (transfers/reinstalls), so hand both over with the request
+        if (port > 0) body.put("port", port);
+        if (voicechatPort > 0) body.put("voicechat_port", voicechatPort);
+        body.putAll(deviceAuth);
+        Response<Map<String, Object>> response = api.callFunction(
+            "switch-domain",
+            anonKey,
+            withBearer(anonKey),
+            body
+        ).execute();
+        if (!response.isSuccessful()) {
+            throw new IOException(extractErrorMsg(response, "switch-domain failed: HTTP " + response.code()));
+        }
+    }
+
+    /** moves a temporarily switched server back to its original domain. */
+    public void restoreDomain(String host) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("host", host);
+        body.put("restore", true);
+        body.putAll(deviceAuth);
+        Response<Map<String, Object>> response = api.callFunction(
+            "switch-domain",
+            anonKey,
+            withBearer(anonKey),
+            body
+        ).execute();
+        if (!response.isSuccessful()) {
+            throw new IOException(extractErrorMsg(response, "switch-domain restore failed: HTTP " + response.code()));
         }
     }
 
@@ -240,12 +278,13 @@ public class SupabaseFunctionsClient {
         }
     }
 
-    public static class PlayitBootstrapResponse {
-        public final String token;
-        public final String mode;
-        public PlayitBootstrapResponse(String token, String mode) {
-            this.token = token;
-            this.mode = mode;
+    public static class SupportUploadSlot {
+        public final String uploadUrl;
+        public final String publicUrl;
+        public SupportUploadSlot(String uploadUrl, String publicUrl) {
+            this.uploadUrl = uploadUrl;
+            this.publicUrl = publicUrl;
         }
     }
+
 }

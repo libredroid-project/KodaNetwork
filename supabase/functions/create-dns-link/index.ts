@@ -55,6 +55,14 @@ Deno.serve(async (req) => {
     if (!zone) throw new Error(`Zone ${domain} not found`);
     const zoneId = zone.id;
 
+    // a domain the admins paused (no_new/off) must not receive NEW servers
+    try {
+      const { data: setting } = await supabaseAdmin
+        .from("app_settings").select("value").eq("key", "domain_states").maybeSingle();
+      const mode = ((setting as any)?.value ?? {})[domain] ?? "active";
+      if (mode !== "active") return jsonError("domain_not_accepting_new_servers", 409);
+    } catch (_e) { /* setting unreadable, stay permissive */ }
+
     const service = String(body.service ?? "_minecraft").toLowerCase();
     const type = String(body.type ?? "tcp").toLowerCase();
     const fqdn = `${host}.${domain}`;
@@ -131,6 +139,18 @@ Deno.serve(async (req) => {
       } catch (e) { /* ignore */ }
       throw new Error("SRV creation failed: " + await createSrvRes.text());
     }
+
+    // 4. remember the (host, port) pair. delete-dns-link frees the rows on every
+    // relink and the transfer receiver picks its port locally, so hosts regularly
+    // end up with a live SRV but no koda_ports row - and features that read the
+    // table (the domain switch) then failed with no_java_port. the link above is
+    // what matters, this is bookkeeping only.
+    try {
+      const { error: portErr } = await supabaseAdmin.from("koda_ports").insert({ port, host });
+      if (portErr && portErr.code !== "23505") {
+        console.warn("port registration failed: " + portErr.message);
+      }
+    } catch (_e) { /* never fail the link because of the bookkeeping */ }
 
     return new Response(JSON.stringify({ ok: true, host, vps: target, port }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

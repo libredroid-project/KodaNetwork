@@ -900,7 +900,7 @@
                         </LinearLayout>
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
                             <TextView android:layout_width="50dp" android:layout_height="wrap_content" android:text="Value:" android:textColor="#FFFFFF" android:textSize="11sp" android:fontFamily="monospace"/>
-                            <TextView android:id="@+id/tv_dns_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 5 12345 xyz.playit.gg" android:textColor="#FFFFFF" android:textSize="11sp" android:fontFamily="@font/font_koda_mono" android:textIsSelectable="true"/>
+                            <TextView android:id="@+id/tv_dns_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 5 12345 server.example.com" android:textColor="#FFFFFF" android:textSize="11sp" android:fontFamily="@font/font_koda_mono" android:textIsSelectable="true"/>
                         </LinearLayout>
 
                         <com.google.android.material.button.MaterialButton
@@ -1284,18 +1284,12 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:visibility="gone">
                 <TextView android:id="@+id/tv_termux_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="monospace"/>
-                <TextView android:id="@+id/tv_tunnel_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="monospace"/>
                 <TextView android:id="@+id/tv_domain_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="monospace"/>
                 <com.google.android.material.button.MaterialButton
         android:background="@drawable/bg_mc_button_dark"
         app:backgroundTint="@null"
         
          android:id="@+id/btn_termux_setup" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="monospace"/>
-                <com.google.android.material.button.MaterialButton
-        android:background="@drawable/bg_mc_button_dark"
-        app:backgroundTint="@null"
-        
-         android:id="@+id/btn_start_tunnel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="monospace"/>
             </LinearLayout>
 
         </LinearLayout>

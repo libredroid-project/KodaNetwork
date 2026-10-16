@@ -70,24 +70,6 @@ public final class TermuxScriptInstaller {
         return writeScript(context, "start_minecraft_server.sh", script);
     }
 
-    public static File ensurePlayitStartScript(Context context) throws IOException {
-        String script = "#!/data/data/com.termux/files/usr/bin/bash\n"
-            + "set -e\n"
-            + "OUT_FILE=\"$1\"\n"
-            + "PLAYIT_TOKEN=\"$2\"\n"
-            + "pkg install -y curl\n"
-            + "if [ ! -x \"$HOME/playit\" ]; then\n"
-            + "  curl -fsSL https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-linux-aarch64 -o \"$HOME/playit\"\n"
-            + "  chmod +x \"$HOME/playit\"\n"
-            + "fi\n"
-            + "if [ -n \"$PLAYIT_TOKEN\" ]; then\n"
-            + "  mkdir -p \"$HOME/.config/playit_gg\"\n"
-            + "  printf '%s' \"$PLAYIT_TOKEN\" > \"$HOME/.config/playit_gg/token\"\n"
-            + "fi\n"
-            + "\"$HOME/playit\" > \"$OUT_FILE\" 2>&1\n";
-        return writeScript(context, "start_playit.sh", script);
-    }
-
     public static File ensureJavaFromSupabaseScript(Context context) throws IOException {
         String script = "#!/data/data/com.termux/files/usr/bin/bash\n"
             + "set -e\n"

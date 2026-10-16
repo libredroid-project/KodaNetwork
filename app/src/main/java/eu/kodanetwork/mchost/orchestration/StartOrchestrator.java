@@ -37,14 +37,12 @@ public class StartOrchestrator {
         JAVA_INSTALL,
         SERVER_START,
         INJECTING,
-        TUNNEL_START,
         DNS_LINK,
         READY
     }
 
     public interface Callback {
         void onStep(Step step, String message);
-        void onCompleted(String playitAddress, String domainLink);
         void onError(Step step, String message);
         void requestServerStartIntent();
     }

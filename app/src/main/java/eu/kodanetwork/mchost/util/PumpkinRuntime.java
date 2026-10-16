@@ -79,12 +79,24 @@ public class PumpkinRuntime {
             // the compressed supabase mirror wins when the user uploaded one, else
             // the official nightly raw ELF comes straight from github.
             if (resolveUrl(SUPABASE_URL) != null) {
+                // the optional mirror is user-managed; the ELF magic check below is all we can do there
                 File tmp = new File(target.getParentFile(), "pumpkin-android-arm64.tar.xz");
                 download(SUPABASE_URL, tmp, progress);
                 extractTarXz(tmp, target.getParentFile());
                 tmp.delete();
             } else {
+                // github publishes a sha256 digest for every release asset; use it
+                String expected = githubAssetSha256();
                 download(GITHUB_NIGHTLY, target, progress);
+                if (!expected.isEmpty()) {
+                    String actual = eu.kodanetwork.mchost.util.DownloadVerifier.hashHex(target, "SHA-256");
+                    if (!eu.kodanetwork.mchost.util.DownloadVerifier.matches(expected, actual)) {
+                        //noinspection ResultOfMethodCallIgnored
+                        target.delete();
+                        android.util.Log.e("PumpkinRuntime", "nightly checksum mismatch, download discarded");
+                        return false;
+                    }
+                }
             }
 
             if (!isElf(target)) {
@@ -108,6 +120,38 @@ public class PumpkinRuntime {
             return fis.read() == 0x7F && fis.read() == 'E' && fis.read() == 'L' && fis.read() == 'F';
         } catch (IOException e) {
             return false;
+        }
+    }
+
+    /** sha256 the github nightly release publishes for the android asset, "" when unavailable. */
+    private static String githubAssetSha256() {
+        try {
+            HttpURLConnection c = (HttpURLConnection) new URL(
+                    "https://api.github.com/repos/Pumpkin-MC/Pumpkin/releases/tags/nightly").openConnection();
+            c.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+            c.setRequestProperty("Accept", "application/vnd.github+json");
+            c.setConnectTimeout(10000);
+            c.setReadTimeout(15000);
+            if (c.getResponseCode() != 200) return "";
+            String body;
+            try (InputStream is = c.getInputStream()) {
+                body = new java.util.Scanner(is).useDelimiter("\\A").next();
+            } finally {
+                c.disconnect();
+            }
+            org.json.JSONArray assets = new org.json.JSONObject(body).optJSONArray("assets");
+            if (assets == null) return "";
+            for (int i = 0; i < assets.length(); i++) {
+                org.json.JSONObject asset = assets.getJSONObject(i);
+                if ("pumpkin-aarch64-android".equals(asset.optString("name"))) {
+                    String digest = asset.optString("digest", ""); // "sha256:..."
+                    if (digest.startsWith("sha256:")) return digest.substring(7);
+                }
+            }
+            return "";
+        } catch (Exception e) {
+            android.util.Log.w("PumpkinRuntime", "no github digest available: " + e.getMessage());
+            return "";
         }
     }
 

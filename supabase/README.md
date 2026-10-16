@@ -32,7 +32,6 @@ Set in Supabase project secrets:
 - `JDK_STORAGE_BUCKET=artifacts`
 - `OPENJDK17_SHA256_AARCH64=<sha256>`
 - `OPENJDK17_SHA256_ARMV7=<sha256_optional>`
-- `PLAYIT_AGENT_TOKEN=<token>`
 - `IONOS_API_PREFIX=<prefix>`
 - `IONOS_API_SECRET=<secret>`
 - `IONOS_ZONE_ID=<zone id for kodanetwork.eu>`
@@ -41,6 +40,22 @@ Set in Supabase project secrets:
 
 ```bash
 supabase functions deploy provision-java
-supabase functions deploy bootstrap-playit
 supabase functions deploy create-dns-link
+supabase functions deploy api --use-api
 ```
+
+## The api function (api.kodanetwork.eu)
+
+`functions/api/index.ts` is the public API behind `api.kodanetwork.eu`: the
+extension store (`/v1/extensions`), status and releases (`/v1/status`,
+`/v1/releases`), the account routes (`/v1/me...`) and the app/submission side of
+the store (`POST /v1/extensions`, `/versions`, `/finalize`, `/withdraw`,
+`POST /v1/assets`). Deployed with `verify_jwt = false` (see `config.toml`) -
+the public routes carry no token, the `/v1/me` routes verify the Supabase JWT
+themselves, and `/v1/admin/dns-bootstrap` accepts only a token this project's
+auth admin endpoint accepts as service role.
+
+Schema and buckets: `extensions_store.sql` (tables `extensions`,
+`extension_versions`, `account_profiles`, buckets `extension_packages` private,
+`extension_assets` and `avatars` public read). The DNS record, nginx vhost and
+certificate for the host live in `vps-https/` (`setup-api-https.sh`).

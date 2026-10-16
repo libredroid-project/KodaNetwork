@@ -289,6 +289,17 @@ GPL-compatible.
 
 ## Publishing in the store
 
-The in-app store ("Entdecken") is the next phase: it will list reviewed
-extensions with their license and source link. Until then, share your
-`.kodaext` file directly; sideloading is fully supported.
+The store is live: submit on the website under `host.kodanetwork.eu/store`
+(sign in with your KodaHosting account), the app lists it under Discover and
+installs from there. The submission form takes the `.kodaext` package plus name,
+version, license and a source link, and the server verifies the package on
+upload - it hashes the file and reads the manifest back, refusing anything whose
+id, version code, license or permissions do not match. Nothing reaches the store
+before the review approves it.
+
+A submission is `PENDING`, `APPROVED`, `REJECTED` (with a reason), `DELISTED`
+(taken down after the fact) or `WITHDRAWN` (ended by you). Your dashboard lists
+the state and reason. New versions of a published extension go through review
+too; until the new one is approved the store keeps serving the old one. Only a
+package from `api.kodanetwork.eu` is served, and only through a signed link that
+expires after a minute - sideloading remains fully supported beside it.

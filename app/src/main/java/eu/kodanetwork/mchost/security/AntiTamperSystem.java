@@ -46,10 +46,54 @@ public class AntiTamperSystem {
     };
 
     public static void executePermanentBanNative(String reason) {
-        if (appContext != null) {
-            eu.kodanetwork.mchost.util.AppLogger.log(TAG, "Native Inotify Triggered: " + reason);
-            executePermanentBan(appContext, reason);
+        if (appContext == null) return;
+        eu.kodanetwork.mchost.util.AppLogger.log(TAG, "Native trigger: " + reason);
+
+        // the native watcher is blunt: it bans on ANY open of its targets. two things
+        // look exactly like tampering from out there and are not:
+        //   - a server JVM process (:jvm1-3) opening the app's own native library
+        //   - debuggerd attaching for a tombstone after a native crash (TracerPid)
+        // so nothing gets banned without root or a tracer that is really still there.
+        if ("DEBUGGER_ATTACHED".equals(reason)) {
+            new Thread(() -> {
+                try { Thread.sleep(4000); } catch (InterruptedException ignored) {}
+                int tracer = tracerPid();
+                if (tracer != 0) {
+                    eu.kodanetwork.mchost.util.AppLogger.log(TAG, "Tracer still attached after 4s: real debugger");
+                    executePermanentBan(appContext, reason);
+                } else {
+                    eu.kodanetwork.mchost.util.AppLogger.log(TAG, "Tracer gone after 4s (crash tombstone, not a debugger) - ignored");
+                }
+            }, "KodaTracerRecheck").start();
+            return;
         }
+
+        boolean rooted;
+        try {
+            rooted = new RootBeer(appContext).isRooted();
+        } catch (Throwable t) {
+            rooted = false;
+        }
+        if (!rooted && tracerPid() == 0) {
+            flagUserAsHighRisk(appContext, "ignored_" + reason);
+            eu.kodanetwork.mchost.util.AppLogger.log(TAG, "Ignored " + reason + " (no root, no tracer)");
+            return;
+        }
+        executePermanentBan(appContext, reason);
+    }
+
+    /** the TracerPid from /proc/self/status; 0 when nothing is attached. */
+    private static int tracerPid() {
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/status"))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                if (line.startsWith("TracerPid:")) {
+                    String v = line.substring(10).trim();
+                    return v.isEmpty() ? 0 : Integer.parseInt(v);
+                }
+            }
+        } catch (Exception ignored) { }
+        return 0;
     }
 
     /**
@@ -94,12 +138,12 @@ public class AntiTamperSystem {
                 fos.close();
             }
             filesToWatch.add(honeypot3.getAbsolutePath());
-            
-            // watch the C++ library too, otherwise someone pulls it over adb and reverses it
-            java.io.File nativeLib = new java.io.File(context.getApplicationInfo().nativeLibraryDir, "libembeddedjvm.so");
-            if (nativeLib.exists()) {
-                filesToWatch.add(nativeLib.getAbsolutePath());
-            }
+
+            // NOTE: libembeddedjvm.so is deliberately NOT watched any more. every
+            // server start spawns a :jvm1-3 process which loads that library, and the
+            // inotify watcher cannot tell that apart from someone pulling the file -
+            // it banned two testers exactly this way (file reads are gated by root and
+            // tracer now, but the library stays out of the list for good).
 
             // hand all of them to the native inotify watcher
             String[] watchArray = filesToWatch.toArray(new String[0]);
@@ -178,7 +222,9 @@ public class AntiTamperSystem {
                     
                     if ("scary".equals(banType)) {
                         eu.kodanetwork.mchost.App.getPrefs(context).edit()
-                            .putBoolean("PERM_BANNED_SCARY", true).apply();
+                            .putBoolean("PERM_BANNED_SCARY", true)
+                            .putInt("PERM_BANNED_AT_VERSION", eu.kodanetwork.mchost.BuildConfig.VERSION_CODE)
+                            .apply();
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                             android.content.Intent intent = new android.content.Intent(context, eu.kodanetwork.mchost.ui.ScaryBannedActivity.class);
                             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -186,7 +232,9 @@ public class AntiTamperSystem {
                         });
                     } else {
                         eu.kodanetwork.mchost.App.getPrefs(context).edit()
-                            .putBoolean("PERM_BANNED_HWID", true).apply();
+                            .putBoolean("PERM_BANNED_HWID", true)
+                            .putInt("PERM_BANNED_AT_VERSION", eu.kodanetwork.mchost.BuildConfig.VERSION_CODE)
+                            .apply();
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                             android.content.Intent intent = new android.content.Intent(context, eu.kodanetwork.mchost.ui.BannedActivity.class);
                             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -332,10 +380,12 @@ public class AntiTamperSystem {
         // flag it in both pref stores, the encrypted one can be unreadable by then
         context.getSharedPreferences("koda_settings_enc_fallback", Context.MODE_PRIVATE).edit()
             .putBoolean("PERM_BANNED_HWID", true)
+            .putInt("PERM_BANNED_AT_VERSION", eu.kodanetwork.mchost.BuildConfig.VERSION_CODE)
             .putString("BANNED_REASON", "Your device has been permanently banned from the KodaHosting network because Emulators are not supported.")
             .apply();
         eu.kodanetwork.mchost.App.getPrefs(context).edit()
             .putBoolean("PERM_BANNED_HWID", true)
+            .putInt("PERM_BANNED_AT_VERSION", eu.kodanetwork.mchost.BuildConfig.VERSION_CODE)
             .putString("BANNED_REASON", "Your device has been permanently banned from the KodaHosting network because Emulators are not supported.")
             .apply();
 
@@ -375,9 +425,30 @@ public class AntiTamperSystem {
      * also wipes all local app data so only the ban screen is left.
      */
     public static void executePermanentBan(Context context, String severityReason) {
+        // the same proof rule as the native path: without root or a tracer this is far
+        // more likely one of our own processes or a crash artifact than an attacker,
+        // and the ban wipes the whole app - so it needs more than a hunch
+        boolean rooted;
+        try {
+            rooted = new RootBeer(context).isRooted();
+        } catch (Throwable t) {
+            rooted = false;
+        }
+        if (!rooted && tracerPid() == 0 && !severityReason.startsWith("DEBUGGER_ATTACHED")) {
+            eu.kodanetwork.mchost.util.AppLogger.log(TAG, "Ban skipped (no root, no tracer): " + severityReason);
+            flagUserAsHighRisk(context, "ban_skipped_" + severityReason);
+            return;
+        }
+
         // scary ban flag, written through the fallback prefs in case crypto is tampered
-        context.getSharedPreferences("koda_settings_enc_fallback", Context.MODE_PRIVATE).edit().putBoolean("PERM_BANNED_SCARY", true).apply();
-        eu.kodanetwork.mchost.App.getPrefs(context).edit().putBoolean("PERM_BANNED_SCARY", true).apply();
+        context.getSharedPreferences("koda_settings_enc_fallback", Context.MODE_PRIVATE).edit()
+            .putBoolean("PERM_BANNED_SCARY", true)
+            .putInt("PERM_BANNED_AT_VERSION", eu.kodanetwork.mchost.BuildConfig.VERSION_CODE)
+            .apply();
+        eu.kodanetwork.mchost.App.getPrefs(context).edit()
+            .putBoolean("PERM_BANNED_SCARY", true)
+            .putInt("PERM_BANNED_AT_VERSION", eu.kodanetwork.mchost.BuildConfig.VERSION_CODE)
+            .apply();
 
         new Thread(() -> {
             flagUserAsHighRisk(context, "PERMANENT_BAN_" + severityReason);
@@ -501,5 +572,82 @@ public class AntiTamperSystem {
             || android.os.Build.HARDWARE.contains("vbox86")
             || android.os.Build.HARDWARE.contains("ranchu")
             || android.os.Build.HARDWARE.contains("goldfish"));
+    }
+
+    /** the hwid ban type the server knows: "none", "normal", "scary", null on error. */
+    private static String fetchBanType(Context context) {
+        try {
+            String hwid = HWIDManager.getDeviceHWID(context);
+            URL url = new URL(PraetorSecurity.getSupabaseUrl() + "/rest/v1/rpc/get_hwid_ban_type");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("apikey", PraetorSecurity.getSupabaseKey());
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            conn.setDoOutput(true);
+
+            JSONObject payload = new JSONObject();
+            payload.put("check_hwid", hwid);
+
+            OutputStream os = conn.getOutputStream();
+            os.write(payload.toString().getBytes("UTF-8"));
+            os.flush();
+            os.close();
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                java.io.InputStream is = conn.getInputStream();
+                java.util.Scanner scanner = new java.util.Scanner(is).useDelimiter("\\A");
+                String response = scanner.hasNext() ? scanner.next() : "";
+                is.close();
+                return response.trim().replace("\"", "");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to check server for ban", e);
+        }
+        return null;
+    }
+
+    /**
+     * clears a local ban that an OLDER build handed out, once the server confirms
+     * there is no HWID ban. the old file watcher banned the app's own server JVM
+     * processes (they open the native library), which hit two testers; every ban
+     * made from this build on stores its version and is never healed this way.
+     */
+    public static boolean healStaleLocalBan(Context context) {
+        if (!isBannedLocally(context) && !isScaryBannedLocally(context)) return false;
+        int flaggedAt;
+        try {
+            flaggedAt = Math.max(
+                eu.kodanetwork.mchost.App.getPrefs(context).getInt("PERM_BANNED_AT_VERSION", 0),
+                context.getSharedPreferences("koda_settings_enc_fallback", Context.MODE_PRIVATE)
+                    .getInt("PERM_BANNED_AT_VERSION", 0));
+        } catch (Throwable t) {
+            flaggedAt = 0;
+        }
+        // flagged by this build or newer: leave it alone
+        if (flaggedAt >= eu.kodanetwork.mchost.BuildConfig.VERSION_CODE) return false;
+
+        String banType = fetchBanType(context);
+        if (banType == null || !"none".equals(banType)) return false;
+
+        eu.kodanetwork.mchost.util.AppLogger.log(TAG,
+            "Healing stale local ban (flagged by build " + flaggedAt + ", server says none)");
+        try {
+            eu.kodanetwork.mchost.App.getPrefs(context).edit()
+                .remove("PERM_BANNED_SCARY")
+                .remove("PERM_BANNED_HWID")
+                .remove("BANNED_REASON")
+                .remove("PERM_BANNED_AT_VERSION")
+                .apply();
+        } catch (Throwable ignored) { }
+        context.getSharedPreferences("koda_settings_enc_fallback", Context.MODE_PRIVATE).edit()
+            .remove("PERM_BANNED_SCARY")
+            .remove("PERM_BANNED_HWID")
+            .remove("BANNED_REASON")
+            .remove("PERM_BANNED_AT_VERSION")
+            .apply();
+        return true;
     }
 }

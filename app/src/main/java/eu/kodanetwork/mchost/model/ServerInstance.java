@@ -70,7 +70,6 @@ public class ServerInstance {
     public transient String  crashStackTrace = null;  // Relevant stacktrace lines
     public java.util.List<String> knownPlayers = new java.util.ArrayList<>();
 
-    private String    playitAddress = "";
     private String    domainLink    = "";
     private String    velocitySecret = "";
     private boolean   useNative     = true;  // always the native flow, Termux is gone
@@ -87,6 +86,23 @@ public class ServerInstance {
     private int       kodadashPort   = 0;
     
     public java.util.Map<String, String> pluginVersions = new java.util.HashMap<>();
+
+    // server ban state, synced from the network (is_banned/ban_reason). a banned
+    // server never starts, no matter who presses start.
+    public boolean banned = false;
+    public String banReason = "";
+
+    // set while the server sits on a temporary domain (its own domain is switched
+    // off), the original domain it moves back to
+    public String domainSwitchedFrom = null;
+
+    /**
+     * where each downloaded file came from (file name -> source label, e.g.
+     * "Modrinth · chunky" or "download.geysermc.org"), filled at download time so
+     * the files tab can show a real source under Info instead of guessing.
+     */
+    public java.util.Map<String, String> pluginSources = new java.util.HashMap<>();
+
     private String lastBackupTime;
 
     // backups, world pre-generation and console behaviour travel with the server
@@ -181,7 +197,7 @@ public class ServerInstance {
         j.put("gamemode", gamemode.name()); j.put("difficulty", difficulty.name());
         j.put("pvp", pvp); j.put("whitelist", whitelist); j.put("motd", motd);
         j.put("velocitySecret", velocitySecret); j.put("serverDir", serverDir);
-        j.put("playitAddress", playitAddress); j.put("domainLink", domainLink);
+        j.put("domainLink", domainLink);
         j.put("useNative", useNative);
         j.put("themeColor", themeColor);
         j.put("autoSetup", autoSetup);
@@ -217,6 +233,16 @@ public class ServerInstance {
             pv.put(entry.getKey(), entry.getValue());
         }
         j.put("pluginVersions", pv);
+
+        JSONObject ps = new JSONObject();
+        for (java.util.Map.Entry<String, String> entry : pluginSources.entrySet()) {
+            ps.put(entry.getKey(), entry.getValue());
+        }
+        j.put("pluginSources", ps);
+
+        j.put("banned", banned);
+        j.put("banReason", banReason == null ? "" : banReason);
+        if (domainSwitchedFrom != null) j.put("domainSwitchedFrom", domainSwitchedFrom);
         
         JSONArray kp = new JSONArray();
         for (String p : knownPlayers) kp.put(p);
@@ -242,7 +268,6 @@ public class ServerInstance {
         s.motd           = j.optString("motd", "A KodaNetwork Server");
         s.velocitySecret = j.optString("velocitySecret", "");
         s.serverDir      = j.getString("serverDir");
-        s.playitAddress  = j.optString("playitAddress", "");
         s.domainLink     = j.optString("domainLink", "");
         s.useNative      = j.optBoolean("useNative", true);  // the default on the wire is true
         s.themeColor     = j.optString("themeColor", "#FF6B00");
@@ -287,6 +312,19 @@ public class ServerInstance {
                 s.pluginVersions.put(key, pv.getString(key));
             }
         }
+
+        JSONObject ps = j.optJSONObject("pluginSources");
+        if (ps != null) {
+            java.util.Iterator<String> keys = ps.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                s.pluginSources.put(key, ps.getString(key));
+            }
+        }
+
+        s.banned = j.optBoolean("banned", false);
+        s.banReason = j.optString("banReason", "");
+        s.domainSwitchedFrom = j.has("domainSwitchedFrom") ? j.optString("domainSwitchedFrom", null) : null;
         
         return s;
     }
@@ -325,8 +363,6 @@ public class ServerInstance {
     public void   setMotd(String v)            { motd = v; }
     public String getVelocitySecret()          { return velocitySecret; }
     public void   setVelocitySecret(String v)  { velocitySecret = v; }
-    public String getPlayitAddress()           { return playitAddress == null ? "" : playitAddress; }
-    public void   setPlayitAddress(String v)   { playitAddress = v; }
     public String getDomainLink()              { return domainLink == null ? "" : domainLink; }
     public void   setDomainLink(String v)      { domainLink = v; }
     public String getServerDir()               { return serverDir; }

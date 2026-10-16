@@ -28,12 +28,14 @@
 # usage
 #   ./setup-kodadash-https.sh --dry-run     # show what would happen
 #   ./setup-kodadash-https.sh               # certificates + nginx configuration
-# a wildcard certificate (*.kodaserv.eu) would need the DNS-01 challenge and with it an IONOS
-# API key that has DNS rights, per-host certificates work without it because port 80 is open.
-# IONOS_API_KEY in /etc/koda-monitor.env makes this script switch to the wildcard route on its own.
+# certificates: the WILDCARD per domain (*.kodanetwork.eu, *.kodaserv.eu) is issued once
+# through koda-acme-hook.sh (DNS-01 via the acme-dns edge function, no IONOS keys on this
+# host). One certificate covers every server host, so a new dashboard works immediately -
+# per-host certificates are gone, they needed a public A record for each host and failed
+# for every server whose DNS record was not live yet.
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-kodaserv.eu}"
+DOMAIN="${DOMAIN:-kodanetwork.eu}"
 CERT_EMAIL="${CERT_EMAIL:-licence@kodaserv.eu}"
 WEBROOT="${WEBROOT:-/var/www/html}"
 HTTPS_DIR="/etc/nginx/kodadash"
@@ -63,6 +65,8 @@ count=$(echo "$servers" | python3 -c "import sys,json; print(len(json.load(sys.s
 log "found ${count} server(s) with KodaDash"
 [ "$count" -gt 0 ] || { log "nothing to do"; exit 0; }
 
+STAGE_DIR=$(mktemp -d)
+mkdir -p "$STAGE_DIR/https" "$STAGE_DIR/http"
 [ "$DRY_RUN" = "1" ] || mkdir -p "$HTTPS_DIR" "$HTTP_DIR"
 TEMPLATE_HTTPS="$(dirname "$0")/nginx-kodadash.conf.template"
 TEMPLATE_HTTP="$(dirname "$0")/nginx-kodadash-http.conf.template"
@@ -75,24 +79,15 @@ for s in json.load(sys.stdin):
 " | while read -r host domain port; do
     name="${host}.${domain}"
 
-    # 1. certificate, skipped when it already exists and is valid
-    if [ -d "/etc/letsencrypt/live/${name}" ]; then
-        log "certificate for ${name} already present"
-    elif [ -n "${IONOS_API_KEY:-}" ]; then
-        log "wildcard route not implemented in this script - issuing ${name} via HTTP-01 as well"
-        run certbot certonly --webroot -w "$WEBROOT" -d "$name" --non-interactive --agree-tos -m "$CERT_EMAIL" --keep-until-expiring
-    else
-        log "issuing certificate for ${name}"
-        if ! run certbot certonly --webroot -w "$WEBROOT" -d "$name" --non-interactive --agree-tos -m "$CERT_EMAIL" --keep-until-expiring; then
-            # one host without a (propagated) DNS record must not stop the others - the next timer
-            # run picks it up again.
-            log "certificate for ${name} failed (DNS record live yet?) - skipping this host"
-            continue
-        fi
-    fi
-
-    if [ ! -d "/etc/letsencrypt/live/${name}" ] && [ "$DRY_RUN" = "0" ]; then
-        log "no certificate for ${name} - skipping its nginx configuration"
+    # 1. certificate: the domain wildcard covers this host. issued once by hand
+    #    (see koda-acme-hook.sh), renewals run through the certbot timer.
+    cert_name="${domain}-wildcard"
+    if [ ! -d "/etc/letsencrypt/live/${cert_name}" ]; then
+        log "wildcard certificate ${cert_name} missing - skipping ${name}"
+        log "issue it once with: certbot certonly --manual --preferred-challenges dns \\"
+        log "  --manual-auth-hook '/usr/local/bin/koda-acme-hook.sh present' \\"
+        log "  --manual-cleanup-hook '/usr/local/bin/koda-acme-hook.sh cleanup' \\"
+        log "  -d '*.${domain}' -d '${domain}' --cert-name ${cert_name} --non-interactive --agree-tos"
         continue
     fi
 
@@ -102,59 +97,58 @@ for s in json.load(sys.stdin):
     else
         sed -e "s/{SERVER_NAME}/${name}/g" \
             -e "s/{UPSTREAM_PORT}/${port}/g" \
-            -e "s/{CERT_NAME}/${name}/g" \
-            "$TEMPLATE_HTTPS" > "${HTTPS_DIR}/${host}.conf"
-        log "wrote ${HTTPS_DIR}/${host}.conf (${name} -> 127.0.0.1:${port} + token)"
+            -e "s/{CERT_NAME}/${cert_name}/g" \
+            "$TEMPLATE_HTTPS" > "${STAGE_DIR}/https/${host}.conf"
+        log "staged ${host}.conf (${name} -> 127.0.0.1:${port}, cert ${cert_name})"
     fi
 
     # 3. port 80: keep the ACME challenge alive and send browsers on to https
     if [ "$DRY_RUN" = "1" ]; then
-        log "dry run: would write ${HTTP_DIR}/${host}.conf"
+        log "dry run: would stage ${host}.conf (port 80)"
     else
         sed -e "s|{SERVER_NAME}|${name}|g" -e "s|{WEBROOT}|${WEBROOT}|g" \
-            "$TEMPLATE_HTTP" > "${HTTP_DIR}/${host}.conf"
+            "$TEMPLATE_HTTP" > "${STAGE_DIR}/http/${host}.conf"
     fi
 done
 
-# ---------------------------------------------------------------- cleanup + reload
-known_hosts=$(echo "$servers" | python3 -c "import sys,json; print(' '.join(s['host'] for s in json.load(sys.stdin)))")
-for file in "$HTTPS_DIR"/*.conf "$HTTP_DIR"/*.conf; do
-    [ -e "$file" ] || continue
-    host=$(basename "$file" .conf)
-    if ! echo " $known_hosts " | grep -q " $host "; then
-        log "removing stale configuration for $host"
-        run rm -f "$file"
-    fi
-done
-
-CONF="/etc/nginx/conf.d/kodadash-https.conf"
+# ---------------------------------------------------------------- sync + reload
+# Der Vergleich laeuft jetzt GEGEN den Live-Baum (vorher wurde der Live-Baum mit sich
+# selbst verglichen, weil BEFORE erst nach dem Schreiben entstand - neue Hosts loesten
+# deshalb nie einen Reload aus und die Dashboards blieben auf der alten Konfiguration).
 if [ "$DRY_RUN" = "1" ]; then
-    log "dry run: would write $CONF and run nginx -t && systemctl reload nginx"
+    log "dry run: would sync the staged configuration and run nginx -t && systemctl reload nginx"
     exit 0
 fi
 
-# this script runs from a timer, so it must not reload nginx on every run.
-BEFORE=$(cat "$CONF" 2>/dev/null; for f in "$HTTPS_DIR"/*.conf "$HTTP_DIR"/*.conf; do [ -e "$f" ] && cat "$f"; done | md5sum)
+CHANGED=0
+diff -rq "$STAGE_DIR/https" "$HTTPS_DIR" >/dev/null 2>&1 || CHANGED=1
+diff -rq "$STAGE_DIR/http" "$HTTP_DIR" >/dev/null 2>&1 || CHANGED=1
 
-cat > "$CONF" <<'CONF'
-# Managed by vps-https/setup-kodadash-https.sh
-# https://<server>.kodaserv.eu -> tunneled KodaDash dashboard of that server
-include /etc/nginx/kodadash-http/*.conf;
-include /etc/nginx/kodadash/*.conf;
-CONF
-
-AFTER=$(cat "$CONF"; for f in "$HTTPS_DIR"/*.conf "$HTTP_DIR"/*.conf; do [ -e "$f" ] && cat "$f"; done | md5sum)
-
-if [ "$BEFORE" = "$AFTER" ]; then
+if [ "$CHANGED" = "0" ]; then
     log "configuration unchanged - nothing to reload"
     exit 0
 fi
 
+# Tausch mit Rollback: erst testen, dann reloaden, bei kaputtem Test zurueckspielen
+BACKUP_DIR=$(mktemp -d)
+mkdir -p "$BACKUP_DIR/https" "$BACKUP_DIR/http"
+cp -a "$HTTPS_DIR"/. "$BACKUP_DIR/https"/ 2>/dev/null || true
+cp -a "$HTTP_DIR"/. "$BACKUP_DIR/http"/ 2>/dev/null || true
+
+install_tree() {
+    local from="$1" to="$2"
+    find "$to" -maxdepth 1 -name '*.conf' -delete 2>/dev/null || true
+    cp -a "$from"/. "$to"/ 2>/dev/null || true
+}
+install_tree "$STAGE_DIR/https" "$HTTPS_DIR"
+install_tree "$STAGE_DIR/http" "$HTTP_DIR"
+
 if nginx -t; then
     systemctl reload nginx
-    log "nginx reloaded - dashboards are reachable as https://<server>.${DOMAIN}"
+    log "nginx reloaded - dashboards are reachable as https://<server>.<domain>"
     log "enable the links with: app_settings.kodadash_https = {\"enabled\": true, \"domain\": \"${DOMAIN}\"}"
 else
-    rm -f "$CONF"
+    install_tree "$BACKUP_DIR/https" "$HTTPS_DIR"
+    install_tree "$BACKUP_DIR/http" "$HTTP_DIR"
     die "nginx test failed - reverted, nothing was changed"
 fi

@@ -172,7 +172,7 @@ public class UpdateServerActivity extends AppCompatActivity {
                 // 3. the server software itself, paper only for now
                 if (server.getType() == ServerInstance.Type.PAPER) {
                     try {
-                        PaperMCDownloader.downloadLatestPaperSync(server.getVersion(), new File(server.getServerDir()), new PaperMCDownloader.DownloadCallback() {
+                        PaperMCDownloader.downloadLatestPaperSync(UpdateServerActivity.this, server.getVersion(), new File(server.getServerDir()), new PaperMCDownloader.DownloadCallback() {
                             @Override
                             public void onProgress(String message) {
                                 setMsg("Updating Server Software...", message);

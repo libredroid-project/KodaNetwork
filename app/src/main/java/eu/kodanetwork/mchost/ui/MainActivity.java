@@ -164,6 +164,14 @@ public class MainActivity extends AppCompatActivity {
         // start the Google Play Integrity check
         eu.kodanetwork.mchost.security.KodaIntegrityHelper.checkIntegrity(this);
 
+        // a local ban handed out by an OLDER build's file watcher gets cleared here once
+        // the server confirms there is no HWID ban (see AntiTamperSystem.healStaleLocalBan)
+        if ((eu.kodanetwork.mchost.security.AntiTamperSystem.isScaryBannedLocally(this)
+                || eu.kodanetwork.mchost.security.AntiTamperSystem.isBannedLocally(this))
+                && eu.kodanetwork.mchost.security.AntiTamperSystem.healStaleLocalBan(this)) {
+            android.util.Log.i("KodaAntiTamper", "stale local ban healed, continuing startup");
+        }
+
         if (eu.kodanetwork.mchost.security.AntiTamperSystem.isScaryBannedLocally(this)) {
             android.content.Intent intent = new android.content.Intent(this, eu.kodanetwork.mchost.ui.ScaryBannedActivity.class);
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);

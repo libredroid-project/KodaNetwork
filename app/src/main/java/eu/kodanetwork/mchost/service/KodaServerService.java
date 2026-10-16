@@ -236,7 +236,9 @@ public class KodaServerService extends Service {
                 maybeStartPregeneration(srv);
             }
             selfHealPendingRows();
-        }, 10, 10, java.util.concurrent.TimeUnit.SECONDS);
+            // the first pass runs quickly so a freshly started service already knows
+            // about bans and domain switches before anyone taps start
+        }, 2, 10, java.util.concurrent.TimeUnit.SECONDS);
         
         // capacity watchdog: every 30s, in case the queue got skipped while offline
         scheduler.scheduleAtFixedRate(this::checkCapacityWatchdog, 30, 30, java.util.concurrent.TimeUnit.SECONDS);
@@ -287,7 +289,7 @@ public class KodaServerService extends Service {
                 String ruleTxt = eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(r.limitBytes)
                         + " / " + r.periodDays + "d "
                         + (onMobile ? "Mobile" : "WLAN");
-                log(srv.getId(), "  🚫 Netzwerk-Limit erreicht (" + ruleTxt + ") — Aktion: " + r.action);
+                log(srv.getId(), getString(R.string.con_net_limit, ruleTxt, r.action));
                 if (eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_STOP.equals(r.action)
                         || eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_BLOCK.equals(r.action)) {
                     stopServer(srv, false);
@@ -582,6 +584,32 @@ public class KodaServerService extends Service {
         });
     }
     
+    /**
+     * clears a consumed remote command (CMD:START and friends) by writing the real
+     * state back, so the next poll does not execute the same command again.
+     */
+    private void ackRemoteCommand(ServerInstance srv) {
+        try {
+            String ver = srv.getVersion() == null ? "1.21.11" : srv.getVersion();
+            boolean up = srv.state == ServerInstance.State.ONLINE;
+            String patchJson = "{\"server_version\": \"" + (up ? ver : "OFFLINE|" + ver) + "\"}";
+            String appUuid = eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "");
+            String rpcJson = "{\"p_app_uuid\":\"" + appUuid + "\", \"p_device_token\":\"" + getDeviceToken()
+                    + "\", \"p_host\":\"" + srv.getSubdomain() + "\", \"p_payload\": " + patchJson + "}";
+            okhttp3.RequestBody body = okhttp3.RequestBody.create(rpcJson, okhttp3.MediaType.parse("application/json"));
+            okhttp3.Request ackReq = new okhttp3.Request.Builder()
+                .url(SUPABASE_REST + "/rpc/rpc_patch_server")
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Prefer", "return=minimal")
+                .addHeader("apikey", SUPABASE_KEY)
+                .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
+                .build();
+            // runs inside the command poller thread already, a short blocking call is fine
+            httpClient.newCall(ackReq).execute().close();
+        } catch (Exception ignored) { /* the periodic state report clears it anyway */ }
+    }
+
     private void checkCapacityWatchdog() {
         boolean hasRunningServer = false;
         for (ServerInstance srv : ServerRepo.get(this).all()) {
@@ -671,9 +699,18 @@ public class KodaServerService extends Service {
     }
 
     public void startServer(ServerInstance srv) {
+        // a banned server never starts, no matter where the start came from
+        if (srv.banned) {
+            final String reason = srv.banReason == null || srv.banReason.trim().isEmpty()
+                    ? getString(R.string.server_banned_generic) : srv.banReason;
+            mainHandler.post(() -> android.widget.Toast.makeText(this,
+                    getString(R.string.server_banned_start_blocked, reason), android.widget.Toast.LENGTH_LONG).show());
+            log(srv.getId(), getString(R.string.con_server_banned_stopped));
+            return;
+        }
         // safety net: while the tunnel server is overloaded nothing new starts
         if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false)) {
-            log(srv.getId(), "⚠ Not starting: the tunnel server is overloaded");
+            log(srv.getId(), getString(R.string.con_not_starting_overloaded));
             return;
         }
         startServerInternal(srv, true);
@@ -685,7 +722,7 @@ public class KodaServerService extends Service {
         
         exec.submit(() -> {
             String id = srv.getId();
-            log(id, "  ⚙️ AUTOMATED PLUGIN SETUP INITIATED...");
+            log(id, getString(R.string.con_plugin_setup_initiated));
             
             if (runtimes.containsKey(id)) {
                 stopServer(srv, false);
@@ -700,11 +737,11 @@ public class KodaServerService extends Service {
 
                 if (srv.isBedrockSupport()) {
                     File geyserTarget = new File(pDir, "Geyser.jar");
-                    if (!downloadFromGeyserCdn(id, "geyser", geyserTarget)) {
+                    if (!downloadFromGeyserCdn(id, "geyser", geyserTarget, srv)) {
                         downloadFromModrinth(id, "geyser", srv, geyserTarget);
                     }
                     File floodgateTarget = new File(pDir, "Floodgate.jar");
-                    if (!downloadFromGeyserCdn(id, "floodgate", floodgateTarget)) {
+                    if (!downloadFromGeyserCdn(id, "floodgate", floodgateTarget, srv)) {
                         downloadFromModrinth(id, "floodgate", srv, floodgateTarget);
                     }
                 } else {
@@ -751,7 +788,7 @@ public class KodaServerService extends Service {
                 while ((r = is.read(b)) != -1) os.write(b, 0, r);
             }
         } catch (Exception e) {
-            log(id, "  ✗ Failed to download: " + target.getName() + " -> " + e.getMessage());
+            log(id, getString(R.string.con_download_failed, target.getName(), e.getMessage()));
         }
     }
 
@@ -764,7 +801,7 @@ public class KodaServerService extends Service {
             eu.kodanetwork.mchost.util.NetworkPolicy.Rule blocked =
                     eu.kodanetwork.mchost.util.NetworkPolicy.violatedRule(this, id, cm != null && cm.isActiveNetworkMetered());
             if (blocked != null && eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_BLOCK.equals(blocked.action)) {
-                log(id, "  🚫 Start blockiert: Netzwerk-Limit erreicht — Regel bearbeiten oder WLAN nutzen.");
+                log(id, getString(R.string.con_start_blocked_net_limit));
                 setState(srv, ServerInstance.State.OFFLINE);
                 return;
             }
@@ -794,7 +831,7 @@ public class KodaServerService extends Service {
 
         srv.startTime = System.currentTimeMillis();
         setState(srv, srv.isAutoSetup() ? ServerInstance.State.SETTING_UP : ServerInstance.State.STARTING);
-        log(id, "  🍊 Launching " + srv.getName() + "...");
+        log(id, getString(R.string.con_launching, srv.getName()));
         
         File dir = new File(srv.getServerDir());
         if (!dir.exists()) dir.mkdirs();
@@ -802,7 +839,7 @@ public class KodaServerService extends Service {
         if (srv.getType() == ServerInstance.Type.PAPER) {
             String version = srv.getVersion();
             if (version == null || version.isEmpty()) version = "1.21.1";
-            eu.kodanetwork.mchost.util.PaperMCDownloader.downloadLatestPaperMC(version, dir, new eu.kodanetwork.mchost.util.PaperMCDownloader.DownloadCallback() {
+            eu.kodanetwork.mchost.util.PaperMCDownloader.downloadLatestPaperMC(this, version, dir, new eu.kodanetwork.mchost.util.PaperMCDownloader.DownloadCallback() {
                 @Override
                 public void onProgress(String message) {
                     log(id, "  ⬇️ " + message);
@@ -827,7 +864,7 @@ public class KodaServerService extends Service {
     private void fallbackToLocalJar(ServerInstance srv, boolean writePluginConfigs, File dir, String id) {
         File jar = findServerJar(srv, dir);
         if (jar == null) {
-            log(id, "  ✗ No server .jar found in " + dir.getAbsolutePath() + " or versions/ folder.");
+            log(id, getString(R.string.con_no_jar_found, dir.getAbsolutePath()));
             setState(srv, ServerInstance.State.CRASHED);
             return;
         }
@@ -895,7 +932,7 @@ public class KodaServerService extends Service {
         File dir = new File(srv.getServerDir());
         if (!dir.exists()) dir.mkdirs();
 
-        log(id, "  🗄️ Launching Database " + srv.getName() + "...");
+        log(id, getString(R.string.con_launching_db, srv.getName()));
         
         exec.submit(() -> {
             try {
@@ -905,7 +942,7 @@ public class KodaServerService extends Service {
                 File usrDir = new File(engineDir, "usr");
                 
                 if (!new File(usrDir, "bin").exists()) {
-                    log(id, "  ✗ Database engine missing. Did it fail to unpack?");
+                    log(id, getString(R.string.con_db_engine_missing));
                     setState(srv, ServerInstance.State.CRASHED);
                     return;
                 }
@@ -962,7 +999,7 @@ public class KodaServerService extends Service {
                 if (isRedis) {
                     File confFile = new File(dir, "redis.conf");
                     if (!confFile.exists()) {
-                        log(id, "  ℹ Generating redis.conf...");
+                        log(id, getString(R.string.con_db_redis_conf));
                         java.io.FileWriter fw = new java.io.FileWriter(confFile);
                         fw.write("port " + srv.getPort() + "\n");
                         fw.write("requirepass " + srv.getDbPassword() + "\n");
@@ -975,15 +1012,15 @@ public class KodaServerService extends Service {
                 } else {
                     File dataDir = new File(dir, "data");
                     if (!dataDir.exists()) {
-                        log(id, "  ℹ Patching Termux paths in MariaDB scripts...");
-                        log(id, "  ℹ Patching Termux paths in MariaDB scripts safely...");
+                        log(id, getString(R.string.con_db_patch_termux));
+                        log(id, getString(R.string.con_db_patch_termux_safe));
                         script += "sed -e 's|\\$dirname0//data/data/com.termux/files/usr|\\$basedir|g' " +
                                        "-e 's|\\$basedir//data/data/com.termux/files/usr|\\$basedir|g' " +
                                        "-e 's|/data/data/com.termux/files/usr|" + usrDir.getAbsolutePath() + "|g' " +
                                        "\"" + usrDir.getAbsolutePath() + "/bin/mariadb-install-db\" > \"" + dir.getAbsolutePath() + "/mariadb-install-db.sh\"\n";
                         script += "chmod +x \"" + dir.getAbsolutePath() + "/mariadb-install-db.sh\"\n";
 
-                        log(id, "  ? Initializing MariaDB data directory...");
+                        log(id, getString(R.string.con_db_init_data_dir));
                         script += "chmod -R +x \"" + usrDir.getAbsolutePath() + "/bin\"\n";
                         if (new File(usrDir, "libexec").exists()) {
                             script += "chmod -R +x \"" + usrDir.getAbsolutePath() + "/libexec\"\n";
@@ -994,7 +1031,7 @@ public class KodaServerService extends Service {
                         script += "echo \"FLUSH PRIVILEGES;\" >> init.sql\n";
                     }
 
-                    log(id, "  ℹ Fixing execution permissions...");
+                    log(id, getString(R.string.con_db_fix_permissions));
                     makeExecutable(new File(usrDir, "bin"));
                     if (new File(usrDir, "libexec").exists()) {
                         makeExecutable(new File(usrDir, "libexec"));
@@ -1039,9 +1076,9 @@ public class KodaServerService extends Service {
                 startPeriodicTasks(id, srv);
                 
                 int exitCode = rt.process.waitFor();
-                log(id, "  ℹ Database exited with code " + exitCode);
+                log(id, getString(R.string.con_db_exited, exitCode));
             } catch (Exception e) {
-                log(id, "  ✗ Database Native Flow crashed: " + e.getMessage());
+                log(id, getString(R.string.con_db_crashed, e.getMessage()));
                 e.printStackTrace();
             } finally {
                 RT r = runtimes.remove(id);
@@ -1064,7 +1101,7 @@ public class KodaServerService extends Service {
             if (picked.exists()) return picked;
             File nested = findFileByName(dir, chosen, 0);   // imported folders nest the jar sometimes
             if (nested != null) return nested;
-            log(srv.getId(), "  \u26a0 Chosen server file " + chosen + " is gone, picking one again.");
+            log(srv.getId(), getString(R.string.con_jar_gone, chosen));
         }
         // root dir first
         File[] rootJars = dir.listFiles((d, name) -> name.endsWith(".jar") && !name.toLowerCase().contains("paperclip"));
@@ -1156,7 +1193,7 @@ public class KodaServerService extends Service {
 
             Log.d(TAG, "Configs written for " + id);
         } catch (IOException e) {
-            log(id, "  ✗ Config error: " + e.getMessage());
+            log(id, getString(R.string.con_config_error, e.getMessage()));
             setState(srv, ServerInstance.State.CRASHED);
             return;
         }
@@ -1197,7 +1234,7 @@ public class KodaServerService extends Service {
     private void startEmbeddedJvmFlow(ServerInstance srv, File jar, File logFile) {
         new Thread(() -> {
             String id = srv.getId();
-            log(id, "  ℹ INITIATING EMBEDDED JNI DEPLOYMENT...");
+            log(id, getString(R.string.con_jni_deployment));
             
             // which ABI are we on
             String[] abis = android.os.Build.SUPPORTED_ABIS;
@@ -1209,7 +1246,7 @@ public class KodaServerService extends Service {
             }
             
             if (!isArm64 && !isX86_64) {
-                log(id, "  ✗ Unsupported architecture for JNI Beta (needs arm64-v8a or x86_64)");
+                log(id, getString(R.string.con_unsupported_arch));
                 setState(srv, ServerInstance.State.CRASHED);
                 return;
             }
@@ -1225,12 +1262,12 @@ public class KodaServerService extends Service {
                     // not the default version, so make sure it is installed
                     final int dlVer = javaVersion;
                     if (!eu.kodanetwork.mchost.util.RuntimeManager.isRuntimeInstalled(this, javaVersion)) {
-                        log(id, "  ⬇ Downloading Java " + javaVersion + " runtime...");
+                        log(id, getString(R.string.con_java_downloading, javaVersion));
                         eu.kodanetwork.mchost.util.RuntimeManager.Result res = 
                             eu.kodanetwork.mchost.util.RuntimeManager.ensureRuntimeSync(this, javaVersion,
-                                (pct, msg) -> log(id, "  ⬇ Java " + dlVer + ": " + pct + "% (" + msg + ")"));
+                                (pct, msg) -> log(id, getString(R.string.con_java_progress, dlVer, pct, msg)));
                         if (!res.success) {
-                            log(id, "  ⚠ Java " + javaVersion + " download failed: " + res.failReason + " — Fallback to Java 25");
+                            log(id, getString(R.string.con_java_download_failed, javaVersion, res.failReason));
                             javaVersion = 25;
                         }
                     }
@@ -1238,16 +1275,16 @@ public class KodaServerService extends Service {
                 
                 jvmDir = new File(getFilesDir(), "jre" + javaVersion);
                 if (!jvmDir.exists()) {
-                    log(id, "  ✗ jre" + javaVersion + " not found. Please restart app to extract it.");
+                    log(id, getString(R.string.con_jre_not_found, javaVersion));
                     setState(srv, ServerInstance.State.CRASHED);
                     return;
                 }
-                log(id, "  ✓ Using JDK " + javaVersion + " for ARM64");
+                log(id, getString(R.string.con_using_jdk, javaVersion));
             } else {
                 // x86_64 means an emulator, that one gets the NDK build
                 jvmDir = new File(getFilesDir(), "jre21-ndk-x86_64");
                 if (!jvmDir.exists()) {
-                    log(id, "  ⬇️ Downloading JDK 21 (x86_64 Emulator NDK Build)...");
+                    log(id, getString(R.string.con_jdk21_downloading));
                     jvmDir.mkdirs();
                     
                     String downloadUrl = "https://github.com/PojavLauncherTeam/android-openjdk-build-multiarch/releases/download/jre21-20231011/jre21-x86_64-20231011.tar.xz";
@@ -1255,28 +1292,28 @@ public class KodaServerService extends Service {
                     downloadPluginSync(id, downloadUrl, tarFile);
                     
                     if (tarFile.exists() && tarFile.length() > 0) {
-                        log(id, "  ℹ Extracting JDK 21... (This may take a minute)");
+                        log(id, getString(R.string.con_jdk21_extracting));
                         try {
                             eu.kodanetwork.mchost.util.TarXzUtil.extract(tarFile.getAbsolutePath(), jvmDir.getAbsolutePath());
                             tarFile.delete(); // the tar is huge, drop it
                         } catch (Exception e) {
-                            log(id, "  ✗ Extraction failed: " + e.getMessage());
+                            log(id, getString(R.string.con_extraction_failed, e.getMessage()));
                             setState(srv, ServerInstance.State.CRASHED);
                             return;
                         }
                     } else {
-                        log(id, "  ✗ Download failed or file is empty.");
+                        log(id, getString(R.string.con_download_failed_empty));
                         setState(srv, ServerInstance.State.CRASHED);
                         return;
                     }
-                    log(id, "  ✓ JDK 21 setup complete (Beta)");
+                    log(id, getString(R.string.con_jdk21_setup_complete));
                 }
             }
             
             File libJvm = findLibJvm(jvmDir);
 
             if (libJvm == null) {
-                log(id, "  ✗ Could not locate libjvm.so in " + jvmDir.getAbsolutePath());
+                log(id, getString(R.string.con_libjvm_missing, jvmDir.getAbsolutePath()));
                 setState(srv, ServerInstance.State.CRASHED);
                 return;
             }
@@ -1301,7 +1338,7 @@ public class KodaServerService extends Service {
             if (isForgeFamily && !installing) {
                 File target = forgeJar != null ? forgeJar : jar;
                 if (target == null) {
-                    log(id, "  ✗ No Forge server jar to launch, download the server again.");
+                    log(id, getString(R.string.con_forge_jar_missing));
                     srv.crashExitCode = -1;
                     srv.crashCategory = "MISSING_JAR";
                     srv.crashReason = "The Forge server jar is missing";
@@ -1311,7 +1348,7 @@ public class KodaServerService extends Service {
                     return;
                 }
                 if (!target.getAbsolutePath().equals(jar.getAbsolutePath())) {
-                    log(id, "  ℹ Launching the Forge server: " + target.getName());
+                    log(id, getString(R.string.con_launching_forge_server, target.getName()));
                 }
                 launchJar = target;
             } else {
@@ -1321,7 +1358,7 @@ public class KodaServerService extends Service {
             String mainClassName = "org/bukkit/craftbukkit/Main";
             
             if (installing) {
-                log(id, "  ℹ Running headless installer for " + srv.getType().name() + "...");
+                log(id, getString(R.string.con_running_headless_installer, srv.getType().name()));
                 try {
                     java.io.FileOutputStream fos = new java.io.FileOutputStream(progArgsFile);
                     fos.write("--installServer\n".getBytes());
@@ -1342,12 +1379,12 @@ public class KodaServerService extends Service {
                     if (mc != null && !mc.isEmpty()) {
                         mc = mc.trim();
                         mainClassName = mc.replace(".", "/");
-                        log(id, "  ℹ Found Main-Class: " + mc);
+                        log(id, getString(R.string.con_found_main_class, mc));
                     }
                 }
                 jarFile.close();
             } catch (Exception e) {
-                log(id, "  ⚠ Could not read jar manifest: " + e.getMessage());
+                log(id, getString(R.string.con_manifest_read_failed, e.getMessage()));
             }
 
             if (isForgeFamily && !installing) {
@@ -1373,7 +1410,7 @@ public class KodaServerService extends Service {
                 }
                 
                 if (unixArgs != null && unixArgs.exists()) {
-                    log(id, "  ℹ Parsing " + unixArgs.getName() + " for JNI args...");
+                    log(id, getString(R.string.con_parsing_unix_args, unixArgs.getName()));
                     try {
                         java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(unixArgs));
                         java.io.FileWriter jvmOut = new java.io.FileWriter(jvmArgsFile);
@@ -1395,7 +1432,7 @@ public class KodaServerService extends Service {
                                 } else if (!line.startsWith("-")) {
                                     mainClassName = line.replace(".", "/");
                                     foundMain = true;
-                                    log(id, "  ℹ Bootstrapper: " + mainClassName);
+                                    log(id, getString(R.string.con_bootstrapper, mainClassName));
                                 } else {
                                     // any other jvm flag just goes through
                                     jvmOut.write(line + "\n");
@@ -1412,10 +1449,10 @@ public class KodaServerService extends Service {
                         jvmOut.close();
                         progOut.close();
                     } catch (Exception e) {
-                        log(id, "  ✗ Failed to parse unix_args: " + e.getMessage());
+                        log(id, getString(R.string.con_unix_args_parse_failed, e.getMessage()));
                     }
                 } else {
-                    log(id, "  ⚠ Could not find unix_args.txt! Launch may fail.");
+                    log(id, getString(R.string.con_unix_args_missing));
                 }
             }
 
@@ -1492,7 +1529,7 @@ public class KodaServerService extends Service {
                     }
                 }
                 if (targetService == null) {
-                    log(id, "  ✗ No free JVM processes available! Maximum 3 concurrent embedded servers.");
+                    log(id, getString(R.string.con_no_free_jvm));
                     setState(srv, ServerInstance.State.CRASHED);
                     return;
                 }
@@ -1519,19 +1556,19 @@ public class KodaServerService extends Service {
                 boolean bound = boundResult[0];
                 
                 if (!bound) {
-                    log(id, "  ✗ bindService() returned false! Service could not be found or started.");
+                    log(id, getString(R.string.con_bind_service_failed));
                     setState(srv, ServerInstance.State.CRASHED);
                     return;
                 }
 
                     if (bindLatch.await(30, java.util.concurrent.TimeUnit.SECONDS) && jvmSvc[0] != null) {
                     rt.jvmService = jvmSvc[0];
-                    log(id, "  ℹ Verbunden mit isoliertem JVM-Prozess.");
+                    log(id, getString(R.string.con_jvm_connected_isolated));
                     
 
                     
                     int result = jvmSvc[0].startJvm(libJvm.getAbsolutePath(), launchJar.getAbsolutePath(), srv.getRamMB(), mainClassName, logFile.getParent());
-                    log(id, "  ℹ JNI JVM Engine exited with code: " + result);
+                    log(id, getString(R.string.con_jvm_engine_exited, result));
                     
                     try { if (rt.dummyWriter != null) rt.dummyWriter.close(); } catch (Exception ignored) {}
                     if (rt.frpcProc != null) {
@@ -1552,12 +1589,12 @@ public class KodaServerService extends Service {
                         // installation did not get far enough.
                         boolean installed = new File(serverDir, "libraries").exists();
                         if (installed) {
-                            log(id, "  ✓ Installation complete. Rebooting into the server...");
+                            log(id, getString(R.string.con_install_complete_reboot));
                             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
                                 startEmbeddedJvmFlow(srv, launchJar, logFile);
                             }, 2000);
                         } else {
-                            log(id, "  ✗ The installer stopped before it finished (exit " + result + ").");
+                            log(id, getString(R.string.con_installer_stopped_exit, result));
                             srv.crashExitCode = result;
                             srv.crashCategory = "MISSING_JAR";
                             srv.crashReason = "The Forge installer did not finish (exit code " + result + ")";
@@ -1572,9 +1609,9 @@ public class KodaServerService extends Service {
                         String errMsg = "Isolated JVM process crashed unexpectedly";
                         try {
                             if (jvmSvc[0] != null) errMsg = jvmSvc[0].getInitError();
-                            log(id, "  ✗ NATIVE ERROR: " + errMsg);
+                            log(id, getString(R.string.con_native_error, errMsg));
                         } catch (Exception e) {
-                            log(id, "  ✗ NATIVE ERROR: Code " + result);
+                            log(id, getString(R.string.con_native_error_code, result));
                         }
                         srv.crashExitCode = result;
                         srv.crashCategory = "NATIVE_LIB";
@@ -1592,7 +1629,7 @@ public class KodaServerService extends Service {
                         srv.crashStackTrace = errMsg;
                         setState(srv, ServerInstance.State.CRASHED);
                     } else if (result != 0) {
-                        log(id, "  ✗ NATIVE ERROR: Code " + result);
+                        log(id, getString(R.string.con_native_error_code, result));
                         srv.crashExitCode = result;
                         eu.kodanetwork.mchost.util.CrashAnalyzer.Result cr = eu.kodanetwork.mchost.util.CrashAnalyzer.analyze(srv, result);
                         if (cr != null) {
@@ -1607,7 +1644,7 @@ public class KodaServerService extends Service {
                         setState(srv, ServerInstance.State.OFFLINE);
                     }
                 } else {
-                    log(id, "  ✗ Konnte nicht mit dem isolierten JVM-Prozess verbinden.");
+                    log(id, getString(R.string.con_jvm_connect_failed));
                     setState(srv, ServerInstance.State.CRASHED);
                     runtimes.remove(id);
                     updateNotif();
@@ -1617,13 +1654,13 @@ public class KodaServerService extends Service {
                 // stopServer() kills the JVM process, and the blocking startJvm() call then
                 // throws DeadObjectException, that is expected.
                 if (srv.state == ServerInstance.State.STOPPING || srv.state == ServerInstance.State.OFFLINE) {
-                    log(id, "  ℹ JVM Prozess normal beendet (Server wurde gestoppt).");
+                    log(id, getString(R.string.con_jvm_stopped_normally));
                     // leave the state alone, stopServer() already set OFFLINE
                 } else if (installing) {
                     // same rule as above, just without an exit code to look at
                     boolean installed = new File(srv.getServerDir(), "libraries").exists();
                     if (installed) {
-                        log(id, "  ✓ Installation complete. Rebooting into the server...");
+                        log(id, getString(R.string.con_install_complete_reboot));
                         if (rt.frpcProc != null) {
                             try { rt.frpcProc.destroyForcibly(); } catch (Exception ignored) {}
                         }
@@ -1636,7 +1673,7 @@ public class KodaServerService extends Service {
                             startEmbeddedJvmFlow(srv, launchJar, logFile);
                         }, 2000);
                     } else {
-                        log(id, "  ✗ The installer stopped before it finished.");
+                        log(id, getString(R.string.con_installer_stopped));
                         srv.crashExitCode = -1;
                         srv.crashCategory = "MISSING_JAR";
                         srv.crashReason = "The Forge installer did not finish";
@@ -1646,7 +1683,7 @@ public class KodaServerService extends Service {
                     }
                     return;
                 } else {
-                    log(id, "  ℹ JVM Prozess beendet/abgestürzt: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+                    log(id, getString(R.string.con_jvm_terminated, (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName())));
                     eu.kodanetwork.mchost.util.CrashAnalyzer.Result cr = eu.kodanetwork.mchost.util.CrashAnalyzer.analyze(srv, -1);
                     if (cr != null && cr.isCrash) {
                         srv.crashExitCode = -1;
@@ -1659,7 +1696,7 @@ public class KodaServerService extends Service {
                     } else if (e instanceof android.os.DeadObjectException) {
                         // a DeadObjectException with no crash pattern behind it is a normal stop
                         if (installing) {
-                            log(id, "  ✓ Installation complete. Rebooting into server...");
+                            log(id, getString(R.string.con_install_complete_reboot));
                             if (rt.frpcProc != null) {
                                 try { rt.frpcProc.destroyForcibly(); } catch (Exception ignored) {}
                             }
@@ -1699,8 +1736,8 @@ public class KodaServerService extends Service {
                 if (abi.equals("arm64-v8a") || abi.equals("x86_64")) { is64 = true; break; }
             }
             if (!is64) {
-                log(srv.getId(), "  ✗ Dein Gerät unterstützt nur 32-bit. Java 25 benötigt ein 64-bit ARM Gerät (arm64-v8a).");
-                log(srv.getId(), "  ✗ Bitte nutze ein neueres Gerät (z.B. ab 2018+).");
+                log(srv.getId(), getString(R.string.con_32bit_only));
+                log(srv.getId(), getString(R.string.con_32bit_use_newer));
                 setState(srv, ServerInstance.State.CRASHED);
                 return;
             }
@@ -1713,28 +1750,28 @@ public class KodaServerService extends Service {
             String javaBinPath = null;
             if (javaVersion != 25) {
                 if (!eu.kodanetwork.mchost.util.RuntimeManager.isRuntimeInstalled(this, javaVersion)) {
-                    log(srv.getId(), "  ⬇ Lade Java-" + javaVersion + "-Runtime (~30 MB)...");
+                    log(srv.getId(), getString(R.string.con_java_downloading_mb, javaVersion));
                     eu.kodanetwork.mchost.util.RuntimeManager.Result res = eu.kodanetwork.mchost.util.RuntimeManager.ensureRuntimeSync(this, javaVersion,
-                            (pct, msg) -> log(srv.getId(), "  ⬇ Java " + javaVersion + ": " + pct + "% (" + msg + ")"));
+                            (pct, msg) -> log(srv.getId(), getString(R.string.con_java_progress, javaVersion, pct, msg)));
                     if (res.success) {
                         javaBinPath = eu.kodanetwork.mchost.util.RuntimeManager.getJavaBin(this, javaVersion);
                     } else {
-                        log(srv.getId(), "  ✗ Java Download Error: " + res.failReason);
+                        log(srv.getId(), getString(R.string.con_java_download_error, res.failReason));
                     }
                 } else {
                     javaBinPath = eu.kodanetwork.mchost.util.RuntimeManager.getJavaBin(this, javaVersion);
                 }
             }
             if (javaBinPath != null) {
-                log(srv.getId(), "  ℹ Java-" + javaVersion + "-Runtime aktiv: " + javaBinPath);
+                log(srv.getId(), getString(R.string.con_java_runtime_active, javaVersion, javaBinPath));
             } else {
                 if (javaVersion != 25) {
-                    log(srv.getId(), "  ⚠ Java " + javaVersion + " nicht verfügbar — Fallback auf Java 25");
+                    log(srv.getId(), getString(R.string.con_java_unavailable_fallback, javaVersion));
                 }
                 javaBinPath = eu.kodanetwork.mchost.util.JavaFinder.find(this, 25);
             }
             if (javaBinPath == null) {
-                log(srv.getId(), "  ✗ Failed to initialize native Java environment.");
+                log(srv.getId(), getString(R.string.con_java_env_failed));
                 setState(srv, ServerInstance.State.CRASHED);
                 return;
             }
@@ -1742,9 +1779,9 @@ public class KodaServerService extends Service {
             File javaBin = new File(javaBinPath);
             File usrDir = javaBin.getParentFile().getParentFile(); // native_root/usr
             
-            log(srv.getId(), "  ℹ Native Flow: Java binary exists=" + javaBin.exists() + " executable=" + javaBin.canExecute());
-            log(srv.getId(), "  ℹ Native Flow: JAR=" + jar.getAbsolutePath() + " exists=" + jar.exists() + " size=" + jar.length());
-            log(srv.getId(), "  ℹ Native Flow: Server dir=" + srv.getServerDir());
+            log(srv.getId(), getString(R.string.con_native_flow_java_binary, javaBin.exists(), javaBin.canExecute()));
+            log(srv.getId(), getString(R.string.con_native_flow_jar, jar.getAbsolutePath(), jar.exists(), jar.length()));
+            log(srv.getId(), getString(R.string.con_native_flow_server_dir, srv.getServerDir()));
             try {
                 String id = srv.getId(); 
                 File dir = new File(srv.getServerDir());
@@ -1756,10 +1793,10 @@ public class KodaServerService extends Service {
                 // pull libc++_shared.so out of the assets when it is missing
                 File libCxx = new File(usrDir, "lib/libc++_shared.so");
                 File libCxxBin = new File(usrDir, "bin/libc++_shared.so");
-                log(srv.getId(), "  ℹ Native Libc++ Check: lib=" + libCxx.exists() + " bin=" + libCxxBin.exists());
+                log(srv.getId(), getString(R.string.con_native_libcxx_check, libCxx.exists(), libCxxBin.exists()));
                 if (!libCxx.exists() || !libCxxBin.exists()) {
                     try {
-                        log(srv.getId(), "  ℹ Extracting libc++_shared.so from assets...");
+                        log(srv.getId(), getString(R.string.con_libcxx_extracting));
                         java.io.InputStream is = getAssets().open("libc++_shared.so");
                         java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
                         byte[] buffer = new byte[8192];
@@ -1778,9 +1815,9 @@ public class KodaServerService extends Service {
                         java.io.FileOutputStream fos2 = new java.io.FileOutputStream(libCxxBin);
                         fos2.write(data); fos2.flush(); fos2.close();
                         
-                        log(srv.getId(), "  ℹ Extracted libc++_shared.so successfully to lib/ and bin/.");
+                        log(srv.getId(), getString(R.string.con_libcxx_extracted));
                     } catch (Exception e) {
-                        log(srv.getId(), "  ❌ Failed to extract libc++_shared.so: " + e.getMessage());
+                        log(srv.getId(), getString(R.string.con_libcxx_extract_failed, e.getMessage()));
                     }
                 }
                 
@@ -1829,7 +1866,7 @@ public class KodaServerService extends Service {
                 write(startSh, script);
                 startSh.setExecutable(true, false);
                 
-                log(id, "  ℹ Native Script: " + startSh.getAbsolutePath());
+                log(id, getString(R.string.con_native_script, startSh.getAbsolutePath()));
                 
                 boolean isRooted = new File("/system/xbin/su").exists() || new File("/system/bin/su").exists() || new File("/sbin/su").exists();
                 ProcessBuilder pb;
@@ -1840,7 +1877,7 @@ public class KodaServerService extends Service {
                 }
                 pb.directory(dir);
                 
-                log(id, "  ℹ INITIATING NATIVE DEPLOYMENT (JDK 25 via shell)...");
+                log(id, getString(R.string.con_native_deployment));
                 Process p = pb.start();
                 
                 RT rt = new RT(); 
@@ -1850,7 +1887,7 @@ public class KodaServerService extends Service {
                 runtimes.put(id, rt);
                 updateNotif();
                 
-                log(id, "  ℹ Process started, PID monitoring active");
+                log(id, getString(R.string.con_process_started));
                 
                 startNativeTunnel(id, srv, dir, rt);
                 startBoreMonitor(id, srv, dir);
@@ -1859,9 +1896,9 @@ public class KodaServerService extends Service {
                 startLogMonitor(id, srv, logFile); 
                 
                 int exitCode = p.waitFor();
-                log(id, "  ℹ NATIVE PROCESS TERMINATED. Exit code: " + exitCode);
+                log(id, getString(R.string.con_native_process_terminated, exitCode));
                 if (exitCode != 0) {
-                    log(id, "  ⚠ Non-zero exit code may indicate crash or missing libraries");
+                    log(id, getString(R.string.con_nonzero_exit));
                 }
                 if (rt.frpcProc != null) {
                     try { rt.frpcProc.destroyForcibly(); } catch (Exception ignored) {}
@@ -1885,9 +1922,9 @@ public class KodaServerService extends Service {
                     }
                 }
             } catch (Exception e) { 
-                log(srv.getId(), "  ✗ NATIVE ERROR: " + e.getClass().getSimpleName() + ": " + e.getMessage()); 
+                log(srv.getId(), getString(R.string.con_native_error, e.getClass().getSimpleName() + ": " + e.getMessage())); 
                 if (e.getCause() != null) {
-                    log(srv.getId(), "  ✗ Caused by: " + e.getCause().getMessage());
+                    log(srv.getId(), getString(R.string.con_caused_by, e.getCause().getMessage()));
                 }
                 setState(srv, ServerInstance.State.CRASHED); 
             }
@@ -1923,15 +1960,14 @@ public class KodaServerService extends Service {
                                 Log.w(TAG, "Tunnel-Token ungueltig (rotiert?) - Cache geleert");
                             }
                             if (devMode) {
-                                mainHandler.post(() -> log(id, "  ⛓ [" + ts.format(new java.util.Date()) + "] " + l));
+                                mainHandler.post(() -> log(id, getString(R.string.con_tunnel_log, ts.format(new java.util.Date()), l)));
                             }
                         }
                         reason = lastLine.length() > 160 ? lastLine.substring(0, 160) + "..." : lastLine;
                     } catch (Exception ignored) {}
-                    String reasonTxt = reason.isEmpty() ? "unbekannt" : reason.replaceAll("\\u001B\\[[;\\d]*[ -/]*[@-~]", "");
-                    mainHandler.post(() -> log(id, "  ⚠ ⛌ Tunnel abgestürzt um "
-                            + new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date())
-                            + " — Grund: " + reasonTxt));
+                    String reasonTxt = reason.isEmpty() ? getString(R.string.con_tunnel_reason_unknown)
+                            : reason.replaceAll("\\u001B\\[[;\\d]*[ -/]*[@-~]", "");
+                    mainHandler.post(() -> log(id, getString(R.string.con_tunnel_crash, new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date()), reasonTxt)));
                 });
                 frpcReader.setDaemon(true);
                 frpcReader.start();
@@ -1948,7 +1984,7 @@ public class KodaServerService extends Service {
                 Log.e(TAG, "Failed to start native tunnel", e);
             }
         } else {
-            log(id, "  ✗ FRPC binary missing at " + frpcPath + " - Did you rebuild the app after adding jniLibs?");
+            log(id, getString(R.string.con_frpc_missing, frpcPath));
         }
     }
 
@@ -1999,7 +2035,7 @@ public class KodaServerService extends Service {
             write(startSh, script);
             startSh.setExecutable(true, false);
         } catch (IOException e) {
-            log(id, "  ✗ Failed to create start script!");
+            log(id, getString(R.string.con_start_script_failed));
             setState(srv, ServerInstance.State.CRASHED);
             return;
         }
@@ -2010,7 +2046,7 @@ public class KodaServerService extends Service {
             startLogMonitor(id, srv, new File(dir, "server.log"));
             startPeriodicTasks(id, srv);
         } else {
-            log(id, "  ✗ Termux Bridge Error!");
+            log(id, getString(R.string.con_termux_bridge_error));
             setState(srv, ServerInstance.State.CRASHED);
         }
     }
@@ -2126,12 +2162,12 @@ public class KodaServerService extends Service {
         } else {
             if (force && rt != null && rt.jvmService != null) {
                 try {
-                    log(id, "  ℹ Force killing isolated JVM process...");
+                    log(id, getString(R.string.con_force_kill_jvm));
                     rt.jvmService.killJvm();
                 } catch (Exception e) {}
                 runtimes.remove(id);
             } else if (runtimes.containsKey(id)) {
-                log(id, "  ⚠ Waiting for Embedded JVM to exit gracefully timed out. Force killing!");
+                log(id, getString(R.string.con_jvm_exit_timeout));
                 if (rt != null && rt.jvmService != null) {
                     try { rt.jvmService.killJvm(); } catch (Exception e) {}
                 }
@@ -2155,17 +2191,16 @@ public class KodaServerService extends Service {
         try {
             if (!"on_stop".equals(srv.getBackupMode())) return;
             if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false)) return;
-            log(srv.getId(), "  \u2139 Creating a backup of the server folder...");
+            log(srv.getId(), getString(R.string.con_backup_creating));
             java.io.File file = eu.kodanetwork.mchost.util.BackupManager.createBackup(this, srv, "stop");
             if (file == null) {
-                log(srv.getId(), "  \u26a0 Backup failed - see the app log");
+                log(srv.getId(), getString(R.string.con_backup_failed));
                 return;
             }
             eu.kodanetwork.mchost.util.BackupManager.rotate(this, srv.getId(), srv.getBackupKeep());
             srv.setLastBackupAt(System.currentTimeMillis());
             eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
-            log(srv.getId(), "  \u2714 Backup saved: " + file.getName() + " ("
-                    + eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()) + ")");
+            log(srv.getId(), getString(R.string.con_backup_saved, file.getName(), eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length())));
         } catch (Exception e) {
             android.util.Log.w("KodaBackup", "Backup after stop failed: " + e.getMessage());
         }
@@ -2182,7 +2217,7 @@ public class KodaServerService extends Service {
                 if ("daily".equals(srv.getBackupMode())) {
                     long last = srv.getLastBackupAt();
                     if (System.currentTimeMillis() - last >= 24L * 60L * 60L * 1000L) {
-                        log(srv.getId(), "  \u2139 Daily backup starting (world is saved first)...");
+                        log(srv.getId(), getString(R.string.con_backup_daily_start));
                         sendCmd(srv.getId(), "save-all");
                         sleep(8000);
                         java.io.File file = eu.kodanetwork.mchost.util.BackupManager.createBackup(this, srv, "daily");
@@ -2190,7 +2225,7 @@ public class KodaServerService extends Service {
                             eu.kodanetwork.mchost.util.BackupManager.rotate(this, srv.getId(), srv.getBackupKeep());
                             srv.setLastBackupAt(System.currentTimeMillis());
                             eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
-                            log(srv.getId(), "  \u2714 Daily backup saved: " + file.getName());
+                            log(srv.getId(), getString(R.string.con_backup_daily_saved, file.getName()));
                         }
                     }
                 }
@@ -2285,20 +2320,20 @@ public class KodaServerService extends Service {
             boolean installed = hasChunky(new java.io.File(srv.getServerDir(), "plugins"))
                     || hasChunky(new java.io.File(srv.getServerDir(), "mods"));
             if (!installed) {
-                log(srv.getId(), "  \u2139 Pre-generation: installing Chunky for " + srv.getType().name() + "...");
+                log(srv.getId(), getString(R.string.con_pregen_installing_chunky, srv.getType().name()));
                 java.io.File downloaded = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync("chunky", srv);
                 if (downloaded == null) {
                     // do not mark it done: a flaky download or a missing build must be retried,
                     // otherwise the feature looks dead after the first failure
-                    log(srv.getId(), "  \u26a0 Chunky could not be installed, trying again in 5 minutes");
+                    log(srv.getId(), getString(R.string.con_chunky_install_retry));
                     pregenerationStarted.remove(srv.getId());
                     pregenerationNextTry.put(srv.getId(), System.currentTimeMillis() + 5 * 60_000L);
                     return;
                 }
-                log(srv.getId(), "  \u2714 Chunky installed: " + downloaded.getName());
+                log(srv.getId(), getString(R.string.con_chunky_installed, downloaded.getName()));
             }
 
-            log(srv.getId(), "  \u2139 Pre-generation started (radius " + radius + " blocks). Progress: /chunky progress");
+            log(srv.getId(), getString(R.string.con_pregen_started, radius));
             sendCmd(srv.getId(), "chunky radius " + radius);
             sleep(1000);
             sendCmd(srv.getId(), "chunky start");
@@ -2347,8 +2382,7 @@ public class KodaServerService extends Service {
         modsDir.mkdirs();
         File target = new File(modsDir, "koda_transfer.jar");
         if (asset == null) {
-            log(srv.getId(), "  \u26A0 No KodaTransfer build for " + srv.getType().name() + " " + version
-                    + ", the map and /khub stay unavailable here");
+            log(srv.getId(), getString(R.string.con_transfer_no_build, srv.getType().name(), version));
             return;
         }
         try (InputStream is = getAssets().open(asset);
@@ -2356,7 +2390,7 @@ public class KodaServerService extends Service {
             byte[] b = new byte[8192];
             int r;
             while ((r = is.read(b)) != -1) os.write(b, 0, r);
-            log(srv.getId(), "  \u2714 KodaTransfer mod installed (" + srv.getType().name() + " " + version + ")");
+            log(srv.getId(), getString(R.string.con_transfer_mod_installed, srv.getType().name(), version));
         } catch (Exception e) {
             Log.e(TAG, "Failed to extract " + asset, e);
         }
@@ -2405,7 +2439,7 @@ public class KodaServerService extends Service {
                         if (secondsLeft <= 300 && !warnedJobs.contains(key5)) {
                             warnedJobs.add(key5);
                             sendCmd(srv.getId(), "say [Koda] Planned " + job.type + " in 5 minutes");
-                            log(srv.getId(), "  \u2139 Planned " + job.type + " in 5 minutes");
+                            log(srv.getId(), getString(R.string.con_job_planned_5min, job.type));
                         }
                         if (secondsLeft <= 60 && !warnedJobs.contains(key1)) {
                             warnedJobs.add(key1);
@@ -2418,7 +2452,7 @@ public class KodaServerService extends Service {
                     if (job.onlyWhenEmpty && srv.onlinePlayers > 0) {
                         job.nextRun = now + 5L * 60L * 1000L;
                         dirty = true;
-                        log(srv.getId(), "  \u2139 Skipped " + job.type + ": players online - retry in 5 minutes");
+                        log(srv.getId(), getString(R.string.con_job_skipped_players, job.type));
                         continue;
                     }
 
@@ -2443,7 +2477,7 @@ public class KodaServerService extends Service {
         String type = job.type == null ? "" : job.type.toLowerCase();
         switch (type) {
             case "restart":
-                log(srv.getId(), "  \u2139 Scheduled restart");
+                log(srv.getId(), getString(R.string.con_scheduled_restart));
                 sendCmd(srv.getId(), "say [Koda] Scheduled restart - see you in a moment!");
                 exec.submit(() -> {
                     stopServer(srv, false);
@@ -2452,14 +2486,14 @@ public class KodaServerService extends Service {
                 });
                 break;
             case "stop":
-                log(srv.getId(), "  \u2139 Scheduled stop");
+                log(srv.getId(), getString(R.string.con_scheduled_stop));
                 sendCmd(srv.getId(), "say [Koda] Scheduled shutdown - see you soon!");
                 exec.submit(() -> stopServer(srv, false));
                 break;
             case "announce":
                 if (job.value != null && !job.value.trim().isEmpty()) {
                     sendCmd(srv.getId(), "say " + job.value.replace("\n", " ").trim());
-                    log(srv.getId(), "  \u2139 Announcement: " + job.value);
+                    log(srv.getId(), getString(R.string.con_announcement, job.value));
                 }
                 break;
             case "command":
@@ -2467,13 +2501,13 @@ public class KodaServerService extends Service {
                     String command = job.value.trim();
                     while (command.startsWith("/")) command = command.substring(1).trim();
                     sendCmd(srv.getId(), command);
-                    log(srv.getId(), "  \u2139 Scheduled command: " + command);
+                    log(srv.getId(), getString(R.string.con_scheduled_command, command));
                 }
                 break;
             case "save":
             default:
                 sendCmd(srv.getId(), "save-all");
-                log(srv.getId(), "  \u2139 Scheduled save");
+                log(srv.getId(), getString(R.string.con_scheduled_save));
                 break;
         }
     }
@@ -2590,10 +2624,10 @@ public class KodaServerService extends Service {
                 new SupabaseFunctionsClient(KodaServerService.this)
                         .createDnsLink("", srv.getSubdomain(), srv.getBaseDomain(), vpsIp, srv.getPort(), "tcp");
 
-                log(id, "  \u2713 DNS Join: " + srv.getJoinAddress());
+                log(id, getString(R.string.con_dns_join, srv.getJoinAddress()));
             } catch (Exception e) {
                 Log.e(TAG, "DNS update failed", e);
-                log(id, "  \u26a0 DNS setup error: " + e.getMessage());
+                log(id, getString(R.string.con_dns_error, e.getMessage()));
             }
         });
     }
@@ -2671,7 +2705,7 @@ public class KodaServerService extends Service {
                 if (!name.isEmpty() && name.length() <= 16) {
                     if (!srv.onlinePlayerNames.contains(name)) {
                         srv.onlinePlayerNames.add(name);
-                        log(id, "  👤 Detected Player Join: " + name);
+                        log(id, getString(R.string.con_player_join, name));
                     }
                     if (!srv.knownPlayers.contains(name)) {
                         srv.knownPlayers.add(name);
@@ -2705,7 +2739,7 @@ public class KodaServerService extends Service {
             if (name != null) {
                 name = name.replaceAll("^[^a-zA-Z0-9_]+|[^a-zA-Z0-9_]+$", "");
                 if (srv.onlinePlayerNames.remove(name)) {
-                    log(id, "  👤 Player Left: " + name);
+                    log(id, getString(R.string.con_player_left, name));
                     setState(srv, srv.state);
                 }
             }
@@ -2719,13 +2753,13 @@ public class KodaServerService extends Service {
             int phase = setupPhase.getOrDefault(id, 0);
             if (phase == 0) {
                 if (useBetaJni && (srv.getAiPrompt() == null || srv.getAiPrompt().trim().isEmpty() || srv.getAiPrompt().equals("null") || srv.getAiPrompt().equals("[]"))) {
-                    log(id, "  🧩 PHASE 1: Initial Boot OK. (Restart skipped for Embedded JVM)");
+                    log(id, getString(R.string.con_phase1_boot_jni));
                     try { writePaperOptimizationConfigs(srv, new File(srv.getServerDir())); } catch (Exception e) { Log.e(TAG, "Paper config error", e); }
                     
-                    log(id, "  🧩 Applying custom design...");
+                    log(id, getString(R.string.con_applying_custom_design));
                     try { writeTabConfig(srv, new File(srv.getServerDir())); } catch (IOException e) { Log.e(TAG, "Tab config error", e); }
                     
-                    log(id, "  ✅ SETUP COMPLETE! Downloading PAPI extensions...");
+                    log(id, getString(R.string.con_setup_complete_papi));
                     setupPhase.put(id, 3);
                     exec.submit(() -> {
                         sleep(5000);
@@ -2742,10 +2776,10 @@ public class KodaServerService extends Service {
                         sendCmd(id, "tab reload");
                         srv.setAutoSetup(false);
                         ServerRepo.get(KodaServerService.this).update(srv);
-                        log(id, "✓ Server erfolgreich gestartet! Bereit für Spieler.");
+                        log(id, getString(R.string.con_server_ready));
                     });
                 } else {
-                    log(id, "  🧩 PHASE 1: Initial Boot OK. Stopping server to install plugins...");
+                    log(id, getString(R.string.con_phase1_boot_stop));
                     setupPhase.put(id, 1);
                     exec.submit(() -> {
                         sleep(5000);
@@ -2758,7 +2792,7 @@ public class KodaServerService extends Service {
                         pDir.mkdirs();
                         
                         if (!srv.getAiPrompt().isEmpty()) {
-                            log(id, "  🤖 AI SETUP: Downloading Plugins...");
+                            log(id, getString(R.string.con_ai_downloading_plugins));
                             try {
                                 org.json.JSONArray plugs = new org.json.JSONArray(srv.getAiPrompt());
                                 for (int i = 0; i < plugs.length(); i++) {
@@ -2766,49 +2800,49 @@ public class KodaServerService extends Service {
                                     String pidLower = pid.toLowerCase();
                                     
                                     if (pidLower.contains("protocollib")) {
-                                        log(id, "  🛡️ Intercepted: ProtocolLib -> Downloading from Koda Supabase!");
+                                        log(id, getString(R.string.con_intercepted_protocollib));
                                         downloadFromModrinth(id, "protocollib", srv, new File(pDir, "ProtocolLib.jar"));
                                         continue;
                                     }
                                     
                                     if (pidLower.contains("geyser") || pidLower.contains("floodgate")) {
-                                        log(id, "  🛡️ Intercepted: " + pid + " -> Enabling Native Bedrock Support!");
+                                        log(id, getString(R.string.con_intercepted_bedrock, pid));
                                         srv.setBedrockSupport(true);
                                         if (srv.getBedrockPort() == 0) srv.setBedrockPort(allocatePortSync(srv, "bedrock", 40000, 50000));
                                         eu.kodanetwork.mchost.model.ServerRepo.get(KodaServerService.this).update(srv);
                                         continue;
                                     }
                                     if (pidLower.contains("voicechat") || pidLower.contains("simple-voice-chat")) {
-                                        log(id, "  🎙️ Intercepted: " + pid + " -> Enabling Native VoiceChat!");
+                                        log(id, getString(R.string.con_intercepted_voicechat, pid));
                                         srv.setVoicechat(true);
                                         if (srv.getVoicechatPort() == 0) srv.setVoicechatPort(allocatePortSync(srv, "voicechat", 55000, 65000));
                                         eu.kodanetwork.mchost.model.ServerRepo.get(KodaServerService.this).update(srv);
                                         continue;
                                     }
                                     
-                                    log(id, "  ⬇️ AI Installing Plugin ID: " + pid);
+                                    log(id, getString(R.string.con_ai_installing_plugin, pid));
                                     File pluginFile = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync(pid, srv);
                                     if (pluginFile != null) {
-                                        log(id, "  ✓ Plugin installed: " + pluginFile.getName());
+                                        log(id, getString(R.string.con_plugin_installed, pluginFile.getName()));
                                     } else {
-                                        log(id, "  ✗ Plugin install failed for: " + pid);
+                                        log(id, getString(R.string.con_plugin_install_failed, pid));
                                     }
                                     sleep(500); // a small breather between downloads
                                 }
                             } catch (Exception e) {
-                                log(id, "  ❌ AI Setup Failed to parse plugins: " + e.getMessage());
+                                log(id, getString(R.string.con_ai_parse_plugins_failed, e.getMessage()));
                             }
                         }
 
-                        log(id, "  🧩 Injecting ENFORCEMENT Modules...");
+                        log(id, getString(R.string.con_injecting_enforcement));
                         ensurePluginsInstalled(srv, pDir);
 
-                        log(id, "  ♻️ Restarting to generate default configs...");
+                        log(id, getString(R.string.con_restarting_default_configs));
                         mainHandler.post(() -> startServer(srv));
                     });
                 }
             } else if (phase == 1) {
-                log(id, "  🧩 PHASE 2: Plugin Boot OK. Stopping to apply Custom Configs...");
+                log(id, getString(R.string.con_phase2_boot));
                 setupPhase.put(id, 2);
                 exec.submit(() -> {
                     sleep(10000); // plugins need a moment to write their configs
@@ -2816,22 +2850,22 @@ public class KodaServerService extends Service {
                     while (runtimes.containsKey(id)) { sleep(1000); }
                     setState(srv, ServerInstance.State.SETTING_UP);
                     
-                    log(id, "  🧩 Writing Paper optimization configs...");
+                    log(id, getString(R.string.con_writing_paper_configs));
                     try { writePaperOptimizationConfigs(srv, new File(srv.getServerDir())); } catch (Exception e) { Log.e(TAG, "Paper config error", e); }
                     
                     if (srv.getAiPrompt() != null && srv.getAiPrompt().trim().length() > 0 && !srv.getAiPrompt().equals("null") && !srv.getAiPrompt().equals("[]")) {
-                        log(id, "  🤖 AI SETUP: Generating custom configs via Gemini API... (This may take a moment)");
+                        log(id, getString(R.string.con_ai_generating_configs));
                         generateAiConfigs(srv);
                     } else {
-                        log(id, "  🧩 Applying custom design...");
+                        log(id, getString(R.string.con_applying_custom_design));
                         try { writeTabConfig(srv, new File(srv.getServerDir())); } catch (IOException e) { Log.e(TAG, "Tab config error", e); }
                     }
                     
-                    log(id, "  🚀 PHASE 3: Final Start...");
+                    log(id, getString(R.string.con_phase3_final_start));
                     mainHandler.post(() -> startServer(srv));
                 });
             } else if (phase == 2) {
-                log(id, "  ✅ SETUP COMPLETE! Downloading PAPI extensions...");
+                log(id, getString(R.string.con_setup_complete_papi));
                 setupPhase.put(id, 3);
                 exec.submit(() -> {
                     sleep(10000);
@@ -2853,7 +2887,7 @@ public class KodaServerService extends Service {
                 });
             }
         } else {
-            log(id, "✓ Server erfolgreich gestartet! Bereit für Spieler.");
+            log(id, getString(R.string.con_server_ready));
         }
     }
 
@@ -3039,7 +3073,7 @@ public class KodaServerService extends Service {
                 infraOkStreak = 0;
                 if (!wasOverloaded) {
                     Log.i("KodaInfra", "stopping all servers: " + reason);
-                    log("infra", "⚠ Tunnel server overloaded (" + reason + ") - stopping all servers to protect the network");
+                    log("infra", getString(R.string.con_infra_overloaded, reason));
                     stopAllServersForOverload();
                     eu.kodanetwork.mchost.App.getPrefs(this).edit()
                             .putBoolean("infra_overload", true)
@@ -3058,7 +3092,7 @@ public class KodaServerService extends Service {
                 // release only after two clean readings in a row
                 infraOkStreak++;
                 if (infraOkStreak >= 2) {
-                    log("infra", "Tunnel server is back to normal - servers can be started again");
+                    log("infra", getString(R.string.con_infra_normal));
                     eu.kodanetwork.mchost.App.getPrefs(this).edit()
                             .putBoolean("infra_overload", false)
                             .remove("infra_overload_reason")
@@ -3078,7 +3112,7 @@ public class KodaServerService extends Service {
         for (ServerInstance srv : ServerRepo.get(this).all()) {
             try {
                 if (srv.isRunning() || srv.state == ServerInstance.State.STARTING || srv.state == ServerInstance.State.SETTING_UP) {
-                    log(srv.getId(), "⚠ Stopping: the tunnel server is overloaded and has to recover");
+                    log(srv.getId(), getString(R.string.con_stopping_overloaded));
                     stopServer(srv, false);
                 }
             } catch (Exception e) {
@@ -3125,8 +3159,7 @@ public class KodaServerService extends Service {
 
                 setupStartedAt.remove(srv.getId());
                 boolean running = runtimes.containsKey(srv.getId());
-                log(srv.getId(), "⚠ Setup did not finish within 5 minutes - releasing the setup state "
-                        + (running ? "(server is running)" : "(server is stopped, you can start it)"));
+                log(srv.getId(), getString(R.string.con_setup_timeout, (running ? getString(R.string.con_setup_timeout_running) : getString(R.string.con_setup_timeout_stopped))));
                 setState(srv, running ? ServerInstance.State.ONLINE : ServerInstance.State.OFFLINE);
             }
         } catch (Exception e) {
@@ -3520,7 +3553,7 @@ public class KodaServerService extends Service {
 
     private void ensurePluginsInstalled(ServerInstance srv, File pDir) {
         if (srv.getType() == ServerInstance.Type.PAPER || srv.getType() == ServerInstance.Type.PURPUR || srv.getType() == ServerInstance.Type.FOLIA) {
-            log(srv.getId(), "  🔌 Installing KodaTransferPlugin...");
+            log(srv.getId(), getString(R.string.con_installing_plugin, "KodaTransferPlugin"));
             File sysDir = new File(srv.getServerDir(), ".sys");
             sysDir.mkdirs();
             extractPlugin(sysDir, "koda_transfer.jar", "koda_core.jar");
@@ -3538,23 +3571,23 @@ public class KodaServerService extends Service {
             boolean chunkyThere = hasChunky(new File(srv.getServerDir(), "plugins"))
                     || hasChunky(new File(srv.getServerDir(), "mods"));
             if (!chunkyThere) {
-                log(srv.getId(), "  🔌 Installing Chunky for the pre-generation...");
+                log(srv.getId(), getString(R.string.con_installing_chunky_pregen));
                 File chunky = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync("chunky", srv);
                 if (chunky != null) {
-                    log(srv.getId(), "  ✔ Chunky ready: " + chunky.getName());
+                    log(srv.getId(), getString(R.string.con_chunky_ready, chunky.getName()));
                 } else {
-                    log(srv.getId(), "  ⚠ Chunky could not be installed, pre-generation will not start");
+                    log(srv.getId(), getString(R.string.con_chunky_not_installed));
                 }
             }
         }
 
         if (srv.isAutoSetup() && srv.getAiPrompt().isEmpty()) {
-            log(srv.getId(), "  🔌 Installing TAB...");
+            log(srv.getId(), getString(R.string.con_installing_plugin, "TAB"));
             // live from Modrinth, picked for the server's Minecraft version and loader.
             // the bundled jar below is only the offline fallback.
             File tabJar = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync("gG7VFbG0", srv);
             if (tabJar != null && tabJar.exists()) {
-                log(srv.getId(), "  🔌 TAB " + tabJar.getName());
+                log(srv.getId(), getString(R.string.con_tab_file, tabJar.getName()));
             } else {
                 boolean modded = srv.getType() == ServerInstance.Type.FABRIC
                         || srv.getType() == ServerInstance.Type.FORGE
@@ -3566,13 +3599,13 @@ public class KodaServerService extends Service {
                     int r;
                     while ((r = is.read(b)) != -1) os.write(b, 0, r);
                 } catch (IOException e) { Log.e(TAG, "Failed to extract TAB", e); }
-                log(srv.getId(), "  🔌 TAB (bundled)");
+                log(srv.getId(), getString(R.string.con_tab_bundled));
             }
             // exactly one TAB jar may sit in that folder or the server refuses to load it.
             removeOtherTabJars(srv, pDir, tabJar);
             
             if (srv.getType() == ServerInstance.Type.PAPER || srv.getType() == ServerInstance.Type.PURPUR || srv.getType() == ServerInstance.Type.FOLIA) {
-                log(srv.getId(), "  🔌 Installing LuckPerms + PlaceholderAPI...");
+                log(srv.getId(), getString(R.string.con_installing_plugin, "LuckPerms + PlaceholderAPI"));
                 extractPlugin(pDir, "luckperms.jar", "LuckPerms.jar");
                 extractPlugin(pDir, "papi.jar", "PlaceholderAPI.jar");
             }
@@ -3585,26 +3618,26 @@ public class KodaServerService extends Service {
                 File geyserJar = new File(pDir, "Geyser.jar");
                 File floodgateJar = new File(pDir, "Floodgate.jar");
                 if (!geyserJar.exists() || !floodgateJar.exists()) {
-                    log(srv.getId(), "  🛡️ Downloading Bedrock Support (Geyser & Floodgate)...");
-                    if (!downloadFromGeyserCdn(srv.getId(), "geyser", geyserJar)) {
+                    log(srv.getId(), getString(R.string.con_bedrock_download));
+                    if (!downloadFromGeyserCdn(srv.getId(), "geyser", geyserJar, srv)) {
                         downloadFromModrinth(srv.getId(), "geyser", srv, geyserJar);
                     }
                     stripNativeLibsFromJar(geyserJar);
-                    if (!downloadFromGeyserCdn(srv.getId(), "floodgate", floodgateJar)) {
+                    if (!downloadFromGeyserCdn(srv.getId(), "floodgate", floodgateJar, srv)) {
                         downloadFromModrinth(srv.getId(), "floodgate", srv, floodgateJar);
                     }
                     stripNativeLibsFromJar(floodgateJar);
-                    log(srv.getId(), "  🛡️ Download Complete!");
+                    log(srv.getId(), getString(R.string.con_bedrock_download_done));
                 }
             }
 
             if (srv.isVoicechat()) {
                 File vcJar = new File(pDir, "Voicechat.jar");
                 if (!vcJar.exists()) {
-                    log(srv.getId(), "  🎤 Downloading Voicechat Support...");
+                    log(srv.getId(), getString(R.string.con_voicechat_download));
                     downloadFromModrinth(srv.getId(), "simple-voice-chat", srv, vcJar);
                     stripNativeLibsFromJar(vcJar);
-                    log(srv.getId(), "  🎤 Download Complete!");
+                    log(srv.getId(), getString(R.string.con_voicechat_download_done));
                 }
             }
         }
@@ -3697,7 +3730,7 @@ public class KodaServerService extends Service {
                     while ((r = is.read(b)) != -1) os.write(b, 0, r);
                 }
             } catch (Exception e) {
-                log(id, "  ✗ Failed to download plugin: " + target.getName());
+                log(id, getString(R.string.con_plugin_download_failed, target.getName()));
             }
         });
     }
@@ -3824,7 +3857,7 @@ public class KodaServerService extends Service {
      * the spigot jars a paper server needs live on download.geysermc.org. the newest version
      * plus the spigot artifact works across server versions.
      */
-    private boolean downloadFromGeyserCdn(String id, String project, File target) {
+    private boolean downloadFromGeyserCdn(String id, String project, File target, ServerInstance srv) {
         try {
             java.net.HttpURLConnection list = (java.net.HttpURLConnection)
                     new java.net.URL("https://download.geysermc.org/v2/projects/" + project).openConnection();
@@ -3834,8 +3867,24 @@ public class KodaServerService extends Service {
             org.json.JSONArray versions = new org.json.JSONObject(body).optJSONArray("versions");
             if (versions == null || versions.length() == 0) return false;
             String newest = versions.getString(versions.length() - 1);
-            String url = "https://download.geysermc.org/v2/projects/" + project + "/versions/" + newest
-                    + "/builds/latest/downloads/spigot";
+
+            // the newest build number, its metadata carries the sha256 of the artifact
+            String base = "https://download.geysermc.org/v2/projects/" + project + "/versions/" + newest;
+            org.json.JSONArray builds = new org.json.JSONObject(fetchText(base + "/builds")).optJSONArray("builds");
+            if (builds == null || builds.length() == 0) return false;
+            int buildNumber = builds.getJSONObject(builds.length() - 1).getInt("build");
+            String sha256 = "";
+            try {
+                org.json.JSONObject meta = new org.json.JSONObject(fetchText(base + "/builds/" + buildNumber));
+                org.json.JSONObject spigot = meta.optJSONObject("downloads") != null
+                        ? meta.getJSONObject("downloads").optJSONObject("spigot") : null;
+                if (spigot != null) {
+                    String sha = spigot.optString("sha256", "");
+                    if (sha.matches("[0-9a-fA-F]{64}")) sha256 = sha;
+                }
+            } catch (Exception ignored) { /* download still runs, just unverified */ }
+
+            String url = base + "/builds/" + buildNumber + "/downloads/spigot";
             java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
             c.setRequestProperty("User-Agent", "KodaNetwork/3.0");
             if (c.getResponseCode() != 200) return false;
@@ -3847,13 +3896,35 @@ public class KodaServerService extends Service {
                 while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
             }
             if (target.length() > 100000) {
-                log(id, "  \u2713 " + target.getName() + " von download.geysermc.org geladen");
+                if (!sha256.isEmpty()) {
+                    String actual = eu.kodanetwork.mchost.util.DownloadVerifier.hashHex(target, "SHA-256");
+                    if (!eu.kodanetwork.mchost.util.DownloadVerifier.matches(sha256, actual)) {
+                        //noinspection ResultOfMethodCallIgnored
+                        target.delete();
+                        log(id, getString(R.string.con_checksum_mismatch));
+                        return false;
+                    }
+                    log(id, getString(R.string.con_checksum_verified, "SHA-256"));
+                }
+                srv.pluginSources.put(target.getName(), "download.geysermc.org");
+                log(id, getString(R.string.con_downloaded_from_geyser, target.getName()));
                 return true;
             }
         } catch (Exception e) {
             Log.w(TAG, "GeyserMC download failed for " + project + ": " + e.getMessage());
         }
         return false;
+    }
+
+    /** small text fetch for the geyser cdn metadata. */
+    private static String fetchText(String url) throws IOException {
+        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+        c.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+        try (java.io.InputStream is = c.getInputStream()) {
+            return new java.util.Scanner(is).useDelimiter("\\A").next();
+        } finally {
+            c.disconnect();
+        }
     }
 
     private boolean downloadFromModrinth(String id, String slug, ServerInstance srv, File target) {
@@ -3864,7 +3935,8 @@ public class KodaServerService extends Service {
                     target.delete();
                     downloaded.renameTo(target);
                 }
-                log(id, "  \u2713 " + target.getName() + " von Modrinth geladen");
+                srv.pluginSources.put(target.getName(), "Modrinth \u00b7 " + slug);
+                log(id, getString(R.string.con_downloaded_from_modrinth, target.getName()));
                 return true;
             }
         } catch (Exception e) {
@@ -4069,7 +4141,7 @@ public class KodaServerService extends Service {
         try {
             return new SupabaseFunctionsClient(this).allocatePort("", srv.getSubdomain(), type);
         } catch (Exception e) {
-            log(srv.getId(), "❌ Proxy Port Allocation failed: " + e.getMessage() + ". Falling back to local port.");
+            log(srv.getId(), getString(R.string.con_port_allocation_failed, e.getMessage()));
             return getFreePort(min, max);
         }
     }
@@ -4498,11 +4570,10 @@ public class KodaServerService extends Service {
 
     private void checkRemoteCommands(ServerInstance srv) {
         android.content.SharedPreferences rPrefs = eu.kodanetwork.mchost.App.getPrefs(this);
-        if (!rPrefs.getBoolean("lobby_remote_control", true)) return;
         exec.submit(() -> {
             try {
                 okhttp3.Request request = new okhttp3.Request.Builder()
-                    .url(SUPABASE_REST + "/v_servers_public?host=eq." + srv.getSubdomain() + "&select=server_version,is_banned,host")
+                    .url(SUPABASE_REST + "/v_servers_public?host=eq." + srv.getSubdomain() + "&select=server_version,is_banned,ban_reason,host,base_domain,domain_switched_from")
                     .get()
                     .addHeader("apikey", SUPABASE_KEY)
                     .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
@@ -4515,8 +4586,18 @@ public class KodaServerService extends Service {
                         org.json.JSONObject obj = arr.getJSONObject(0);
                         String ver = obj.optString("server_version", "");
                         boolean isBanned = obj.optBoolean("is_banned", false);
+                        String banReason = obj.optString("ban_reason", "");
                         String host = obj.optString("host", "");
+                        String switchedFromDb = obj.optString("domain_switched_from", "");
+                        String baseDomainDb = obj.optString("base_domain", "");
 
+                        // the ban check runs regardless of the remote-control pref: a
+                        // banned server must never keep running or restart
+                        if (srv.banned != isBanned || !java.util.Objects.equals(srv.banReason, banReason)) {
+                            srv.banned = isBanned;
+                            srv.banReason = banReason;
+                            ServerRepo.get(KodaServerService.this).update(srv);
+                        }
                         if (isBanned || host.startsWith("deleted_")) {
                             Log.w(TAG, "Server has been banned or deleted by Admin! Terminating...");
                             try { stopServer(srv, true); } catch (Exception e) {}
@@ -4526,7 +4607,46 @@ public class KodaServerService extends Service {
                             }
                         }
 
-                        if (ver.equals("HIBERNATED")) {
+                        // domain switch bookkeeping: the network row is the truth in BOTH
+                        // directions. pick a switch up (covers a reinstall), drop a stale
+                        // mark when the row is back on its own domain (another device or a
+                        // test may have moved/restored it) and follow base_domain, so the
+                        // device can never stay stuck thinking it is on a temp domain -
+                        // that used to suppress the move offer forever.
+                        boolean domainChanged = false;
+                        if (!switchedFromDb.isEmpty()) {
+                            if (!switchedFromDb.equals(srv.domainSwitchedFrom)) {
+                                srv.domainSwitchedFrom = switchedFromDb;
+                                domainChanged = true;
+                            }
+                        } else if (srv.domainSwitchedFrom != null) {
+                            srv.domainSwitchedFrom = null;
+                            domainChanged = true;
+                        }
+                        if (!baseDomainDb.isEmpty() && !baseDomainDb.equalsIgnoreCase(srv.getBaseDomain())) {
+                            srv.setBaseDomain(baseDomainDb);
+                            domainChanged = true;
+                        }
+                        if (domainChanged) ServerRepo.get(KodaServerService.this).update(srv);
+                        if (srv.domainSwitchedFrom != null
+                                && !eu.kodanetwork.mchost.util.DomainStates.isOff(
+                                        eu.kodanetwork.mchost.util.DomainStates.modeOf(this, srv.domainSwitchedFrom))) {
+                            try {
+                                new eu.kodanetwork.mchost.network.supabase.SupabaseFunctionsClient(this)
+                                        .restoreDomain(srv.getSubdomain());
+                                srv.setBaseDomain(srv.domainSwitchedFrom);
+                                srv.domainSwitchedFrom = null;
+                                ServerRepo.get(KodaServerService.this).update(srv);
+                                Log.i(TAG, "domain restored for " + srv.getSubdomain());
+                            } catch (Exception e) {
+                                Log.w(TAG, "domain restore failed: " + e.getMessage());
+                            }
+                        }
+
+                        // remote commands stay optional, bans do not
+                        if (!rPrefs.getBoolean("lobby_remote_control", true)) return;
+
+                        if (ver.equals("HIBERNATED") || ver.equals("CMD:HIBERNATE")) {
                             if (srv.state != ServerInstance.State.HIBERNATED) {
                                 try {
                                     stopServer(srv, true);
@@ -4595,6 +4715,17 @@ public class KodaServerService extends Service {
                                     deleteRecursively(dir);
                                     dir.mkdirs();
                                 }
+                            } else if (cmd.equals("START") || cmd.equals("STOP") || cmd.equals("RESTART")) {
+                                // guest control from an invite link: reuse the exact paths the
+                                // app's own buttons use, the service guards state and bans itself
+                                android.content.Intent ctrl = new android.content.Intent(this, KodaServerService.class);
+                                ctrl.setAction("START".equals(cmd) ? ACTION_START : ("STOP".equals(cmd) ? ACTION_STOP : ACTION_RESTART));
+                                ctrl.putExtra(EXTRA_ID, srv.getId());
+                                try {
+                                    if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(ctrl);
+                                    else startService(ctrl);
+                                } catch (Exception ignored) {}
+                                ackRemoteCommand(srv);
                             } else if (cmd.startsWith("EXEC_")) {
                                 String toExec = cmd.substring(5);
                                 sendCmd(srv.getId(), toExec);
@@ -4722,13 +4853,13 @@ public class KodaServerService extends Service {
                                 sendCmd(srv.getId(), "whitelist off");
                             } else if (cmd.startsWith("INSTALL_PLUGIN_")) {
                                 String projectId = cmd.substring("INSTALL_PLUGIN_".length());
-                                log(srv.getId(), "  \uD83D\uDCE6 Installing plugin from Modrinth: " + projectId);
+                                log(srv.getId(), getString(R.string.con_modrinth_installing_plugin, projectId));
                                 File pluginFile = eu.kodanetwork.mchost.util.ModrinthHelper.autoDownloadSync(projectId, srv);
                                 if (pluginFile != null) {
-                                    log(srv.getId(), "  ✓ Plugin installed: " + pluginFile.getName());
-                                    log(srv.getId(), "  \u2139 Restart server to activate the plugin.");
+                                    log(srv.getId(), getString(R.string.con_plugin_installed, pluginFile.getName()));
+                                    log(srv.getId(), getString(R.string.con_restart_to_activate));
                                 } else {
-                                    log(srv.getId(), "  ✗ Plugin install failed for: " + projectId);
+                                    log(srv.getId(), getString(R.string.con_plugin_install_failed, projectId));
                                 }
                             } else if (cmd.startsWith("EXEC_")) {
                                 sendCmd(srv.getId(), cmd.substring(5));
@@ -4746,7 +4877,7 @@ public class KodaServerService extends Service {
     private void generateAiConfigs(ServerInstance srv) {
         String apiKey = eu.kodanetwork.mchost.App.getPrefs(this).getString("gemini_api_key", "");
         if (apiKey.isEmpty()) {
-            log(srv.getId(), "  ❌ AI Config skipped: No API Key.");
+            log(srv.getId(), getString(R.string.con_ai_no_api_key));
             return;
         }
 
@@ -4754,7 +4885,7 @@ public class KodaServerService extends Service {
             try {
                 java.io.File iconFile = new java.io.File(srv.getServerDir(), "server-icon.png");
                 if (!iconFile.exists()) {
-                    log(srv.getId(), "  🤖 AI SETUP: Generiere Icon...");
+                    log(srv.getId(), getString(R.string.con_ai_generating_icon));
                     android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(64, 64, android.graphics.Bitmap.Config.ARGB_8888);
                     android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
                     int color = android.graphics.Color.parseColor(srv.getThemeColor() != null ? srv.getThemeColor() : "#4CAF50");
@@ -4768,7 +4899,7 @@ public class KodaServerService extends Service {
                     java.io.FileOutputStream out = new java.io.FileOutputStream(iconFile);
                     bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
                     out.close();
-                    log(srv.getId(), "  ✓ Icon generiert.");
+                    log(srv.getId(), getString(R.string.con_ai_icon_done));
                 }
             } catch (Exception e) {
                 android.util.Log.e(TAG, "Failed to create server icon", e);
@@ -4813,7 +4944,7 @@ public class KodaServerService extends Service {
                     continue;
                 }
 
-                log(srv.getId(), "  🤖 AI SETUP: Configuring " + pName + " (" + current + "/" + total + ")...");
+                log(srv.getId(), getString(R.string.con_ai_configuring_plugin, pName, current, total));
 
                 try {
                     String urlStr = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
@@ -4871,23 +5002,23 @@ public class KodaServerService extends Service {
                                     File targetFile = new File(srv.getServerDir(), path);
                                     targetFile.getParentFile().mkdirs();
                                     java.nio.file.Files.write(targetFile.toPath(), content.getBytes());
-                                    log(srv.getId(), "  ✓ Updated config: " + path);
+                                    log(srv.getId(), getString(R.string.con_config_updated, path));
                                 }
                             }
                         }
                     } else {
-                        log(srv.getId(), "  ❌ API Error for " + pName + ": " + code);
+                        log(srv.getId(), getString(R.string.con_ai_api_error, pName, code));
                     }
                     
                     Thread.sleep(3000); // the API rate limits hard, so slow down between calls
                 } catch (Exception e) {
-                    log(srv.getId(), "  ❌ Exception for " + pName + ": " + e.getMessage());
+                    log(srv.getId(), getString(R.string.con_ai_exception, pName, e.getMessage()));
                 }
 
                 current++;
             }
         } catch (Exception e) {
-            log(srv.getId(), "  ❌ Exception in config generation setup: " + e.getMessage());
+            log(srv.getId(), getString(R.string.con_ai_setup_exception, e.getMessage()));
         }
     }
 
@@ -4970,15 +5101,15 @@ public class KodaServerService extends Service {
         String id = srv.getId();
         srv.startTime = System.currentTimeMillis();
         setState(srv, ServerInstance.State.STARTING);
-        log(id, "  🎃 Pumpkin " + srv.getVersion() + " (Rust, native)...");
+        log(id, getString(R.string.con_pumpkin_launching, srv.getVersion()));
 
         exec.submit(() -> {
             if (!eu.kodanetwork.mchost.util.PumpkinRuntime.isInstalled(this)) {
-                log(id, "  ⬇ Lade Pumpkin-Binary (~100 MB)...");
+                log(id, getString(R.string.con_pumpkin_downloading));
                 boolean ok = eu.kodanetwork.mchost.util.PumpkinRuntime.ensureBinarySync(this,
-                        (pct, msg) -> log(id, "  ⬇ Pumpkin: " + pct + "% (" + msg + ")"));
+                        (pct, msg) -> log(id, getString(R.string.con_pumpkin_progress, pct, msg)));
                 if (!ok) {
-                    log(id, "  ✗ Pumpkin-Binary nicht verfuegbar. Bitte erneut versuchen.");
+                    log(id, getString(R.string.con_pumpkin_unavailable));
                     setState(srv, ServerInstance.State.CRASHED);
                     return;
                 }
@@ -5018,7 +5149,7 @@ public class KodaServerService extends Service {
                 Log.i(TAG, "startPumpkin: process started, alive=" + proc.isAlive());
                 rt.proc = proc;
                 rt.stdin = new java.io.PrintStream(proc.getOutputStream(), true);
-                rt.logs.add("🎃 Pumpkin started");
+                rt.logs.add(getString(R.string.con_pumpkin_started_log));
 
                 runtimes.put(id, rt);
 
@@ -5036,7 +5167,7 @@ public class KodaServerService extends Service {
                 mainHandler.post(() -> {
                     runtimes.remove(id);
                     setState(srv, ServerInstance.State.OFFLINE);
-                    log(id, "  ⏹ Pumpkin exited.");
+                    log(id, getString(R.string.con_pumpkin_exited));
                 });
                 });
                 reader.setDaemon(true);
@@ -5044,9 +5175,9 @@ public class KodaServerService extends Service {
                 rt.loggerThread = reader;
 
                 setState(srv, ServerInstance.State.ONLINE);
-                log(id, "  ✓ Pumpkin online. Console: 'help' fuer Befehle.");
+                log(id, getString(R.string.con_pumpkin_online));
             } catch (Exception e) {
-                log(id, "  ✗ Pumpkin start failed: " + e.getMessage());
+                log(id, getString(R.string.con_pumpkin_start_failed, e.getMessage()));
                 setState(srv, ServerInstance.State.CRASHED);
             }
         });
