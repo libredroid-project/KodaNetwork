@@ -98,6 +98,11 @@
                     <exclude>**/*.yaml</exclude>
                 </excludes>
             </resource>
+            <!-- the license text travels inside the jar -->
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes><include>COPYING</include></includes>
+            </resource>
         </resources>
 
         <plugins>
@@ -125,11 +130,5 @@
                 </executions>
             </plugin>
         </plugins>
-                <resources>
-                <resource>
-                    <directory>${project.basedir}</directory>
-                    <includes><include>COPYING</include></includes>
-                </resource>
-            </resources>
         </build>
 </project>

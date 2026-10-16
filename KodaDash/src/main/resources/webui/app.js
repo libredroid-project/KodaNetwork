@@ -519,7 +519,7 @@ function drawSparkline(canvasId, values, max, color) {
     var pad = 4;
     var usable = h - pad * 2;
     var step = w / (values.length - 1);
-    var stroke = color === 'var(--brand)' ? '#FF6B00' : '#FFB68C';
+    var stroke = color === 'var(--brand)' ? '#FF6B00' : '#FFA45C';
     var flat = values.every(function (v) { return v === values[0]; });
 
     ctx.beginPath();
@@ -2329,7 +2329,7 @@ function saveResourcePack() {
 
 /* ------------------------------------------------------- metrics history */
 
-var metricsColours = { tps: '#FF6B00', ram: '#B39DDB', players: '#4DB6AC' };
+var metricsColours = { tps: '#FF6B00', ram: '#FFA45C', players: '#6FBE7E' };
 
 /**
  * draws one series into an SVG element (viewBox 0 0 300 70). continuous line with a subtle

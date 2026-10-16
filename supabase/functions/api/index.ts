@@ -1534,8 +1534,21 @@ async function dnsBootstrap(req: Request, body: any, cors: Record<string, string
   const targetIp = str(body.target_ip, 64);
   const domain = (str(body.domain, 100) ?? "kodanetwork.eu").toLowerCase();
   const fqdn = (str(body.fqdn, 150) ?? `api.${domain}`).toLowerCase();
-  if (!targetIp || !/^[0-9]{1,3}(\.[0-9]{1,3}){3}$/.test(targetIp)) return fail("invalid_target_ip", 400, cors);
+  // A is the default (the api subdomain case). SRV covers the per server records,
+  // which can go missing on a host without the app being able to re-link (the
+  // java join address is the bare host name, so a missing SRV is a dead address).
+  const recordType = (str(body.type, 8) ?? "A").toUpperCase();
+  const recordName = (str(body.name, 150) ?? fqdn).toLowerCase();
+  const srvContent = str(body.content, 200);
+  const srvPrio = Number(body.prio ?? 0);
+  const ttl = Number(body.ttl ?? 3600);
+  const deleteOnly = body.delete === true;
+  if (!["A", "SRV", "TXT"].includes(recordType)) return fail("invalid_type", 400, cors);
   if (!fqdn.endsWith(`.${domain}`)) return fail("invalid_fqdn", 400, cors);
+  if (recordType === "SRV" && !srvContent && !deleteOnly) return fail("missing_content", 400, cors);
+  if (recordType === "A" && (!targetIp || !/^[0-9]{1,3}(\.[0-9]{1,3}){3}$/.test(targetIp))) {
+    return fail("invalid_target_ip", 400, cors);
+  }
 
   const apiKey = `${Deno.env.get("IONOS_API_PREFIX") ?? ""}.${Deno.env.get("IONOS_API_SECRET") ?? ""}`;
   if (apiKey === ".") return fail("ionos_credentials_missing", 500, cors);
@@ -1548,11 +1561,12 @@ async function dnsBootstrap(req: Request, body: any, cors: Record<string, string
     const zone = (zones as any[])?.find((z: any) => z.name === domain);
     if (!zone) throw new Error(`zone ${domain} not found`);
 
-    // idempotent: drop an existing A record for the fqdn first
+    // idempotent: drop an existing record of this name+type first (or only drop, with delete: true)
     const existingRes = await fetch(
-      `https://api.hosting.ionos.com/dns/v1/zones/${zone.id}?recordName=${encodeURIComponent(fqdn)}&recordType=A`,
+      `https://api.hosting.ionos.com/dns/v1/zones/${zone.id}?recordName=${encodeURIComponent(recordName)}&recordType=${recordType}`,
       { headers: { "X-API-Key": apiKey } },
     );
+    let removed = 0;
     if (existingRes.ok) {
       const existing = await existingRes.json();
       for (const rec of existing?.records ?? []) {
@@ -1560,17 +1574,24 @@ async function dnsBootstrap(req: Request, body: any, cors: Record<string, string
           method: "DELETE",
           headers: { "X-API-Key": apiKey },
         });
+        removed++;
       }
     }
+    if (deleteOnly) {
+      return json({ ok: true, removed, name: recordName, type: recordType, zone: zone.name }, 200, cors);
+    }
 
+    const record: Record<string, unknown> = recordType === "SRV"
+      ? { name: recordName, type: "SRV", content: srvContent, ttl, prio: srvPrio, disabled: false }
+      : { name: recordName, type: recordType, content: recordType === "A" ? targetIp : srvContent, ttl, disabled: false };
     const createRes = await fetch(`https://api.hosting.ionos.com/dns/v1/zones/${zone.id}/records`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-      body: JSON.stringify([{ name: fqdn, type: "A", content: targetIp, ttl: 3600, disabled: false }]),
+      body: JSON.stringify([record]),
     });
-    if (!createRes.ok) throw new Error("A record creation failed: " + await createRes.text());
+    if (!createRes.ok) throw new Error(`${recordType} record creation failed: ` + await createRes.text());
     const created = await createRes.json();
-    return json({ ok: true, fqdn, target_ip: targetIp, record_id: created?.[0]?.id ?? null }, 200, cors);
+    return json({ ok: true, fqdn, name: recordName, type: recordType, target_ip: targetIp, record_id: created?.[0]?.id ?? null }, 200, cors);
   } catch (e) {
     return json({ ok: false, error: "dns_error", detail: String((e as Error).message) }, 500, cors);
   }
