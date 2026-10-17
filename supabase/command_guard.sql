@@ -23,7 +23,23 @@
 -- with another CMD:; state reports bounce off it until the device acknowledges
 -- (the acknowledgement is a normal state value). This is the live definition of
 -- rpc_patch_server with that one CASE branch replaced.
+--
+-- 2026-10-17 NACHZUG: die erste Fassung dieses Guards hat auch die Quittung des
+-- Geraets blockiert, denn die ist ebenfalls ein normaler Zustandswert - CMD:START/
+-- STOP/RESTART/EXEC_/HIBERNATE blieben dadurch fuer immer in der Spalte stehen und
+-- die App hat sie bei jedem 10-Sekunden-Poll erneut ausgefuehrt (Endlosschleife).
+-- Zwei Aenderungen:
+--   * public.rpc_ack_server_command(): die ausdrueckliche Quittung des Geraets
+--     (app_uuid + device_token geprueft) schreibt den Zustand und raeumt das
+--     Kommando weg. Bewusst eine eigene Funktion: rpc_patch_server behaelt den
+--     Guard fuer alle anderen Schreiber, die Quittung muss sich nicht vorbeischleichen.
+--   * command_at + 120-s-Ventil: ein CMD:, das niemand quittiert hat (alter Client,
+--     abgeschossener Dienst, verlorener Request), darf nach zwei Minuten von einem
+--     normalen Zustandsschreiben ersetzt werden, damit ein Server nie wieder auf
+--     einem Kommando festsitzt.
 -- ============================================================================
+
+ALTER TABLE public.koda_servers ADD COLUMN IF NOT EXISTS command_at timestamp with time zone;
 
 CREATE OR REPLACE FUNCTION public.rpc_patch_server(p_app_uuid text, p_device_token text, p_host text, p_payload jsonb)
  RETURNS void
@@ -51,10 +67,15 @@ BEGIN
       WHEN p_payload ? 'server_version' AND p_payload->>'server_version' LIKE 'CMD:%'
         THEN p_payload->>'server_version'
       WHEN p_payload ? 'server_version' AND COALESCE(server_version, '') LIKE 'CMD:%'
+           AND COALESCE(command_at, to_timestamp(0)) > now() - interval '120 seconds'
         THEN server_version
       WHEN p_payload ? 'server_version'
         THEN p_payload->>'server_version'
       ELSE server_version END,
+    command_at = CASE
+      WHEN p_payload ? 'server_version' AND p_payload->>'server_version' LIKE 'CMD:%' THEN now()
+      WHEN p_payload ? 'server_version' THEN NULL
+      ELSE command_at END,
     online_players = CASE WHEN p_payload ? 'online_players' THEN (p_payload->>'online_players')::integer ELSE online_players END,
     last_online = CASE WHEN p_payload ? 'last_online' THEN (p_payload->>'last_online')::timestamp with time zone ELSE last_online END,
     gamemode = CASE WHEN p_payload ? 'gamemode' THEN p_payload->>'gamemode' ELSE gamemode END,
@@ -71,3 +92,32 @@ BEGIN
   WHERE host = p_host;
 END;
 $function$
+
+-- ============================================================================
+-- the device's acknowledgement. verified like every device write, but it writes
+-- the state directly (no CMD guard): after consuming a command the device is the
+-- one authority on what state the server is in now.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.rpc_ack_server_command(p_app_uuid text, p_device_token text, p_host text, p_server_version text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE v_owner text;
+BEGIN
+  IF NOT public.fn_verify_device_token(p_app_uuid, p_device_token) THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+  SELECT owner_app_uuid INTO v_owner FROM public.koda_servers WHERE host = p_host;
+  IF v_owner IS NULL THEN RAISE EXCEPTION 'Server not found'; END IF;
+  IF v_owner != p_app_uuid THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  UPDATE public.koda_servers
+     SET server_version = COALESCE(p_server_version, ''),
+         command_at = NULL
+   WHERE host = p_host;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.rpc_ack_server_command(text, text, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.rpc_ack_server_command(text, text, text, text) TO anon, authenticated;

@@ -588,17 +588,29 @@ public class KodaServerService extends Service {
      * clears a consumed remote command (CMD:START and friends) by writing the real
      * state back, so the next poll does not execute the same command again.
      */
+    /** what the panel reads back: version = online, OFFLINE|version = stopped, HIBERNATED = asleep. */
+    private String stateValue(ServerInstance srv) {
+        String ver = srv.getVersion() == null ? "1.21.11" : srv.getVersion();
+        if (srv.state == ServerInstance.State.ONLINE) return ver;
+        if (srv.state == ServerInstance.State.HIBERNATED) return "HIBERNATED";
+        return "OFFLINE|" + ver;
+    }
+
+    /**
+     * tells the network that a command was consumed and what state the server is in now.
+     * own rpc on purpose: rpc_patch_server keeps a pending CMD: against the periodic
+     * status report, so a normal state write bounces off it - and a command that is never
+     * cleared is executed again on every 10 s poll (endless restart/stop loops).
+     */
     private void ackRemoteCommand(ServerInstance srv) {
         try {
-            String ver = srv.getVersion() == null ? "1.21.11" : srv.getVersion();
-            boolean up = srv.state == ServerInstance.State.ONLINE;
-            String patchJson = "{\"server_version\": \"" + (up ? ver : "OFFLINE|" + ver) + "\"}";
-            String appUuid = eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "");
-            String rpcJson = "{\"p_app_uuid\":\"" + appUuid + "\", \"p_device_token\":\"" + getDeviceToken()
-                    + "\", \"p_host\":\"" + srv.getSubdomain() + "\", \"p_payload\": " + patchJson + "}";
+            String rpcJson = "{\"p_app_uuid\":\"" + eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "")
+                    + "\", \"p_device_token\":\"" + getDeviceToken()
+                    + "\", \"p_host\":\"" + srv.getSubdomain()
+                    + "\", \"p_server_version\": " + org.json.JSONObject.quote(stateValue(srv)) + "}";
             okhttp3.RequestBody body = okhttp3.RequestBody.create(rpcJson, okhttp3.MediaType.parse("application/json"));
             okhttp3.Request ackReq = new okhttp3.Request.Builder()
-                .url(SUPABASE_REST + "/rpc/rpc_patch_server")
+                .url(SUPABASE_REST + "/rpc/rpc_ack_server_command")
                 .post(body)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "return=minimal")
@@ -607,7 +619,7 @@ public class KodaServerService extends Service {
                 .build();
             // runs inside the command poller thread already, a short blocking call is fine
             httpClient.newCall(ackReq).execute().close();
-        } catch (Exception ignored) { /* the periodic state report clears it anyway */ }
+        } catch (Exception ignored) { /* the 120 s valve in rpc_patch_server releases it then */ }
     }
 
     private void checkCapacityWatchdog() {
@@ -4657,6 +4669,8 @@ public class KodaServerService extends Service {
                                     Log.e(TAG, "Remote hibernate failed", e);
                                 }
                             }
+                            // CMD:HIBERNATE ends here, not in the command chain - acknowledge it
+                            if (ver.startsWith("CMD:")) ackRemoteCommand(srv);
                         } else if (ver.startsWith("CMD:")) {
                             String cmd = ver.substring(4);
                             Log.d(TAG, "Received Remote Command: " + cmd);
@@ -4684,6 +4698,9 @@ public class KodaServerService extends Service {
                                     ServerRepo.get(KodaServerService.this).update(srv);
                                 }
                             } else if (cmd.equals("DELETE")) {
+                                // acknowledge first: the tombstone write below renames the row to
+                                // deleted_<host>, after that no ack could find it any more
+                                ackRemoteCommand(srv);
                                 try { stopServer(srv, true); } catch (Exception e) {}
                                 ServerRepo.get(KodaServerService.this).delete(srv.getId());
                                 // tombstone through the RPC, a direct DELETE is blocked by RLS
@@ -4715,20 +4732,6 @@ public class KodaServerService extends Service {
                                     deleteRecursively(dir);
                                     dir.mkdirs();
                                 }
-                            } else if (cmd.equals("START") || cmd.equals("STOP") || cmd.equals("RESTART")) {
-                                // guest control from an invite link: reuse the exact paths the
-                                // app's own buttons use, the service guards state and bans itself
-                                android.content.Intent ctrl = new android.content.Intent(this, KodaServerService.class);
-                                ctrl.setAction("START".equals(cmd) ? ACTION_START : ("STOP".equals(cmd) ? ACTION_STOP : ACTION_RESTART));
-                                ctrl.putExtra(EXTRA_ID, srv.getId());
-                                try {
-                                    if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(ctrl);
-                                    else startService(ctrl);
-                                } catch (Exception ignored) {}
-                                ackRemoteCommand(srv);
-                            } else if (cmd.startsWith("EXEC_")) {
-                                String toExec = cmd.substring(5);
-                                sendCmd(srv.getId(), toExec);
                             } else if (cmd.equals("INSTALL_KODADASH")) {
                                 srv.setKodadashSupport(true);
                                 if (srv.getKodadashPort() <= 0) {
@@ -4764,6 +4767,7 @@ public class KodaServerService extends Service {
                                 }
                                 return;
                             } else if (cmd.equals("DISABLE_KODADASH")) {
+                                ackRemoteCommand(srv);
                                 srv.setKodadashSupport(false);
                                 ServerRepo.get(KodaServerService.this).update(srv);
 
@@ -4791,20 +4795,12 @@ public class KodaServerService extends Service {
                                 }
                                 return;
                             }
-                            // clear the command right away, otherwise it fires again
-                            String jsonBody = "{\"server_version\": \"" + (srv.getVersion() == null ? "1.21.11" : srv.getVersion()) + "\"}";
+                            // clear the command right away, otherwise it fires again. this is the
+                            // acknowledgement rpc, the one write that passes the CMD guard in
+                            // rpc_patch_server - a normal state write here bounces off the guard
+                            // while a command is pending, which made START/STOP loop forever.
                             String appUuid = eu.kodanetwork.mchost.App.getPrefs(KodaServerService.this).getString("app_uuid", "");
-                            String rpcJson = "{\"p_app_uuid\":\"" + appUuid + "\", \"p_device_token\":\"" + getDeviceToken() + "\", \"p_host\":\"" + srv.getSubdomain() + "\", \"p_payload\": " + jsonBody + "}";
-                            okhttp3.RequestBody body = okhttp3.RequestBody.create(rpcJson, okhttp3.MediaType.parse("application/json"));
-                            okhttp3.Request patchReq = new okhttp3.Request.Builder()
-                                .url(SUPABASE_REST + "/rpc/rpc_patch_server")
-                                .post(body)
-                                .addHeader("Content-Type", "application/json")
-                                .addHeader("Prefer", "return=minimal")
-                                .addHeader("apikey", SUPABASE_KEY)
-                                .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
-                                .build();
-                            httpClient.newCall(patchReq).execute().close();
+                            ackRemoteCommand(srv);
 
                             // now run the command we just cleared
                             if (cmd.equals("START")) {
