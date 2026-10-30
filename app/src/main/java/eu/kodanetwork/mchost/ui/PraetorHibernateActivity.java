@@ -38,8 +38,13 @@ public class PraetorHibernateActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
-        setContentView(eu.kodanetwork.mchost.util.Material3ThemeHelper.isM3Enabled(this)
-                ? R.layout.activity_praetor_hibernate_m3 : R.layout.activity_praetor_hibernate);
+        setContentView(R.layout.activity_praetor_hibernate);
+        if (getWindow() != null) {
+            getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
 
         TextView tvTitle = findViewById(R.id.tv_praetor_title);
         String praetorHtml = "<font color='#555555'>P.R.</font><font color='#AAAAAA'>A.E.T.</font><font color='#FFFFFF'>O.R.</font>";
@@ -47,8 +52,8 @@ public class PraetorHibernateActivity extends Activity {
 
         TextView tvCountdown = findViewById(R.id.tv_praetor_countdown);
         MaterialButton btnConfirm = findViewById(R.id.btn_praetor_confirm);
-        MaterialButton btnCancel = findViewById(R.id.btn_praetor_cancel);
-        MaterialButton btnExplanation = findViewById(R.id.btn_praetor_explanation);
+        android.view.View btnCancel = findViewById(R.id.btn_praetor_cancel);
+        android.view.View btnExplanation = findViewById(R.id.btn_praetor_explanation);
 
         btnCancel.setOnClickListener(v -> {
             setResult(RESULT_CANCELED);

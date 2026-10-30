@@ -121,3 +121,19 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.rpc_ack_server_command(text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.rpc_ack_server_command(text, text, text, text) TO anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 2026-10-17: server_version war varchar(32). Ein SETPROP_motd_<base64> sprengt
+-- das bei jedem laengeren Text ("CMD:SETPROP_motd_" belegt schon 18 Zeichen).
+-- Spalte auf varchar(200) erweitert; die View haengt an der Spalte und muss
+-- dabei kurz weichen. Beides zusammen ausfuehren, sonst kommt
+-- "cannot alter type of a column used by a view".
+-- (live angewendet; die App-Seite hat den SETPROP-Zweig ohnehin schon.)
+-- ---------------------------------------------------------------------------
+-- DROP VIEW public.v_servers_public;
+-- ALTER TABLE public.koda_servers ALTER COLUMN server_version TYPE varchar(200);
+-- CREATE VIEW public.v_servers_public AS
+--   SELECT host, server_version, base_domain, online_players, max_players, motd,
+--          gamemode, difficulty, pvp, whitelist, is_banned, ban_reason,
+--          last_online, ram_mb, domain_switched_from
+--     FROM public.koda_servers;

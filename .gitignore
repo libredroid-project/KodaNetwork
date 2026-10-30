@@ -71,3 +71,7 @@ KodaLobbyPlugin/target/
 
 # Supabase-Backups enthalten Instanz-/Nutzerdaten - niemals eincommitten
 supabase/backup-*/
+
+# local tool caches
+.mimosa/
+.video_agent/

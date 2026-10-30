@@ -110,7 +110,8 @@ public class CreateServerActivity extends AppCompatActivity {
     private String selectedVersion = "1.21.4";
     private List<String> currentVersions = new ArrayList<>();
     private LinearLayout layoutThemeColor;
-    private android.widget.NumberPicker npServerType;
+    private eu.kodanetwork.mchost.util.KodaTypeDial npServerType;
+    private TextView tvTypeCaption;
     private View layoutNameSection, layoutTypeSection, layoutVersionSection, layoutSetupSection;
     private MaterialButton btnCreate, btnImport, btnImportZip;
 
@@ -382,6 +383,7 @@ public class CreateServerActivity extends AppCompatActivity {
         View layoutVersionPicker = findViewById(R.id.layout_version_picker);
         if (layoutVersionPicker != null) layoutVersionPicker.setOnClickListener(v -> showVersionPicker());
         npServerType    = findViewById(R.id.np_server_type);
+        tvTypeCaption   = findViewById(R.id.tv_type_caption);
         tvModpackSelected = findViewById(R.id.tv_modpack_selected);
         rbSetupModpack = findViewById(R.id.rb_setup_modpack);
         if (rbSetupModpack != null) {
@@ -1060,6 +1062,11 @@ public class CreateServerActivity extends AppCompatActivity {
                     wheelNames[i] = TYPE_NAMES[i] + " (" + getString(R.string.pumpkin_coming_soon_short) + ")";
                 }
             }
+            String dialStyle = eu.kodanetwork.mchost.App.getPrefs(this)
+                    .getString("dev_type_dial_style", "top");
+            npServerType.setStyle("side".equals(dialStyle)
+                    ? eu.kodanetwork.mchost.util.KodaTypeDial.STYLE_SIDE
+                    : eu.kodanetwork.mchost.util.KodaTypeDial.STYLE_TOP);
             npServerType.setDisplayedValues(wheelNames);
 
         // turning pre-generation on unfolds the radius slider right below the switch,
@@ -1067,8 +1074,8 @@ public class CreateServerActivity extends AppCompatActivity {
         setupPregenSlider();
             npServerType.setValue(0);
             npServerType.setWrapSelectorWheel(true);
-            npServerType.setOnValueChangedListener((picker, oldVal, newVal) -> {
-                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
+            npServerType.setOnValueChangedListener((oldVal, newVal) -> {
+                // the dial ticks per detent on its own, a 80 ms buzz per step would stack
                 selectType(newVal);
             });
         }
@@ -1076,6 +1083,9 @@ public class CreateServerActivity extends AppCompatActivity {
 
     private void selectType(int idx) {
         selectedTypeIndex = idx;
+        if (tvTypeCaption != null && npServerType != null) {
+            tvTypeCaption.setText(npServerType.getDisplayedValue());
+        }
         // auto design only exists for some types, so show the option only there
         ServerInstance.Type type = TYPE_VALS[idx];
         boolean supportsAutoDesign = AUTO_DESIGN_TYPES.contains(type);

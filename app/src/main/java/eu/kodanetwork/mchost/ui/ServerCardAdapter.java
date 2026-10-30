@@ -46,6 +46,7 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
     private final Context ctx;
     private final Click click;
     private KodaServerService svc;
+    private final java.util.Set<String> introDone = new java.util.HashSet<>();
 
     public ServerCardAdapter(Context c, Click cl) { ctx = c; click = cl; }
     public void setData(List<ServerInstance> d)   { data = new ArrayList<>(d); notifyDataSetChanged(); }
@@ -86,7 +87,15 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
         return new VH(v);
     }
 
-    @Override public void onBindViewHolder(@NonNull VH h, int i) { h.bind(data.get(i)); }
+    @Override public void onBindViewHolder(@NonNull VH h, int i) {
+        ServerInstance item = data.get(i);
+        // a status refresh rebinds the same card again; only the first appearance animates
+        if (introDone.size() < 8 && !introDone.contains(item.getId())) {
+            introDone.add(item.getId());
+            eu.kodanetwork.mchost.util.KodaMotion.revealItem(h.itemView, introDone.size() - 1);
+        }
+        h.bind(item);
+    }
     @Override public int  getItemCount() { return data.size(); }
 
     class VH extends RecyclerView.ViewHolder {

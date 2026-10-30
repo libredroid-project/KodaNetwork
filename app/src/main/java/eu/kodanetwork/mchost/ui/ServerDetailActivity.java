@@ -572,6 +572,8 @@ public class ServerDetailActivity extends AppCompatActivity {
     private void setupPumpkinOverrides() {
         View layoutJavaRuntime = findViewById(R.id.layout_java_runtime);
         if (layoutJavaRuntime != null) layoutJavaRuntime.setVisibility(View.GONE);
+        View layoutStartJar = findViewById(R.id.layout_start_jar);
+        if (layoutStartJar != null) layoutStartJar.setVisibility(View.GONE);
 
         View cardGameplay = findViewById(R.id.card_settings_gameplay);
         if (cardGameplay != null) cardGameplay.setVisibility(View.GONE);
@@ -944,7 +946,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         
         // header
         TextView tvName = view.findViewById(R.id.tv_pm_player_name);
-        tvName.setText(player + (isOnline ? " (Online)" : " (Offline)"));
+        tvName.setText(getString(isOnline ? R.string.pm_header_online : R.string.pm_header_offline, player));
         
         // buttons
         android.widget.Button btnHeal = view.findViewById(R.id.btn_pm_heal);
@@ -1490,6 +1492,12 @@ public class ServerDetailActivity extends AppCompatActivity {
         animatePanel(pFiles, i == 2);
         if (pPlugins != null) animatePanel(pPlugins, hasPluginsTab() && i == 3);
         animatePanel(pSettings, i == targetSettings);
+        android.view.View shownPanel = i == 0 ? pDash
+                : i == 1 ? pConsole
+                : i == 2 ? pFiles
+                : (pPlugins != null && hasPluginsTab() && i == 3 ? pPlugins
+                : (i == targetSettings ? pSettings : null));
+        eu.kodanetwork.mchost.util.KodaMotion.revealPanel(shownPanel);
         if (i == 2) refreshFiles();
     }
 
@@ -1899,11 +1907,8 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void handleDnsOccupied() {
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(R.layout.dialog_join_address);
-        eu.kodanetwork.mchost.util.DialogLandFix.apply(dialog);
-        dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-        dialog.getWindow().setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                inflateSheet(R.layout.dialog_join_address, true);
 
         String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
         android.widget.TextView tvTitle = dialog.findViewById(R.id.tv_dialog_title);
@@ -2052,7 +2057,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             tvBadge.setTextColor(col);
         }
         int playerCount = server.onlinePlayerNames != null ? server.onlinePlayerNames.size() : server.onlinePlayers;
-        if (tvPlayers != null) tvPlayers.setText(playerCount + " / " + server.getMaxPlayers() + " Spieler");
+        if (tvPlayers != null) tvPlayers.setText(getString(R.string.players_count_format, playerCount, server.getMaxPlayers()));
         updateSleekDash(st, label, col, playerCount);
 
         boolean running = server.isRunning();
@@ -3285,6 +3290,236 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
+    private void updateStartJarLabel(TextView tv) {
+        if (tv == null) return;
+        String chosen = server.getLauncherJar();
+        tv.setText(chosen.isEmpty() ? getString(R.string.sd_start_jar_auto_value) : chosen);
+    }
+
+    private boolean isJarCandidate(File f) {
+        if (f == null || !f.isFile()) return false;
+        String n = f.getName().toLowerCase();
+        return n.endsWith(".jar") && !n.contains("installer");
+    }
+
+    /** the jar the launcher would pick on its own right now, shown as the auto preview. */
+    private File autoDetectStartJar() {
+        File dir = new File(server.getServerDir());
+        File[] files = dir.listFiles();
+        if (files == null) return null;
+        boolean forge = server.getType() == ServerInstance.Type.FORGE
+                || server.getType() == ServerInstance.Type.NEOFORGE;
+        File best = null;
+        for (File f : files) {
+            if (!isJarCandidate(f)) continue;
+            String n = f.getName().toLowerCase();
+            if (n.contains("paperclip")) continue;
+            if (forge && !n.startsWith("forge") && !n.startsWith("neoforge")) continue;
+            if (best == null
+                    || (forge && f.lastModified() > best.lastModified())
+                    || (!forge && n.compareTo(best.getName().toLowerCase()) < 0)) {
+                best = f;
+            }
+        }
+        return best;
+    }
+
+    /** every jar the server folder offers, root first and one level of subfolders. */
+    private java.util.List<String> listServerJars() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        File dir = new File(server.getServerDir());
+        File[] rootFiles = dir.listFiles();
+        if (rootFiles == null) return out;
+        java.util.Arrays.sort(rootFiles, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        for (File f : rootFiles) if (isJarCandidate(f)) out.add(f.getName());
+
+        File[] subs = dir.listFiles(File::isDirectory);
+        if (subs == null) return out;
+        java.util.Arrays.sort(subs, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        for (File sub : subs) {
+            String n = sub.getName().toLowerCase();
+            if (n.startsWith("world") || n.equals("libraries") || n.equals("mods") || n.equals("plugins")
+                    || n.equals("logs") || n.equals("cache") || n.equals(".sys") || n.equals("config")
+                    || n.equals("koda_transfer")) {
+                continue;
+            }
+            File[] jars = sub.listFiles();
+            if (jars == null) continue;
+            java.util.Arrays.sort(jars, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+            for (File f : jars) if (isJarCandidate(f)) out.add(sub.getName() + "/" + f.getName());
+        }
+        return out;
+    }
+
+    private android.graphics.drawable.GradientDrawable jarRowBackground(boolean selected) {
+        float d = getResources().getDisplayMetrics().density;
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(selected ? 0xFF2A2222 : 0xFF232329);
+        bg.setCornerRadius(10 * d);
+        if (selected) bg.setStroke((int) Math.max(1, d), 0xFFFF5449);
+        return bg;
+    }
+
+    private void addStartJarRow(LinearLayout parent, final java.util.List<android.view.View> rows,
+                                final java.util.List<String> values, String title, String sub, String value,
+                                final String[] picked, final Runnable repaint) {
+        final float d = getResources().getDisplayMetrics().density;
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        int padH = (int) (14 * d);
+        int padV = (int) (10 * d);
+        row.setPadding(padH, padV, padH, padV);
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText(title);
+        tvTitle.setTextColor(0xFFF5F5F7);
+        tvTitle.setTextSize(14);
+        tvTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        row.addView(tvTitle);
+
+        if (sub != null && !sub.isEmpty()) {
+            TextView tvSub = new TextView(this);
+            tvSub.setText(sub);
+            tvSub.setTextColor(0xFF8A8A9A);
+            tvSub.setTextSize(11);
+            row.addView(tvSub);
+        }
+
+        row.setOnClickListener(v -> {
+            picked[0] = value;
+            repaint.run();
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
+        });
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = (int) (8 * d);
+        parent.addView(row, lp);
+        rows.add(row);
+        values.add(value);
+    }
+
+    /** pick the file the server launches, as the praetor sheet with the danger styling. */
+    private void showStartJarPicker(TextView tvStartJar) {
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+        sheet.setContentView(R.layout.sheet_praetor_jar);
+        sheet.setCancelable(true);
+
+        final float d = getResources().getDisplayMetrics().density;
+        View root = sheet.findViewById(R.id.sheet_jar_root);
+        if (root != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+                int bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+                v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(),
+                        (int) (24 * d) + bottom);
+                return insets;
+            });
+        }
+
+        android.widget.TextView wordmark = sheet.findViewById(R.id.tv_praetor_wordmark);
+        if (wordmark != null) {
+            wordmark.setText(android.text.Html.fromHtml(
+                    "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
+
+        File autoJar = autoDetectStartJar();
+        String autoName = autoJar != null ? autoJar.getName() : getString(R.string.sd_start_jar_none);
+        TextView tvCurrent = sheet.findViewById(R.id.tv_jar_current);
+        if (tvCurrent != null) {
+            String current = server.getLauncherJar().isEmpty()
+                    ? getString(R.string.sd_start_jar_auto) + " · " + autoName
+                    : server.getLauncherJar();
+            tvCurrent.setText(getString(R.string.sd_start_jar_current, current));
+        }
+
+        final String[] picked = { server.getLauncherJar() };
+        LinearLayout options = sheet.findViewById(R.id.layout_jar_options);
+        final java.util.List<android.view.View> rows = new java.util.ArrayList<>();
+        final java.util.List<String> values = new java.util.ArrayList<>();
+
+        final Runnable repaint = () -> {
+            for (int i = 0; i < rows.size(); i++) {
+                boolean selected = values.get(i).equals(picked[0]);
+                rows.get(i).setBackground(jarRowBackground(selected));
+            }
+        };
+
+        if (options != null) {
+            addStartJarRow(options, rows, values, getString(R.string.sd_start_jar_auto),
+                    autoName, "", picked, repaint);
+            for (String rel : listServerJars()) {
+                addStartJarRow(options, rows, values, rel, null, rel, picked, repaint);
+            }
+            repaint.run();
+            // the sheet only takes the space the file list needs, a long list scrolls
+            options.post(() -> {
+                android.view.View scroll = sheet.findViewById(R.id.scroll_jar_options);
+                if (scroll == null) return;
+                int cap = (int) (216 * d);
+                if (options.getHeight() > cap) {
+                    scroll.getLayoutParams().height = cap;
+                    scroll.requestLayout();
+                }
+            });
+        }
+
+        final MaterialButton apply = sheet.findViewById(R.id.btn_jar_apply);
+        View cancel = sheet.findViewById(R.id.btn_jar_cancel);
+        apply.setEnabled(false);
+        apply.setText(getString(R.string.sd_start_jar_waiting, 5));
+
+        final android.os.CountDownTimer timer = new android.os.CountDownTimer(5000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                apply.setText(getString(R.string.sd_start_jar_waiting,
+                        (int) (millisUntilFinished / 1000)));
+            }
+
+            @Override
+            public void onFinish() {
+                apply.setText(R.string.sd_start_jar_apply);
+                apply.setEnabled(true);
+                eu.kodanetwork.mchost.util.KodaSheetMotion.pop(apply);
+            }
+        };
+        timer.start();
+
+        if (cancel != null) {
+            cancel.setOnClickListener(v -> {
+                timer.cancel();
+                sheet.dismiss();
+            });
+        }
+        apply.setOnClickListener(v -> {
+            timer.cancel();
+            server.setLauncherJar(picked[0]);
+            repo.update(server);
+            updateStartJarLabel(tvStartJar);
+            sheet.dismiss();
+            android.widget.Toast.makeText(this, getString(R.string.sd_start_jar_saved),
+                    android.widget.Toast.LENGTH_LONG).show();
+        });
+        sheet.setOnDismissListener(x -> timer.cancel());
+
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300), 300);
+        blinkWarning(sheet.findViewById(R.id.tv_warning_triangle));
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(root);
+    }
+
     private void showJavaRuntimePicker(TextView tvJavaRuntime) {
         com.google.android.material.bottomsheet.BottomSheetDialog sheet =
                 new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
@@ -3558,6 +3793,19 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (javaRuntimeRow != null && tvJavaRuntime != null) {
             updateJavaRuntimeLabel(tvJavaRuntime);
             javaRuntimeRow.setOnClickListener(v -> showJavaRuntimePicker(tvJavaRuntime));
+        }
+
+        // start jar: the file the server really launches. automatic stays the default,
+        // this is the way out when the installer left something the launcher cannot pick.
+        View startJarRow = findViewById(R.id.layout_start_jar);
+        TextView tvStartJar = findViewById(R.id.tv_start_jar);
+        if (startJarRow != null && tvStartJar != null) {
+            if (server.isDatabase()) {
+                startJarRow.setVisibility(View.GONE);
+            } else {
+                updateStartJarLabel(tvStartJar);
+                startJarRow.setOnClickListener(v -> showStartJarPicker(tvStartJar));
+            }
         }
 
         updateIntegrationStatus();
@@ -3920,8 +4168,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                         return;
                     }
                     
-                    android.content.Intent intent = new android.content.Intent(this, eu.kodanetwork.mchost.ui.PraetorHibernateActivity.class);
-                    startActivityForResult(intent, 5005);
+                    showHibernateSheet();
                 }
             });
         }
@@ -3954,24 +4201,37 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
 
         btnDelServer.setOnClickListener(v -> {
-            android.app.Dialog dialog = new android.app.Dialog(this);
-            dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-            dialog.setContentView(R.layout.dialog_praetor_delete);
-        eu.kodanetwork.mchost.util.DialogLandFix.apply(dialog);
-            dialog.setCancelable(false);
-            if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-                dialog.getWindow().setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+            final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                    new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+            // same edge-to-edge window the network rules sheet uses, otherwise the nav bar
+            // stays with the activity and shows up black
+            setupWindowDecor(sheet.getWindow());
+            sheet.setContentView(R.layout.sheet_praetor_confirm);
+            sheet.setCancelable(true);
+            final float sheetDensity = getResources().getDisplayMetrics().density;
+            android.view.View sheetRoot = sheet.findViewById(R.id.sheet_root);
+            if (sheetRoot != null) {
+                androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(sheetRoot, (sheetView, insets) -> {
+                    int bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+                    sheetView.setPadding(sheetView.getPaddingLeft(), sheetView.getPaddingTop(),
+                            sheetView.getPaddingRight(), (int) (24 * sheetDensity) + bottom);
+                    return insets;
+                });
             }
 
-            android.widget.TextView tvTitle = dialog.findViewById(R.id.tv_dialog_title);
-            android.widget.Button btnPos = dialog.findViewById(R.id.btn_dialog_delete);
-            android.widget.Button btnNeg = dialog.findViewById(R.id.btn_dialog_cancel);
-
-            if (tvTitle != null) {
-                String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
-                tvTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
+            android.widget.TextView wordmark = sheet.findViewById(R.id.tv_praetor_wordmark);
+            if (wordmark != null) {
+                wordmark.setText(android.text.Html.fromHtml(
+                        "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                        android.text.Html.FROM_HTML_MODE_LEGACY));
             }
+            android.widget.TextView delTitle = sheet.findViewById(R.id.tv_delete_title);
+            if (delTitle != null && server.getName() != null && !server.getName().trim().isEmpty()) {
+                delTitle.setText(getString(R.string.sd_delete_title_named, server.getName()));
+            }
+
+            android.widget.Button btnPos = sheet.findViewById(R.id.btn_dialog_delete);
+            android.view.View btnNeg = sheet.findViewById(R.id.btn_dialog_cancel);
 
             btnPos.setEnabled(false);
             btnPos.setEnabled(false);
@@ -3992,7 +4252,7 @@ public class ServerDetailActivity extends AppCompatActivity {
 
             btnNeg.setOnClickListener(v2 -> {
                 timer.cancel();
-                dialog.dismiss();
+                sheet.dismiss();
             });
 
             btnPos.setOnClickListener(v2 -> {
@@ -4002,7 +4262,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                     boolean hasNet = eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(ServerDetailActivity.this);
                     runOnUiThread(() -> {
                         if (hasNet) {
-                            dialog.dismiss();
+                            sheet.dismiss();
                             Intent intent = new Intent(ServerDetailActivity.this, DeleteServerActivity.class);
                             intent.putExtra("SERVER_ID", server.getId());
                             startActivity(intent);
@@ -4015,8 +4275,143 @@ public class ServerDetailActivity extends AppCompatActivity {
                 }).start();
             });
 
-            dialog.show();
+            sheet.show();
+            if (sheet.getWindow() != null) {
+                sheet.getWindow().setNavigationBarColor(0xFF241C18);
+                if (android.os.Build.VERSION.SDK_INT >= 29) {
+                    sheet.getWindow().setNavigationBarContrastEnforced(false);
+                }
+            }
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
+                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300), 300);
+            blinkWarning(sheet.findViewById(R.id.tv_warning_triangle));
+            eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheet.findViewById(R.id.sheet_root));
         });
+    }
+
+    /** hibernate confirmation as a real bottom sheet: slides up, dismisses on outside tap. */
+    private void showHibernateSheet() {
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+        sheet.setContentView(R.layout.sheet_praetor_hibernate);
+        sheet.setCancelable(true);
+
+        final float density = getResources().getDisplayMetrics().density;
+        android.view.View sheetRoot = sheet.findViewById(R.id.sheet_hibernate_root);
+        if (sheetRoot != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(sheetRoot, (sheetView, insets) -> {
+                int bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+                sheetView.setPadding(sheetView.getPaddingLeft(), sheetView.getPaddingTop(),
+                        sheetView.getPaddingRight(), (int) (24 * density) + bottom);
+                return insets;
+            });
+        }
+
+        android.widget.TextView wordmark = sheet.findViewById(R.id.tv_praetor_title);
+        if (wordmark != null) {
+            wordmark.setText(android.text.Html.fromHtml(
+                    "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
+
+        android.view.View explain = sheet.findViewById(R.id.btn_praetor_explanation);
+        if (explain != null) {
+            explain.setOnClickListener(v -> new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.praetor_hibernate_title)
+                    .setMessage(R.string.praetor_hibernate_explanation)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show());
+        }
+
+        final android.widget.Button confirm = sheet.findViewById(R.id.btn_praetor_confirm);
+        android.view.View cancel = sheet.findViewById(R.id.btn_praetor_cancel);
+        confirm.setEnabled(false);
+        confirm.setText(getString(R.string.praetor_hibernate_btn_waiting, 10));
+
+        final android.os.CountDownTimer[] timer = new android.os.CountDownTimer[1];
+        timer[0] = new android.os.CountDownTimer(10000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                confirm.setText(getString(R.string.praetor_hibernate_btn_waiting,
+                        (int) (millisUntilFinished / 1000)));
+            }
+
+            @Override
+            public void onFinish() {
+                confirm.setText(R.string.praetor_hibernate_confirm);
+                confirm.setEnabled(true);
+                eu.kodanetwork.mchost.util.KodaSheetMotion.pop(confirm);
+            }
+        };
+        timer[0].start();
+
+        if (cancel != null) {
+            cancel.setOnClickListener(v -> {
+                timer[0].cancel();
+                sheet.dismiss();
+            });
+        }
+        confirm.setOnClickListener(v -> {
+            timer[0].cancel();
+            sheet.dismiss();
+            performHibernate();
+        });
+        sheet.setOnDismissListener(d -> timer[0].cancel());
+
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300), 300);
+        blinkWarning(sheet.findViewById(R.id.tv_warning_triangle));
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheet.findViewById(R.id.sheet_hibernate_root));
+    }
+
+    /** the small red triangle blinks twice and then stays visible. */
+    private void blinkWarning(android.view.View triangle) {
+        if (triangle == null) return;
+        android.animation.ObjectAnimator blink = android.animation.ObjectAnimator.ofFloat(
+                triangle, "alpha", 1f, 0f, 1f, 0f, 1f);
+        blink.setDuration(900);
+        blink.setStartDelay(250);
+        blink.start();
+    }
+
+    /** runs the hibernation with the full screen progress overlay. */
+    private void performHibernate() {
+        if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(this)) return;
+        android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Translucent_NoTitleBar_Fullscreen);
+        dialog.setContentView(R.layout.dialog_hibernating);
+        dialog.setCancelable(false);
+
+        android.view.View topBar = findViewById(R.id.app_top_bar);
+        if (topBar != null) topBar.setVisibility(android.view.View.INVISIBLE);
+        dialog.show();
+
+        new Thread(() -> {
+            try {
+                eu.kodanetwork.mchost.utils.HibernationManager.hibernateServer(this, server, repo);
+                runOnUiThread(() -> {
+                    try { dialog.dismiss(); } catch (Exception ignored) {}
+                    if (topBar != null) topBar.setVisibility(android.view.View.VISIBLE);
+                    updateDash();
+                    android.widget.Toast.makeText(this, getString(R.string.status_hibernated), android.widget.Toast.LENGTH_SHORT).show();
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    try { dialog.dismiss(); } catch (Exception ignored) {}
+                    if (topBar != null) topBar.setVisibility(android.view.View.VISIBLE);
+                    android.widget.Toast.makeText(this, getString(R.string.sd_toast_error_prefix) + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
     }
 
     private void deleteRecursively(File fileOrDirectory) {
@@ -4420,15 +4815,12 @@ public class ServerDetailActivity extends AppCompatActivity {
             return;
         }
 
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(R.layout.dialog_join_address);
-        eu.kodanetwork.mchost.util.DialogLandFix.apply(dialog);
-        dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-        dialog.getWindow().setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                inflateSheet(R.layout.dialog_join_address, true);
 
         String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
         ((android.widget.TextView) dialog.findViewById(R.id.tv_dialog_title)).setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
-        ((android.widget.TextView) dialog.findViewById(R.id.tv_dialog_subtitle)).setText(R.string.praetor_subtitle);
+        ((android.widget.TextView) dialog.findViewById(R.id.tv_dialog_subtitle)).setText(R.string.change_join_address);
         ((android.widget.TextView) dialog.findViewById(R.id.tv_dialog_message)).setText(R.string.praetor_message_change_domain);
 
         android.widget.EditText input = dialog.findViewById(R.id.et_dialog_input);
@@ -4619,6 +5011,12 @@ public class ServerDetailActivity extends AppCompatActivity {
             });
         });
         dialog.show();
+        android.view.View domainContainer = dialog.findViewById(R.id.container_join_domain);
+        if (domainContainer != null) {
+            domainContainer.post(() -> {
+                if (updateDomainUi[0] != null) updateDomainUi[0].run();
+            });
+        }
     }
 
     // ── guest invite links (share the server with friends) ──────────────
@@ -5924,9 +6322,8 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showAddonOptions(String addonType, android.widget.CompoundButton toggleSwitch) {
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(R.layout.dialog_praetor_addon);
-        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                inflateSheet(R.layout.dialog_praetor_addon, false);
         
         TextView tvTitle = dialog.findViewById(R.id.tv_praetor_title);
         String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
@@ -6007,9 +6404,8 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showAddonWarningDialog(String addonType, android.widget.CompoundButton toggleSwitch) {
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(R.layout.dialog_praetor_addon);
-        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                inflateSheet(R.layout.dialog_praetor_addon, false);
         
         TextView tvTitle = dialog.findViewById(R.id.tv_praetor_title);
         String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
@@ -6324,7 +6720,29 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         java.util.LinkedHashMap<String, String> fileVals = new java.util.LinkedHashMap<>();
         java.util.LinkedHashMap<String, String> modelVals = new java.util.LinkedHashMap<>();
-        collectPropsDrift(props, "motd", server.getMotd(), fileVals, modelVals);
+        // the file holds the section sign form, the model the ampersand form, so both
+        // sides are compared in the server form. without this the dialog showed up on
+        // every single server open.
+        String rawFileMotd = props.getProperty("motd");
+        String fileMotd = rawFileMotd == null ? null
+                : eu.kodanetwork.mchost.util.MinecraftColors.repairMojibake(rawFileMotd);
+        String modelMotd = server.getMotd();
+        if (fileMotd != null && modelMotd != null) {
+            boolean hexOk = serverSupportsHexColor();
+            String fileCanonical = eu.kodanetwork.mchost.util.MinecraftColors.toPropertiesEscaped(fileMotd);
+            String modelCanonical = eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(modelMotd, hexOk);
+            if (fileCanonical.equals(modelCanonical)) {
+                if (!fileMotd.equals(rawFileMotd)) {
+                    // the file sat in utf-8, rewrite the one value in the server form
+                    java.util.Map<String, String> fix = new java.util.HashMap<>();
+                    fix.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(modelMotd, hexOk));
+                    writePropsEntries(propsFile, fix);
+                }
+            } else {
+                fileVals.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toAmpersand(fileMotd));
+                modelVals.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toAmpersand(modelMotd));
+            }
+        }
         collectPropsDrift(props, "gamemode", server.getGamemode() == null ? null : server.getGamemode().name(), fileVals, modelVals);
         collectPropsDrift(props, "difficulty", server.getDifficulty() == null ? null : server.getDifficulty().name(), fileVals, modelVals);
         collectPropsDrift(props, "pvp", String.valueOf(server.isPvp()), fileVals, modelVals);
@@ -6363,7 +6781,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             for (java.util.Map.Entry<String, String> e : fileVals.entrySet()) {
                 String v = e.getValue();
                 switch (e.getKey()) {
-                    case "motd": server.setMotd(v); break;
+                    case "motd": server.setMotd(eu.kodanetwork.mchost.util.MinecraftColors.toAmpersand(v)); break;
                     case "gamemode":
                         try { server.setGamemode(ServerInstance.Gamemode.valueOf(v.toLowerCase())); } catch (Exception ignored) {} break;
                     case "difficulty":
@@ -6382,7 +6800,11 @@ public class ServerDetailActivity extends AppCompatActivity {
         btnUseApp.setText(getString(R.string.sd_props_use_app));
         btnUseApp.setOnClickListener(x -> {
             java.util.Map<String, String> restore = new java.util.HashMap<>();
-            if (server.getMotd() != null) restore.put("motd", server.getMotd());
+            if (server.getMotd() != null) {
+                // the model is in ampersand form, the file needs the server form
+                restore.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(
+                        server.getMotd(), serverSupportsHexColor()));
+            }
             if (server.getGamemode() != null) restore.put("gamemode", server.getGamemode().name());
             if (server.getDifficulty() != null) restore.put("difficulty", server.getDifficulty().name());
             restore.put("pvp", String.valueOf(server.isPvp()));
@@ -6398,7 +6820,9 @@ public class ServerDetailActivity extends AppCompatActivity {
             android.widget.Spinner spinnerGamemode = findViewById(R.id.spinner_gamemode);
             android.widget.CompoundButton switchPvp = findViewById(R.id.switch_pvp);
             if (etMaxPlayers != null) etMaxPlayers.setText(String.valueOf(server.getMaxPlayers()));
-            if (etMotd != null && server.getMotd() != null) etMotd.setText(server.getMotd());
+            if (etMotd != null && server.getMotd() != null) {
+                etMotd.setText(eu.kodanetwork.mchost.util.MinecraftColors.toAmpersand(server.getMotd()));
+            }
             if (spinnerGamemode != null && server.getGamemode() != null) {
                 String[] gamemodes = {"survival", "creative", "adventure", "spectator"};
                 for (int i = 0; i < gamemodes.length; i++) {
@@ -7532,16 +7956,23 @@ public class ServerDetailActivity extends AppCompatActivity {
     private void showNameEditDialog() {
         if (isServerBannedCached()) return; // banned servers have a frozen name
         if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(this)) return;
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.setContentView(R.layout.dialog_praetor_input);
-        eu.kodanetwork.mchost.util.DialogLandFix.apply(dialog);
-        dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-        dialog.getWindow().setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-        
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(dialog.getWindow());
+        dialog.setContentView(R.layout.sheet_praetor_input);
+        final float nameDensity = getResources().getDisplayMetrics().density;
+        android.view.View inputRoot = dialog.findViewById(R.id.sheet_input_root);
+        if (inputRoot != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(inputRoot, (sheetView, insets) -> {
+                int bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+                sheetView.setPadding(sheetView.getPaddingLeft(), sheetView.getPaddingTop(),
+                        sheetView.getPaddingRight(), (int) (24 * nameDensity) + bottom);
+                return insets;
+            });
+        }
+
         String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
         ((android.widget.TextView) dialog.findViewById(R.id.tv_dialog_title)).setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
-        ((android.widget.TextView) dialog.findViewById(R.id.tv_dialog_subtitle)).setText(R.string.praetor_subtitle_change_name);
-        ((android.widget.TextView) dialog.findViewById(R.id.tv_dialog_message)).setText(R.string.praetor_message_change_name);
         
         android.widget.EditText input = dialog.findViewById(R.id.et_dialog_input);
         input.setText(server.getName());
@@ -7569,6 +8000,13 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
         });
         dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                dialog.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(dialog.findViewById(R.id.sheet_input_root));
     }
 
     private void copyToClipboard(String label, String text) {
@@ -7577,6 +8015,62 @@ public class ServerDetailActivity extends AppCompatActivity {
         clipboard.setPrimaryClip(clip);
         eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
         android.widget.Toast.makeText(this, label + getString(R.string.sd_toast_copied_suffix), android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * takes one of the old dialog layouts, pulls its card out of the dim wrapper and
+     * shows it as a real Koda bottom sheet. the old view ids stay valid.
+     */
+    private com.google.android.material.bottomsheet.BottomSheetDialog inflateSheet(int layoutRes, boolean extractFirstChild) {
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+
+        android.view.View content = getLayoutInflater().inflate(layoutRes, null);
+        android.view.View card = content;
+        if (extractFirstChild && content instanceof android.view.ViewGroup
+                && ((android.view.ViewGroup) content).getChildCount() > 0) {
+            card = ((android.view.ViewGroup) content).getChildAt(0);
+            ((android.view.ViewGroup) content).removeView(card);
+        }
+        card.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+
+        final float density = getResources().getDisplayMetrics().density;
+        android.widget.LinearLayout wrapper = new android.widget.LinearLayout(this);
+        wrapper.setOrientation(android.widget.LinearLayout.VERTICAL);
+        wrapper.setBackgroundResource(R.drawable.bg_koda_sheet);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(wrapper, (v, insets) -> {
+            int bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), bottom);
+            return insets;
+        });
+
+        android.view.View handle = new android.view.View(this);
+        android.graphics.drawable.GradientDrawable handleBg = new android.graphics.drawable.GradientDrawable();
+        handleBg.setColor(0xFF3A3A44);
+        handleBg.setCornerRadius(2 * density);
+        handle.setBackground(handleBg);
+        android.widget.LinearLayout.LayoutParams handleLp = new android.widget.LinearLayout.LayoutParams(
+                (int) (32 * density), (int) (4 * density));
+        handleLp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
+        handleLp.topMargin = (int) (12 * density);
+        handleLp.bottomMargin = (int) (8 * density);
+        wrapper.addView(handle, handleLp);
+        wrapper.addView(card, new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        sheet.setContentView(wrapper);
+        sheet.setCancelable(true);
+        final android.view.View sheetCard = card;
+        sheet.setOnShowListener(d -> eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheetCard));
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        return sheet;
     }
 
     private void setupWindowDecor(android.view.Window w) {

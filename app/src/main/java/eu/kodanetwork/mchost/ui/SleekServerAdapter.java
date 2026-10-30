@@ -44,6 +44,7 @@ public class SleekServerAdapter extends RecyclerView.Adapter<SleekServerAdapter.
 
     private final List<ServerInstance> servers;
     private final OnServerClick listener;
+    private final java.util.Set<String> introDone = new java.util.HashSet<>();
 
     public SleekServerAdapter(List<ServerInstance> servers, OnServerClick listener) {
         this.servers = servers;
@@ -68,6 +69,11 @@ public class SleekServerAdapter extends RecyclerView.Adapter<SleekServerAdapter.
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
         ServerInstance s = servers.get(position);
+        // a status refresh rebinds the same card again; only the first appearance animates
+        if (introDone.size() < 8 && !introDone.contains(s.getId())) {
+            introDone.add(s.getId());
+            eu.kodanetwork.mchost.util.KodaMotion.revealItem(holder.itemView, introDone.size() - 1);
+        }
         holder.tvName.setText(s.getName());
         holder.tvAddress.setText(s.getJoinAddress());
         holder.tvType.setText(s.getType().name());

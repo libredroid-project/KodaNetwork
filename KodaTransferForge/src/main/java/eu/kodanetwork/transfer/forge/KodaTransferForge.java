@@ -248,6 +248,7 @@ public class KodaTransferForge {
         }
     }
     private int statsTickCounter = 0;
+    private boolean statsErrorLogged = false;
 
     /**
      * writes the live player stats for the app player manager every two seconds, same
@@ -257,8 +258,10 @@ public class KodaTransferForge {
         if (++statsTickCounter < 40) return;
         statsTickCounter = 0;
         try {
-            File dir = new File(net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile(),
-                    "koda_transfer/playerdata/stats");
+            // an empty game dir turns into "/koda_transfer" when it is used as a File parent
+            java.io.File base = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().toFile();
+            if (base.getPath().isEmpty()) base = new java.io.File(".");
+            File dir = new File(base, "koda_transfer/playerdata/stats");
             if (!dir.isDirectory()) dir.mkdirs();
             for (net.minecraft.server.level.ServerPlayer player : server.getPlayerList().getPlayers()) {
                 try {
@@ -278,8 +281,12 @@ public class KodaTransferForge {
                                 + ",\"mobsKilled\":" + mobs + ",\"damageTaken\":" + damage
                                 + ",\"blocksMined\":" + mined + "}");
                     }
+                    statsErrorLogged = false;
                 } catch (Throwable t) {
-                    System.out.println("[KodaTransfer] live stats failed: " + t);
+                    if (!statsErrorLogged) {
+                        statsErrorLogged = true;
+                        System.out.println("[KodaTransfer] live stats failed: " + t);
+                    }
                 }
             }
         } catch (Throwable ignored) {

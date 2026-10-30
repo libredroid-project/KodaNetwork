@@ -130,7 +130,8 @@ public class SettingsActivity extends Activity {
         setupExtensions();
         setupExtensionEntries();
         setupExtensionThemesEntry();
-        
+        styleDevSwitches();
+
         styleTrack(findViewById(R.id.container_theme));
         styleTrack(findViewById(R.id.container_style));
         styleTrack(findViewById(R.id.container_timeout));
@@ -139,6 +140,17 @@ public class SettingsActivity extends Activity {
 
         // then the premium button styling
         stylePremiumButtons();
+
+        // the cards come in one after another instead of appearing all at once
+        android.view.View settingsContent = findViewById(android.R.id.content);
+        if (settingsContent instanceof android.view.ViewGroup && ((android.view.ViewGroup) settingsContent).getChildCount() > 0) {
+            android.view.View revealRoot = ((android.view.ViewGroup) settingsContent).getChildAt(0);
+            while (revealRoot instanceof android.view.ViewGroup
+                    && ((android.view.ViewGroup) revealRoot).getChildCount() == 1) {
+                revealRoot = ((android.view.ViewGroup) revealRoot).getChildAt(0);
+            }
+            eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(revealRoot);
+        }
 
         if (android.os.Build.VERSION.SDK_INT >= 23) {
             getWindow().getDecorView().setOnApplyWindowInsetsListener((v, insets) -> {
@@ -401,6 +413,14 @@ public class SettingsActivity extends Activity {
         }
 
  
+        // playful motion (dev option): staggered cards, panels and sheets
+        com.google.android.material.switchmaterial.SwitchMaterial swPlayful = findViewById(R.id.switch_dev_playful);
+        if (swPlayful != null) {
+            swPlayful.setChecked(prefs.getBoolean("dev_playful_motion", false));
+            swPlayful.setOnCheckedChangeListener((btn, checked) ->
+                    prefs.edit().putBoolean("dev_playful_motion", checked).apply());
+        }
+
         // sleek redesign toggle (dev option)
         com.google.android.material.switchmaterial.SwitchMaterial swSleek = findViewById(R.id.switch_dev_sleek);
         if (swSleek != null) {
@@ -434,6 +454,35 @@ public class SettingsActivity extends Activity {
             });
         }
 
+        // server type dial style (dev option, the second look for the type chooser)
+        android.widget.Button btnDevDial = findViewById(R.id.btn_dev_dial_style);
+        if (btnDevDial != null) {
+            updateDialStyleButton(btnDevDial, prefs);
+            btnDevDial.setOnClickListener(v -> {
+                final String[] items = {"Top view (metal knob)", "Side view (drum with 3D names)"};
+                int checked = "side".equals(prefs.getString("dev_type_dial_style", "top")) ? 1 : 0;
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("Server type dial")
+                        .setSingleChoiceItems(items, checked, (dialog, which) -> {
+                            prefs.edit().putString("dev_type_dial_style", which == 1 ? "side" : "top").apply();
+                            updateDialStyleButton(btnDevDial, prefs);
+                            dialog.dismiss();
+                            Toast.makeText(this, "Open New Server to see the dial", Toast.LENGTH_SHORT).show();
+                        })
+                        .show();
+            });
+        }
+
+        // one minute as a mainland China device, for checking the legal notice
+        android.widget.Button btnChinaSim = findViewById(R.id.btn_dev_china_sim);
+        if (btnChinaSim != null) {
+            btnChinaSim.setOnClickListener(v -> {
+                prefs.edit().putLong("dev_region_simulate_until", System.currentTimeMillis() + 60000L).apply();
+                startActivity(new android.content.Intent(this, RegionBlockActivity.class));
+                Toast.makeText(this, "China notice for 60 seconds", Toast.LENGTH_SHORT).show();
+            });
+        }
+
         // KodaCluster roles (USB device cluster)
         com.google.android.material.switchmaterial.SwitchMaterial swClusterMaster = findViewById(R.id.switch_dev_cluster_master);
         if (swClusterMaster != null) {
@@ -446,7 +495,7 @@ public class SettingsActivity extends Activity {
             });
             if (swClusterMaster.isChecked()) eu.kodanetwork.mchost.cluster.ClusterMaster.get(this).start();
         }
-        com.google.android.material.button.MaterialButton btnClusterDash = findViewById(R.id.btn_cluster_dashboard);
+        android.widget.Button btnClusterDash = findViewById(R.id.btn_cluster_dashboard);
         if (btnClusterDash != null) {
             btnClusterDash.setOnClickListener(v ->
                     startActivity(new android.content.Intent(this, eu.kodanetwork.mchost.cluster.ClusterActivity.class)));
@@ -480,7 +529,7 @@ public class SettingsActivity extends Activity {
         });
 
         // dev: force a nickname sync (only useful when it is local and the DB is empty)
-        com.google.android.material.button.MaterialButton btnNickSync = findViewById(R.id.btn_dev_nick_sync);
+        android.widget.Button btnNickSync = findViewById(R.id.btn_dev_nick_sync);
         if (btnNickSync != null) {
             btnNickSync.setOnClickListener(v -> {
                 eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
@@ -2507,5 +2556,33 @@ public class SettingsActivity extends Activity {
             });
         }).start();
     }
+
+    /** grey when off, purple when on, no matter which theme skin is active. */
+    private void styleDevSwitches() {
+        int[] ids = {R.id.switch_bio_main, R.id.switch_dev_liquid_glass, R.id.switch_dev_playful, R.id.switch_dev_material3,
+                R.id.switch_dev_sleek, R.id.switch_dev_old_icon, R.id.switch_dev_v2_cards,
+                R.id.switch_dev_cluster_master, R.id.switch_dev_cluster_slave,
+                R.id.switch_dev_terminal, R.id.switch_dev_notion, R.id.switch_dev_apple};
+        android.content.res.ColorStateList thumb = new android.content.res.ColorStateList(
+                new int[][]{{android.R.attr.state_checked}, {}},
+                new int[]{0xFFB388FF, 0xFF6B6B75});
+        android.content.res.ColorStateList track = new android.content.res.ColorStateList(
+                new int[][]{{android.R.attr.state_checked}, {}},
+                new int[]{0xFF8E6BD9, 0xFF3A3A44});
+        for (int id : ids) {
+            android.view.View v = findViewById(id);
+            if (v instanceof androidx.appcompat.widget.SwitchCompat) {
+                androidx.appcompat.widget.SwitchCompat sw = (androidx.appcompat.widget.SwitchCompat) v;
+                sw.setThumbTintList(thumb);
+                sw.setTrackTintList(track);
+            }
+        }
+    }
+
+    private void updateDialStyleButton(android.widget.Button button, android.content.SharedPreferences prefs) {
+        String style = prefs.getString("dev_type_dial_style", "top");
+        button.setText("Server type dial: " + ("side".equals(style) ? "Side view" : "Top view"));
+    }
+
 
 }

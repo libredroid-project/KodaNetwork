@@ -208,6 +208,9 @@
     <string name="praetor_action_auto_ram">AUTO-DOSTOSUJ RAM</string>
     <string name="praetor_action_start_anyway">URUCHOM MIMO TO (RYZYKO)</string>
     <string name="praetor_action_cancel">Anuluj</string>
+    <string name="praetor_action_save">Zapisz</string>
+    <string name="praetor_execute_waiting">Wykonaj (%1$ds)</string>
+    <string name="praetor_network_missing">Brak połączenia</string>
     <string name="email_verification">WERYFIKACJA E-MAIL</string>
     <string name="enter_code">Podaj 6-cyfrowy kod</string>
     <string name="verify">WERYFIKUJ</string>
@@ -215,6 +218,9 @@
     <string name="praetor_hibernate_long_explanation">DŁUGIE WYJAŚNIENIE</string>
     <string name="praetor_hibernate_confirm">UŚPIJ</string>
     <string name="praetor_hibernate_cancel">ANULUJ</string>
+    <string name="praetor_hibernate_title">Uśpić ten serwer?</string>
+    <string name="praetor_hibernate_btn_waiting">Uśpij (%1$ds)</string>
+    <string name="praetor_hibernate_explanation">Gdy serwer przechodzi w uśpienie:\n\n1. Rekordy DNS (adres dołączania) są usuwane. Ktoś inny może przejąć ten adres.\n2. Pliki serwera są kompresowane, aby zaoszczędzić miejsce.\n3. Folder serwera jest usuwany, aby zwolnić pamięć.\n\nWybudzenie cofa kompresję. Jeśli Twój adres dołączania został w międzyczasie zajęty, wybierz nowy.</string>
     <string name="praetor_reason_ram_conflict">Serwer ma przydzielone za dużo RAM (%1$d MB). Twoje urządzenie ma łącznie tylko %2$d MB RAM.</string>
     <string name="praetor_reason_console_offline">Konsoli nie można otworzyć, gdy serwer jest offline. Najpierw uruchom serwer.</string>
     <string name="praetor_action_back">WRÓĆ</string>
@@ -228,7 +234,7 @@
     <string name="change_join_address">Zmień adres dołączania</string>
     <string name="praetor_message_change_domain">Podaj nowy adres dołączania (tylko litery, cyfry i myślniki).</string>
     <string name="praetor_hint_change_domain">Nowa nazwa (np. mojserwer)</string>
-    <string name="praetor_subtitle_change_name">ZMIEŃ NAZWĘ SERWERA</string>
+    <string name="praetor_subtitle_change_name">Zmień nazwę serwera</string>
     <string name="praetor_message_change_name">Podaj nową nazwę wyświetlaną serwera.</string>
     <string name="praetor_hint_change_name">Nazwa serwera</string>
     <string name="praetor_change_name_success">Nazwa serwera zaktualizowana!</string>
@@ -281,6 +287,19 @@
     <string name="modpack_filter_all">Wszystkie wersje</string>
     <string name="java_runtime_label">Środowisko Java</string>
     <string name="java_runtime_auto">Auto (Java %1$d)</string>
+
+    <!-- start jar: plik, który serwer naprawdę uruchamia -->
+    <string name="sd_start_jar_label">Startowy jar</string>
+    <string name="sd_start_jar_auto">Automatycznie</string>
+    <string name="sd_start_jar_auto_value">Auto</string>
+    <string name="sd_start_jar_none">brak pliku jar</string>
+    <string name="sd_start_jar_title">Startowy jar</string>
+    <string name="sd_start_jar_message">Wybierz plik, który uruchamia ten serwer. Automatycznie bierze jar pasujący do typu serwera w folderze serwera.</string>
+    <string name="sd_start_jar_warning">Zły jar uniemożliwi start serwera.</string>
+    <string name="sd_start_jar_current">Ustawiono: %1$s</string>
+    <string name="sd_start_jar_apply">Zastosuj</string>
+    <string name="sd_start_jar_waiting">Zastosuj za %1$d</string>
+    <string name="sd_start_jar_saved">Startowy jar zapisany. Zrestartuj serwer, aby go użyć.</string>
     <string name="praetor_subtitle_jre_fallback">AWARYJNE ŚRODOWISKO JAVA</string>
     <string name="praetor_reason_jre_fallback">Nie udało się wczytać Javy %1$d.\n\nPowód: %2$s\n\nSerwer uruchomi się z Java 25. Może to powodować problemy ze zgodnością ze starszymi wersjami Minecrafta lub modami wymagającymi Javy %1$d.</string>
     <string name="praetor_jre_reason_unknown">Nieznany błąd</string>
@@ -545,8 +564,11 @@
     <string name="sd_eula_body">Uruchamiając ten serwer Minecraft, akceptujesz EULA Mojang/Microsoft.\n\nObejmuje to między innymi zakaz sprzedaży dostępu do serwera.</string>
     <string name="sd_delete_dialog_title">Usunąć serwer?</string>
     <string name="sd_delete_dialog_msg">Uwaga: ta operacja trwale usunie serwer. Proszę czekać...</string>
+    <string name="sd_delete_body_long">Świat, pluginy, ustawienia i kopie zapasowe na tym telefonie zostaną usunięte, a adres dołączania zostanie zwolniony dla innych graczy.</string>
+    <string name="sd_delete_cannot_undo">Tego nie można cofnąć.</string>
     <string name="sd_delete_btn_waiting">Usuń (%ds)</string>
-    <string name="sd_delete_btn_ready">USUŃ</string>
+    <string name="sd_delete_btn_ready">Usuń serwer</string>
+    <string name="sd_delete_title_named">Usunąć \"%1$s\"?</string>
     <string name="error_unknown">Nieznany błąd</string>
     <string name="error_connection_refused">Połączenie z serwerem odrzucone.</string>
     <string name="error_timeout">Przekroczono czas. Spróbuj ponownie.</string>
@@ -1420,4 +1442,10 @@
     <string name="domain_switch_done">Serwer jest teraz dostępny pod %1$s</string>
     <string name="domain_switch_failed">Nie udało się przenieść serwera: %1$s</string>
     <string name="domain_new_none">Obecnie żadna domena nie przyjmuje nowych serwerów. Spróbuj później.</string>
+    <string name="players_count_format">%1$d / %2$d graczy</string>
+    <string name="pm_header_online">%1$s (Online)</string>
+    <string name="pm_header_offline">%1$s (Offline)</string>
+    <string name="region_blocked_title">Niedostępne w Chinach kontynentalnych</string>
+    <string name="region_blocked_body">KodaHosting nie jest dostępny w Chinach kontynentalnych.\n\nUsługi internetowe wymagają tam licencji (rejestracja ICP). Hostowanie serwera gry, tunelowanie go za granicę i udostępnianie innym graczom bez wymaganych pozwoleń jest niedozwolone, podobnie jak oferowanie tej aplikacji.\n\nKodaHosting nie ma takich pozwoleń, dlatego aplikacji nie wolno używać z Chin kontynentalnych. To nie jest blokada Twojego konta ani urządzenia.</string>
+    <string name="region_blocked_close">Zamknij</string>
 </resources>

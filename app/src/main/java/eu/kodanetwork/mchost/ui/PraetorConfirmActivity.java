@@ -47,6 +47,9 @@ public class PraetorConfirmActivity extends Activity {
     private TextView tvCountdown;
     private CountDownTimer timer;
     private boolean isConnected = false;
+    private com.google.android.material.bottomsheet.BottomSheetDialog sheet;
+    private boolean executing = false;
+    private TextView tvNetworkLabel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,19 +57,42 @@ public class PraetorConfirmActivity extends Activity {
         super.onCreate(savedInstanceState);
         
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         if (android.os.Build.VERSION.SDK_INT >= 21) {
-            getWindow().setStatusBarColor(0xFF0A0000);
-            getWindow().setNavigationBarColor(0xFF0A0000);
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(0xFF241C18);
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            getWindow().setNavigationBarContrastEnforced(false);
         }
 
-        setContentView(eu.kodanetwork.mchost.util.Material3ThemeHelper.isM3Enabled(this)
-                ? R.layout.activity_praetor_confirm_m3 : R.layout.activity_praetor_confirm);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xFF241C18));
+        sheet = new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        android.view.Window sheetWindow = sheet.getWindow();
+        if (sheetWindow != null) {
+            sheetWindow.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            sheetWindow.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            sheetWindow.setNavigationBarColor(0xFF241C18);
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(sheetWindow, false);
+            sheetWindow.getDecorView().setSystemUiVisibility(
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheetWindow.setNavigationBarContrastEnforced(false);
+            }
+        }
+        sheet.setContentView(R.layout.sheet_praetor_account_confirm);
+        sheet.setCancelable(true);
+        sheet.setOnDismissListener(d -> {
+            if (!executing) {
+                setResult(RESULT_CANCELED);
+                finish();
+            }
+        });
 
         action = getIntent().getStringExtra("action");
         if (action == null) action = "";
 
-        TextView tvExplanation = findViewById(R.id.tv_explanation);
+        TextView tvExplanation = sheet.findViewById(R.id.tv_explanation);
         if ("revoke_tos".equals(action)) {
             tvExplanation.setText("You are about to revoke your acceptance of the Terms of Service. This will permanently delete all your servers and require you to accept the terms again to continue using KodaHosting. This action cannot be undone.");
         } else if ("delete_account".equals(action)) {
@@ -75,19 +101,21 @@ public class PraetorConfirmActivity extends Activity {
             tvExplanation.setText("You are about to permanently delete all servers from this device. All world data, plugins, and configurations will be completely erased. This action cannot be undone.");
         }
 
-        TextView tvTitle = findViewById(R.id.tv_praetor_title);
+        TextView tvTitle = sheet.findViewById(R.id.tv_praetor_title);
         if (tvTitle != null) {
-            String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font><font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
+            String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
             tvTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
         }
 
-        android.view.View warningIcon = findViewById(R.id.tv_warning_icon);
-        if (warningIcon != null) {
-            android.view.animation.AlphaAnimation blink = new android.view.animation.AlphaAnimation(1.0f, 0.0f);
-            blink.setDuration(300);
-            blink.setRepeatMode(android.view.animation.Animation.REVERSE);
-            blink.setRepeatCount(android.view.animation.Animation.INFINITE);
-            warningIcon.startAnimation(blink);
+        TextView tvConfirmTitle = sheet.findViewById(R.id.tv_confirm_title);
+        if (tvConfirmTitle != null) {
+            if ("revoke_tos".equals(action)) {
+                tvConfirmTitle.setText("Revoke the Terms?");
+            } else if ("delete_account".equals(action)) {
+                tvConfirmTitle.setText("Delete your account?");
+            } else {
+                tvConfirmTitle.setText("Delete all servers?");
+            }
         }
 
         eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
@@ -95,13 +123,14 @@ public class PraetorConfirmActivity extends Activity {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300);
         }, 300);
 
-        btnConfirm = findViewById(R.id.btn_confirm);
-        Button btnCancel = findViewById(R.id.btn_cancel);
-        tvNetworkStatus = findViewById(R.id.tv_network_status);
-        tvCountdown = findViewById(R.id.tv_countdown);
+        btnConfirm = sheet.findViewById(R.id.btn_confirm);
+        android.view.View btnCancel = sheet.findViewById(R.id.btn_cancel);
+        tvNetworkStatus = sheet.findViewById(R.id.tv_network_status);
+        tvCountdown = sheet.findViewById(R.id.tv_countdown);
+        tvNetworkLabel = sheet.findViewById(R.id.tv_network_label);
 
-        btnCancel.setOnClickListener(v -> finish());
-        
+        btnCancel.setOnClickListener(v -> sheet.dismiss());
+
         btnConfirm.setOnClickListener(v -> {
             if (timer != null) timer.cancel();
 
@@ -111,54 +140,84 @@ public class PraetorConfirmActivity extends Activity {
             }
 
             // spinner up, buttons and countdown out of the way
-            findViewById(R.id.progress_loading).setVisibility(View.VISIBLE);
-            findViewById(R.id.layout_buttons).setVisibility(View.GONE);
+            sheet.findViewById(R.id.progress_loading).setVisibility(View.VISIBLE);
+            sheet.findViewById(R.id.layout_buttons).setVisibility(View.GONE);
             tvCountdown.setVisibility(View.GONE);
 
+            executing = true;
             executeDestructiveAction();
         });
 
         checkNetworkAndStartTimer();
+
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(sheet.getWindow(), false);
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        if (getWindow() != null) {
+            getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(
+                sheet.findViewById(R.id.sheet_account_confirm_root));
+        android.view.View triangle = sheet.findViewById(R.id.tv_warning_triangle);
+        if (triangle != null) {
+            android.animation.ObjectAnimator blink = android.animation.ObjectAnimator.ofFloat(
+                    triangle, "alpha", 1f, 0f, 1f, 0f, 1f);
+            blink.setDuration(900);
+            blink.setStartDelay(250);
+            blink.start();
+        }
+    }
+
+    /** the network line only shows up when the connection is actually missing. */
+    private void applyNetworkUi(boolean connected) {
+        if (tvNetworkLabel != null) {
+            tvNetworkLabel.setVisibility(connected ? View.GONE : View.VISIBLE);
+        }
+        if (tvNetworkStatus != null) {
+            tvNetworkStatus.setVisibility(connected ? View.GONE : View.VISIBLE);
+            if (!connected) {
+                tvNetworkStatus.setText(R.string.praetor_network_missing);
+                tvNetworkStatus.setTextColor(0xFFFF5449);
+            }
+        }
     }
 
     private void checkNetworkAndStartTimer() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
-
-        if (isConnected) {
-            tvNetworkStatus.setText("CONNECTED");
-            tvNetworkStatus.setTextColor(0xFF00E676); // koda green
-        } else {
-            tvNetworkStatus.setText("DISCONNECTED - WAITING FOR NETWORK");
-            tvNetworkStatus.setTextColor(0xFFFF3333); // red
-        }
+        applyNetworkUi(isConnected);
+        tvCountdown.setVisibility(View.GONE);
+        btnConfirm.setEnabled(false);
 
         timer = new CountDownTimer(10000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                tvCountdown.setText(String.valueOf(millisUntilFinished / 1000));
-                
+                btnConfirm.setText(getString(R.string.praetor_execute_waiting,
+                        (int) (millisUntilFinished / 1000)));
                 // re-check internet
                 NetworkInfo net = cm.getActiveNetworkInfo();
                 isConnected = net != null && net.isConnectedOrConnecting();
-                if (isConnected) {
-                    tvNetworkStatus.setText("CONNECTED");
-                    tvNetworkStatus.setTextColor(0xFF00FF00);
-                } else {
-                    tvNetworkStatus.setText("DISCONNECTED");
-                    tvNetworkStatus.setTextColor(0xFFFF3333);
-                }
+                applyNetworkUi(isConnected);
             }
 
             @Override
             public void onFinish() {
-                tvCountdown.setText("0");
                 if (isConnected) {
                     btnConfirm.setEnabled(true);
                     btnConfirm.setText("EXECUTE");
+                    applyNetworkUi(true);
+                    eu.kodanetwork.mchost.util.KodaSheetMotion.pop(btnConfirm);
                 } else {
-                    tvCountdown.setText("AWAITING NETWORK");
+                    applyNetworkUi(false);
                     // check again in 1 second if still waiting
                     new android.os.Handler().postDelayed(() -> checkNetworkAndStartTimer(), 1000);
                 }

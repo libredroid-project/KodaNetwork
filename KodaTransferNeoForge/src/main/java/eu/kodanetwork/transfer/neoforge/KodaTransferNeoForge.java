@@ -261,6 +261,7 @@ public class KodaTransferNeoForge {
         }
     }
     private int statsTickCounter = 0;
+    private boolean statsErrorLogged = false;
 
     /**
      * writes the live player stats for the app player manager every two seconds, same
@@ -270,8 +271,10 @@ public class KodaTransferNeoForge {
         if (++statsTickCounter < 40) return;
         statsTickCounter = 0;
         try {
-            File dir = new File(server.getServerDirectory().toFile(),
-                    "koda_transfer/playerdata/stats");
+            // an empty server dir turns into "/koda_transfer" when it is used as a File parent
+            java.io.File base = server.getServerDirectory().toString().isEmpty()
+                    ? new java.io.File(".") : server.getServerDirectory().toFile();
+            File dir = new File(base, "koda_transfer/playerdata/stats");
             if (!dir.isDirectory()) dir.mkdirs();
             for (net.minecraft.server.level.ServerPlayer player : server.getPlayerList().getPlayers()) {
                 try {
@@ -291,8 +294,12 @@ public class KodaTransferNeoForge {
                                 + ",\"mobsKilled\":" + mobs + ",\"damageTaken\":" + damage
                                 + ",\"blocksMined\":" + mined + "}");
                     }
+                    statsErrorLogged = false;
                 } catch (Throwable t) {
-                    System.out.println("[KodaTransfer] live stats failed: " + t);
+                    if (!statsErrorLogged) {
+                        statsErrorLogged = true;
+                        System.out.println("[KodaTransfer] live stats failed: " + t);
+                    }
                 }
             }
         } catch (Throwable ignored) {

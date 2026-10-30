@@ -87,10 +87,17 @@ public class HapticUtil {
 
         // everything clickable: buttons, cards, textviews with a click listener
         if (root.isClickable() || root.hasOnClickListeners() || root instanceof Button || root instanceof ImageButton || root.getClass().getName().contains("Button")) {
+            final boolean playful = eu.kodanetwork.mchost.App.getPrefs(context)
+                    .getBoolean("dev_playful_motion", false);
             root.setOnTouchListener((v, event) -> {
-                if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                int action = event.getActionMasked();
+                if (action == android.view.MotionEvent.ACTION_DOWN) {
                     // short and soft, a long buzz on a tap is awful
                     forceVibrate(context, 40);
+                    if (playful) v.animate().scaleX(0.97f).scaleY(0.97f).setDuration(90).start();
+                } else if (action == android.view.MotionEvent.ACTION_UP
+                        || action == android.view.MotionEvent.ACTION_CANCEL) {
+                    if (playful) v.animate().scaleX(1f).scaleY(1f).setDuration(140).start();
                 }
                 return false; 
             });

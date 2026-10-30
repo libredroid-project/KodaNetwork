@@ -111,6 +111,7 @@ public final class MinecraftColors {
      */
     public static String toPropertiesEscaped(String value) {
         if (value == null) return "";
+        value = repairMojibake(value);
         StringBuilder out = new StringBuilder(value.length() + 16);
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
@@ -124,6 +125,7 @@ public final class MinecraftColors {
     /** the other way round: a value read from the file back into plain text. */
     public static String fromPropertiesEscaped(String value) {
         if (value == null) return "";
+        value = repairMojibake(value);
         StringBuilder out = new StringBuilder(value.length());
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
@@ -141,6 +143,28 @@ public final class MinecraftColors {
             out.append(c);
         }
         return out.toString();
+    }
+
+    /**
+     * repairs text that was written as utf-8 and read back as iso-8859-1, the classic
+     * "Â§a" motd. the round trip must produce valid utf-8, otherwise the value is left
+     * alone, so a real umlaut or a section sign never gets mangled.
+     */
+    public static String repairMojibake(String value) {
+        if (value == null || value.isEmpty()) return value;
+        if (value.indexOf('\u00C2') < 0 && value.indexOf('\u00C3') < 0 && value.indexOf('\u00E2') < 0) {
+            return value;
+        }
+        try {
+            byte[] iso = value.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+            String fixed = new String(iso, java.nio.charset.StandardCharsets.UTF_8);
+            if (!fixed.equals(value) && fixed.indexOf('\uFFFD') < 0
+                    && java.util.Arrays.equals(fixed.getBytes(java.nio.charset.StandardCharsets.UTF_8), iso)) {
+                return fixed;
+            }
+        } catch (Exception ignored) {
+        }
+        return value;
     }
 
     /** the server form of one hex colour: the wire on 1.16+, the closest colour before that. */

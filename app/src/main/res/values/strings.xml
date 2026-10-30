@@ -185,6 +185,9 @@
     <string name="praetor_action_auto_ram">AUTO-ADJUST RAM</string>
     <string name="praetor_action_start_anyway">START ANYWAY (RISK)</string>
     <string name="praetor_action_cancel">Cancel</string>
+    <string name="praetor_action_save">Save</string>
+    <string name="praetor_execute_waiting">Execute (%1$ds)</string>
+    <string name="praetor_network_missing">No connection</string>
 
     <string name="email_verification">EMAIL VERIFICATION</string>
     <string name="enter_code">Please enter the 6-digit code</string>
@@ -194,6 +197,9 @@
     <string name="praetor_hibernate_long_explanation">LONG EXPLANATION</string>
     <string name="praetor_hibernate_confirm">HIBERNATE</string>
     <string name="praetor_hibernate_cancel">CANCEL</string>
+    <string name="praetor_hibernate_title">Hibernate this server?</string>
+    <string name="praetor_hibernate_btn_waiting">Hibernate (%1$ds)</string>
+    <string name="praetor_hibernate_explanation">When a server goes into hibernation:\n\n1. The DNS records (join address) are deleted. Someone else can take that address.\n2. The server files are compressed to save space.\n3. The server folder is removed to free storage.\n\nWaking it up undoes the compression. If your join address was taken in the meantime, pick a new one.</string>
     <string name="praetor_reason_ram_conflict">The server has too much RAM assigned (%1$d MB). Your device only has %2$d MB RAM available in total. This assignment will likely cause your phone or the server to crash.</string>
     <string name="praetor_reason_console_offline">The console cannot be opened while the server is offline. Please start the server first.</string>
     <string name="praetor_action_back">BACK</string>
@@ -207,7 +213,7 @@
     <string name="change_join_address">Change Join Address</string>
     <string name="praetor_message_change_domain">Enter a new Join Address (only letters, numbers, and hyphens).</string>
     <string name="praetor_hint_change_domain">New name (e.g. myserver)</string>
-    <string name="praetor_subtitle_change_name">CHANGE SERVER NAME</string>
+    <string name="praetor_subtitle_change_name">Change server name</string>
     <string name="praetor_message_change_name">Enter a new display name for your server.</string>
     <string name="praetor_hint_change_name">Server Name</string>
     <string name="praetor_change_name_success">Server name updated!</string>
@@ -261,6 +267,19 @@
     <string name="modpack_filter_all">All versions</string>
     <string name="java_runtime_label">Java-Runtime</string>
     <string name="java_runtime_auto">Auto (Java %1$d)</string>
+
+    <!-- start jar: which file the server actually launches -->
+    <string name="sd_start_jar_label">Start jar</string>
+    <string name="sd_start_jar_auto">Automatic</string>
+    <string name="sd_start_jar_auto_value">Auto</string>
+    <string name="sd_start_jar_none">no jar found</string>
+    <string name="sd_start_jar_title">Start jar</string>
+    <string name="sd_start_jar_message">Pick the file this server launches. Automatic picks the jar that matches the server type inside the server folder.</string>
+    <string name="sd_start_jar_warning">A wrong jar keeps the server from starting.</string>
+    <string name="sd_start_jar_current">Configured: %1$s</string>
+    <string name="sd_start_jar_apply">Apply</string>
+    <string name="sd_start_jar_waiting">Apply in %1$d</string>
+    <string name="sd_start_jar_saved">Start jar saved. Restart the server to use it.</string>
 
     <!-- praetor: the jre did not load, java 25 takes over -->
     <string name="praetor_subtitle_jre_fallback">JAVA RUNTIME FALLBACK</string>
@@ -508,8 +527,11 @@
     <string name="sd_eula_body">By starting this Minecraft server you accept the Mojang/Microsoft EULA.\n\nThis includes:\n• You may not sell access to gameplay features\n• You may not redistribute Minecraft content\n• Servers must comply with EULA guidelines\n\nFull EULA:\nhttps://aka.ms/MinecraftEULA</string>
     <string name="sd_delete_dialog_title">Delete Server?</string>
     <string name="sd_delete_dialog_msg">Warning: This action will permanently delete the server. Please wait...</string>
+    <string name="sd_delete_body_long">The world, plugins, settings and backups on this phone are deleted, and the join address is released for other players.</string>
+    <string name="sd_delete_cannot_undo">This cannot be undone.</string>
     <string name="sd_delete_btn_waiting">Delete (%ds)</string>
-    <string name="sd_delete_btn_ready">DELETE</string>
+    <string name="sd_delete_btn_ready">Delete server</string>
+    <string name="sd_delete_title_named">Delete \"%1$s\"?</string>
     <string name="error_unknown">Unknown error</string>
     <string name="error_connection_refused">Connection to the server refused.</string>
     <string name="error_timeout">Timeout. Please try again.</string>
@@ -1267,11 +1289,11 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
 
     <!-- skins: notion and apple, dev only, off by default -->
     <string name="dev_notion_skin">Notion theme</string>
-    <string name="dev_notion_skin_hint">White canvas, serif headings, blue links</string>
+    <string name="dev_notion_skin_hint">White background, serif headings and blue links.</string>
     <string name="dev_notion_skin_on">Notion theme on, reloading the app into it.</string>
     <string name="dev_notion_skin_off">Notion theme off.</string>
     <string name="dev_apple_skin">Apple theme</string>
-    <string name="dev_apple_skin_hint">Grouped cards, chevrons, system blue</string>
+    <string name="dev_apple_skin_hint">Grouped settings cards with chevrons, like iOS.</string>
     <string name="dev_apple_skin_on">Apple theme on, reloading the app into it.</string>
     <string name="dev_apple_skin_off">Apple theme off.</string>
     <!-- console output: what the server start, the setup and the background jobs write into the server console -->
@@ -1470,4 +1492,10 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="domain_switch_done">Server is now reachable at %1$s</string>
     <string name="domain_switch_failed">Could not move the server: %1$s</string>
     <string name="domain_new_none">Right now no domain accepts new servers. Please try again later.</string>
+    <string name="players_count_format">%1$d / %2$d players</string>
+    <string name="pm_header_online">%1$s (Online)</string>
+    <string name="pm_header_offline">%1$s (Offline)</string>
+    <string name="region_blocked_title">Not available in mainland China</string>
+    <string name="region_blocked_body">KodaHosting is not available in mainland China.\n\nInternet services need a licence (ICP filing) to operate there. Running a game server, tunnelling it abroad and offering it to other players without the required permits is not allowed, and neither is offering this app.\n\nKodaHosting has none of these permits, so the app must not be used from mainland China. This is not a ban of your account or device.</string>
+    <string name="region_blocked_close">Close</string>
 </resources>

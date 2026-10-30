@@ -98,7 +98,14 @@ public class MainActivity extends AppCompatActivity {
         eu.kodanetwork.mchost.util.SleekThemeHelper.applyTheme(this);
         eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
-        
+
+        // mainland China is not a supported region, stop before any identity or server work
+        if (eu.kodanetwork.mchost.util.RegionGuard.isBlocked(this)) {
+            startActivity(new android.content.Intent(this, RegionBlockActivity.class));
+            finish();
+            return;
+        }
+
         android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
         this.lastTheme = prefs.getString("app_theme", "modern");
         this.lastThemeMode = prefs.getString("theme_mode", "dark");

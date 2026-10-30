@@ -114,6 +114,8 @@ public class KodaTransferPlugin extends JavaPlugin implements CommandExecutor {
      * file whenever it exists, because vanilla only writes on save/logout. the five
      * numbers are exactly the flat json the app parser understands.
      */
+    private boolean statsErrorLogged = false;
+
     private void startStatsWriter() {
         File statsDir = new File(getDataFolder(), "playerdata/stats");
         if (!statsDir.isDirectory()) statsDir.mkdirs();
@@ -144,10 +146,14 @@ public class KodaTransferPlugin extends JavaPlugin implements CommandExecutor {
                             + ",\"mobsKilled\":" + mobs + ",\"damageTaken\":" + damage
                             + ",\"blocksMined\":" + mined + "}");
                 }
+                statsErrorLogged = false;
             } catch (Throwable t) {
                 // very old servers name some statistics differently, the rest of the
                 // plugin must keep working
-                getLogger().warning("live stats for " + player.getName() + " failed: " + t);
+                if (!statsErrorLogged) {
+                    statsErrorLogged = true;
+                    getLogger().warning("live stats for " + player.getName() + " failed: " + t);
+                }
             }
         }
     }

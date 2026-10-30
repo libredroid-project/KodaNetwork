@@ -1341,13 +1341,26 @@ public class KodaServerService extends Service {
             // the forge installer is not a server: it only drops the real server jar next to
             // itself when run with --installServer. so the installer runs when that server jar
             // is still missing, and afterwards the server jar is what gets launched.
+            File manualJar = null;
+            if (isForgeFamily) {
+                String chosen = srv.getLauncherJar();
+                if (!chosen.isEmpty()) {
+                    File candidate = new File(serverDir, chosen);
+                    if (candidate.isFile()) manualJar = candidate;
+                    else log(id, getString(R.string.con_jar_gone, chosen));
+                }
+            }
             File forgeJar = isForgeFamily ? findForgeServerJar(serverDir) : null;
-            boolean installerJar = jar != null && jar.getName().toLowerCase().contains("installer");
-            boolean needsInstall = isForgeFamily && forgeJar == null && installerJar;
+            // a forge folder without the real server jar gets --installServer, no matter
+            // what the downloaded file is called (1.12.2 installers are often server.jar)
+            boolean needsInstall = manualJar == null && isForgeFamily && forgeJar == null;
             final boolean installing = needsInstall;
 
             final File launchJar;
-            if (isForgeFamily && !installing) {
+            if (manualJar != null) {
+                log(id, "Using the server file from settings: " + manualJar.getName());
+                launchJar = manualJar;
+            } else if (isForgeFamily && !installing) {
                 File target = forgeJar != null ? forgeJar : jar;
                 if (target == null) {
                     log(id, getString(R.string.con_forge_jar_missing));
@@ -1599,11 +1612,12 @@ public class KodaServerService extends Service {
                         // the installer is a one-shot job: it exits when it is done, and that
                         // exit is never a server crash. either the server starts now or the
                         // installation did not get far enough.
-                        boolean installed = new File(serverDir, "libraries").exists();
+                        File installedJar = findForgeServerJar(serverDir);
+                        boolean installed = installedJar != null;
                         if (installed) {
                             log(id, getString(R.string.con_install_complete_reboot));
                             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                startEmbeddedJvmFlow(srv, launchJar, logFile);
+                                startEmbeddedJvmFlow(srv, installedJar, logFile);
                             }, 2000);
                         } else {
                             log(id, getString(R.string.con_installer_stopped_exit, result));
@@ -1670,7 +1684,8 @@ public class KodaServerService extends Service {
                     // leave the state alone, stopServer() already set OFFLINE
                 } else if (installing) {
                     // same rule as above, just without an exit code to look at
-                    boolean installed = new File(srv.getServerDir(), "libraries").exists();
+                    File installedJar = findForgeServerJar(new File(srv.getServerDir()));
+                    boolean installed = installedJar != null;
                     if (installed) {
                         log(id, getString(R.string.con_install_complete_reboot));
                         if (rt.frpcProc != null) {
@@ -1682,7 +1697,7 @@ public class KodaServerService extends Service {
                             try { unbindService(jvmConnRef[0]); } catch (Exception ignored) {}
                         }
                         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                            startEmbeddedJvmFlow(srv, launchJar, logFile);
+                            startEmbeddedJvmFlow(srv, installedJar, logFile);
                         }, 2000);
                     } else {
                         log(id, getString(R.string.con_installer_stopped));
@@ -1717,8 +1732,9 @@ public class KodaServerService extends Service {
                             if (jvmConnRef[0] != null) {
                                 try { unbindService(jvmConnRef[0]); } catch (Exception ignored) {}
                             }
+                            File installedJar = findForgeServerJar(new File(srv.getServerDir()));
                             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                startEmbeddedJvmFlow(srv, jar, logFile);
+                                startEmbeddedJvmFlow(srv, installedJar != null ? installedJar : jar, logFile);
                             }, 2000);
                             return;
                         } else {

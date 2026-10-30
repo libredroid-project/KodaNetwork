@@ -19,69 +19,59 @@
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/join_dialog_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/bg_dialog_custom"
-    android:padding="16dp"
-    android:layout_gravity="center"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="@drawable/bg_koda_sheet"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="20dp"
+    android:paddingBottom="24dp"
+    android:layout_gravity="bottom"
     android:gravity="center">
 
     <TextView
         android:id="@+id/tv_dialog_title"
-        android:maxLines="1"
-        app:autoSizeTextType="uniform"
-        app:autoSizeMinTextSize="14sp"
-        app:autoSizeMaxTextSize="36sp"
-        app:autoSizeStepGranularity="2sp"
         android:layout_width="match_parent"
-        android:paddingEnd="8dp"
-        android:paddingStart="8dp"
-        android:gravity="center"
-        android:fontFamily="@font/space_grotesk_bold"
-        app:fontFamily="@font/space_grotesk_bold"
         android:layout_height="wrap_content"
-        android:textColor="#FF3333"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        
-         />
+        android:gravity="start"
+        android:fontFamily="@font/space_grotesk_regular"
+        app:fontFamily="@font/space_grotesk_regular"
+        android:textColor="#6E6E7A"
+        android:textSize="11sp"
+        android:letterSpacing="0.18"/>
 
     <TextView
         android:id="@+id/tv_dialog_subtitle"
-        android:layout_width="wrap_content"
-        android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
+        android:layout_width="match_parent"
+        android:fontFamily="@font/font_koda"
+        app:fontFamily="@font/font_koda"
         android:layout_height="wrap_content"
-        android:textColor="#8A8A9A"
-        android:textSize="10sp"
+        android:textColor="#F5F5F7"
+        android:textSize="20sp"
         android:textStyle="bold"
-        
-        android:gravity="center"
+        android:gravity="start"
         android:layout_marginTop="8dp" />
-
-    <View
-        android:layout_width="40dp"
-        android:layout_height="2dp"
-        android:background="#FF6B00"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="24dp" />
 
     <TextView
         android:id="@+id/tv_dialog_message"
         android:layout_width="match_parent"
-        android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
+        android:fontFamily="@font/font_koda"
+        app:fontFamily="@font/font_koda"
         android:layout_height="wrap_content"
-        android:textColor="#F0F0F0"
+        android:textColor="#BCBCC6"
         android:textSize="14sp"
-        android:gravity="center"
-        android:layout_marginBottom="20dp" />
+        android:lineSpacingExtra="3dp"
+        android:gravity="start"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp" />
 
     <LinearLayout
         android:id="@+id/layout_join_input_phase"
@@ -251,23 +241,42 @@
         android:id="@+id/layout_join_buttons"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_dialog_confirm"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            style="@style/KodaButton"
-            android:stateListAnimator="@null"
-            android:layout_marginBottom="8dp"
-            android:text="Continue" />
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal"
+        android:gravity="end|center_vertical">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_dialog_cancel"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            style="@style/KodaButton.Outline"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:minWidth="0dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:text="@string/praetor_action_cancel"
+            android:textColor="#BCBCC6"
+            android:textSize="13sp"
+            android:fontFamily="@font/font_koda"
+            android:textAllCaps="false"
+            android:stateListAnimator="@null" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_dialog_confirm"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:minWidth="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:layout_marginStart="4dp"
+            android:text="Continue"
+            android:textColor="#1A0F00"
+            android:textSize="13sp"
+            android:fontFamily="@font/font_koda"
+            app:backgroundTint="#FF6B00"
+            app:cornerRadius="10dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:textAllCaps="false"
             android:stateListAnimator="@null" />
     </LinearLayout>
 </LinearLayout>

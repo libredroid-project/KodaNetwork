@@ -360,7 +360,14 @@
                         android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:text="@string/enable_biometric" android:textColor="#FFFFFF"
                         android:textSize="14sp" android:fontFamily="@font/font_koda"
+                        app:thumbTint="@color/dev_switch_thumb"
+                        app:trackTint="@color/dev_switch_track"
                         android:layout_marginBottom="8dp"/>
+
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Unlocks the app with your fingerprint when you open it."
+                        android:textColor="#8A8A9A" android:textSize="11sp"
+                        android:fontFamily="@font/font_koda" android:layout_marginBottom="8dp"/>
 
                     <LinearLayout android:id="@+id/ll_bio_options"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -689,66 +696,132 @@
                         android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:text="@string/dev_liquid_glass" android:textColor="#FFFFFF"
                         android:textSize="14sp" android:fontFamily="@font/font_koda"
-                        app:thumbTint="@color/dev_purple_dark"
-                        app:trackTint="@color/dev_purple"
-                        android:layout_marginBottom="8dp"/>
+                        app:thumbTint="@color/dev_switch_thumb"
+                        app:trackTint="@color/dev_switch_track"
+                        android:layout_marginBottom="4dp"/>
 
-                    <!-- ─── Practical Developer Tools ─── -->
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Frosted glass over cards and sheets. Looks nice, costs a little battery."
+                        android:textColor="#8A8A9A" android:textSize="11sp"
+                        android:fontFamily="@font/font_koda" android:layout_marginBottom="8dp"/>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_dev_playful"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Playful motion" android:textColor="#FFFFFF"
+                        android:textSize="14sp" android:fontFamily="@font/font_koda"
+                        app:thumbTint="@color/dev_switch_thumb"
+                        app:trackTint="@color/dev_switch_track"
+                        android:layout_marginBottom="4dp"/>
+
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Cards, panels and sheets slide in. Off keeps everything still."
+                        android:textColor="#8A8A9A" android:textSize="11sp"
+                        android:fontFamily="@font/font_koda" android:layout_marginBottom="8dp"/>
+
                     <View android:layout_width="match_parent" android:layout_height="1dp"
                         android:background="#332A24" android:layout_marginTop="8dp" android:layout_marginBottom="12dp"/>
 
+                    <!-- ─── Practical Developer Tools ─── -->
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="PRACTICAL TOOLS" android:textColor="@color/dev_purple"
                         android:textSize="11sp" android:fontFamily="@font/font_koda"
-                        android:letterSpacing="0.1" android:layout_marginBottom="12dp"/>
+                        android:letterSpacing="0.1" android:layout_marginBottom="8dp"/>
 
                     <Button android:id="@+id/btn_dev_export_logs"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Export Logcat (Downloads)" android:textColor="#FFFFFF"
-                        android:backgroundTint="#332A24" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Export logs (Downloads)" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <Button android:id="@+id/btn_dev_clear_cache"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Clear App Cache" android:textColor="#FFFFFF"
-                        android:backgroundTint="#332A24" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Clear app cache" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <Button android:id="@+id/btn_dev_reset_onboarding"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Reset First-Run (Onboarding)" android:textColor="#FFFFFF"
-                        android:backgroundTint="#332A24" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Reset first-run setup" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <Button android:id="@+id/btn_dev_nuke_servers"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Nuke All Servers (Delete Data)" android:textColor="#FF4444"
-                        android:backgroundTint="#331A1A" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Delete all servers and their data" android:textColor="#FF6B6B" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <Button android:id="@+id/btn_dev_wipe_jvms"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Delete JVM Runtimes (Force redownload)" android:textColor="#FF4444"
-                        android:backgroundTint="#331A1A" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Delete JVM runtimes (redownload)" android:textColor="#FF6B6B" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <Button android:id="@+id/btn_dev_hw_stats"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Show Hardware / Memory Stats" android:textColor="#FFFFFF"
-                        android:backgroundTint="#332A24" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Show hardware and memory stats" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <Button android:id="@+id/btn_dev_strict_mode"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Toggle StrictMode (Thread Checks)" android:textColor="#FFFFFF"
-                        android:backgroundTint="#332A24" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="StrictMode thread checks" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <Button android:id="@+id/btn_dev_force_crash"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Force Crash (Test Fixer)" android:textColor="#FF4444"
-                        android:backgroundTint="#331A1A" android:layout_marginBottom="8dp"
-                        app:cornerRadius="8dp" android:textAllCaps="false"/>
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Force a test crash" android:textColor="#FF6B6B" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
+
+                    <Button android:id="@+id/btn_dev_dial_style"
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Server type dial: Top view" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
+
+                    <Button android:id="@+id/btn_cluster_dashboard"
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Open cluster dashboard" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
+
+                    <Button android:id="@+id/btn_dev_china_sim"
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Simulate mainland China for 60 s" android:textColor="#FFA45C" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
+
+                    <Button android:id="@+id/btn_dev_nick_sync"
+                        android:layout_width="match_parent" android:layout_height="46dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Force nickname sync" android:textColor="#F0F0F0" android:textSize="12sp"
+                        android:fontFamily="@font/font_koda"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <!-- ─── Material Design 3 ─── -->
                     <View android:layout_width="match_parent" android:layout_height="1dp"
@@ -770,14 +843,14 @@
                                 android:text="Material You Theme" android:textColor="#FFFFFF"
                                 android:textSize="14sp" android:fontFamily="@font/font_koda"/>
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                android:text="Modern M3 design with animations"
+                                android:text="Takes its colors from your wallpaper. Needs Android 12 or newer."
                                 android:textColor="#888899" android:textSize="12sp"/>
                         </LinearLayout>
 
                         <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_dev_material3"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            app:thumbTint="@color/dev_purple_dark"
-                            app:trackTint="@color/dev_purple"/>
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track"/>
                     </LinearLayout>
 
                     <LinearLayout
@@ -804,7 +877,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Warm-premium dark theme with cream cards"
+                                android:text="Warmer, softer look with cream cards instead of pure black."
                                 android:textColor="#8A8A9A"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -813,7 +886,8 @@
                             android:id="@+id/switch_dev_sleek"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:buttonTint="#F0762B" />
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track" />
                     </LinearLayout>
 
                     <!-- old icon toggle, dev option -->
@@ -835,7 +909,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Restore the old app icon and splash screen"
+                                android:text="Brings back the old launcher icon and splash screen."
                                 android:textColor="#8A8A9A"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -844,7 +918,8 @@
                             android:id="@+id/switch_dev_old_icon"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:buttonTint="#F0762B" />
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track" />
                     </LinearLayout>
 
                     <!-- new server cards in dark mode, dev option -->
@@ -866,7 +941,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Charts and chip cards in dark mode too (light mode always uses them)"
+                                android:text="Shows the chart cards on dark screens too. Light mode always uses them."
                                 android:textColor="#8A8A9A"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -875,7 +950,8 @@
                             android:id="@+id/switch_dev_v2_cards"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:buttonTint="#F0762B" />
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track" />
                     </LinearLayout>
 
                     <!-- KodaCluster: usb device cluster, dev option -->
@@ -889,24 +965,15 @@
                                 android:textColor="#F0F0F0" android:textSize="14sp"
                                 android:fontFamily="@font/font_koda" />
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                android:text="This device controls other devices via USB cable (OTG)"
+                                android:text="This phone controls other phones over a USB cable."
                                 android:textColor="#8A8A9A" android:textSize="11sp" />
                         </LinearLayout>
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switch_dev_cluster_master"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:buttonTint="#F0762B" />
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track" />
                     </LinearLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_cluster_dashboard"
-                        android:layout_width="match_parent" android:layout_height="44dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Open Cluster Dashboard"
-                        android:textColor="#F0F0F0" android:textSize="12sp"
-                        android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"/>
 
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:orientation="horizontal" android:gravity="center_vertical"
@@ -918,24 +985,15 @@
                                 android:textColor="#F0F0F0" android:textSize="14sp"
                                 android:fontFamily="@font/font_koda" />
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                android:text="Allow another device to control this one via USB"
+                                android:text="Another phone can control this one over USB."
                                 android:textColor="#8A8A9A" android:textSize="11sp" />
                         </LinearLayout>
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switch_dev_cluster_slave"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:buttonTint="#F0762B" />
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track" />
                     </LinearLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_dev_nick_sync"
-                        android:layout_width="match_parent" android:layout_height="44dp"
-                        android:layout_marginBottom="12dp"
-                        android:text="Force Nickname Sync"
-                        android:textColor="#F0F0F0" android:textSize="12sp"
-                        android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"/>
 
                     <!-- terminal server card option -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -948,14 +1006,14 @@
                                 android:text="Terminal Console Theme" android:textColor="#FFFFFF"
                                 android:textSize="14sp" android:fontFamily="@font/font_koda"/>
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                android:text="Experimental angular console design for servers"
+                                android:text="Gives the server console an angular, technical look."
                                 android:textColor="#888899" android:textSize="12sp"/>
                         </LinearLayout>
 
                         <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_dev_terminal"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            app:thumbTint="@color/dev_purple_dark"
-                            app:trackTint="@color/dev_purple"/>
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track"/>
                     </LinearLayout>
 
                     <!-- notion skin, dev option, off by default -->
@@ -977,8 +1035,8 @@
 
                         <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_dev_notion"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            app:thumbTint="@color/dev_purple_dark"
-                            app:trackTint="@color/dev_purple"/>
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track"/>
                     </LinearLayout>
 
                     <!-- apple skin, dev option, off by default -->
@@ -1000,8 +1058,8 @@
 
                         <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_dev_apple"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            app:thumbTint="@color/dev_purple_dark"
-                            app:trackTint="@color/dev_purple"/>
+                            app:thumbTint="@color/dev_switch_thumb"
+                            app:trackTint="@color/dev_switch_track"/>
                     </LinearLayout>
 
                     <!-- m3 options, only shown while m3 is on -->

@@ -29,8 +29,14 @@ public class BannedActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
-        setContentView(eu.kodanetwork.mchost.util.Material3ThemeHelper.isM3Enabled(this)
-                ? R.layout.activity_banned_m3 : R.layout.activity_banned);
+        setContentView(R.layout.activity_banned);
+
+        TextView mark = findViewById(R.id.bannedWordmark);
+        if (mark != null) {
+            mark.setText(android.text.Html.fromHtml(
+                    "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
 
         TextView hwidText = findViewById(R.id.bannedHwidText);
         String uuid = eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "");

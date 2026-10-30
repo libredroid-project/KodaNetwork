@@ -176,6 +176,9 @@
     <string name="praetor_action_auto_ram">RAM AUTO-ANPASSEN</string>
     <string name="praetor_action_start_anyway">TROTZDEM STARTEN (RISIKO)</string>
     <string name="praetor_action_cancel">Abbrechen</string>
+    <string name="praetor_action_save">Speichern</string>
+    <string name="praetor_execute_waiting">Ausführen (%1$ds)</string>
+    <string name="praetor_network_missing">Keine Verbindung</string>
 
     <string name="email_verification">EMAIL VERIFIZIERUNG</string>
     <string name="enter_code">Bitte gib den 6-stelligen Code ein</string>
@@ -185,6 +188,9 @@
     <string name="praetor_hibernate_long_explanation">LANGE ERKLÄRUNG</string>
     <string name="praetor_hibernate_confirm">HIBERNATE</string>
     <string name="praetor_hibernate_cancel">ABBRECHEN</string>
+    <string name="praetor_hibernate_title">Server in den Winterschlaf?</string>
+    <string name="praetor_hibernate_btn_waiting">Winterschlaf (%1$ds)</string>
+    <string name="praetor_hibernate_explanation">Wenn ein Server in den Winterschlaf geht:\n\n1. Die DNS-Einträge (Beitrittsadresse) werden gelöscht. Andere können diese Adresse übernehmen.\n2. Die Server-Dateien werden platzsparend komprimiert.\n3. Der Server-Ordner wird gelöscht, um Speicherplatz freizugeben.\n\nBeim Aufwecken wird die Komprimierung rückgängig gemacht. Falls die Adresse inzwischen belegt ist, wähle eine neue.</string>
     <string name="praetor_reason_ram_conflict">Der Server hat zu viel RAM zugewiesen (%1$d MB). Dein Gerät hat insgesamt nur %2$d MB RAM zur Verfügung. Diese Zuweisung wird wahrscheinlich dein Handy oder den Server zum Absturz bringen.</string>
     <string name="praetor_reason_console_offline">Die Konsole kann nicht geöffnet werden, während der Server offline ist. Bitte starte den Server zuerst.</string>
     <string name="praetor_action_back">ZURÜCK</string>
@@ -225,7 +231,7 @@
 
     <string name="praetor_message_change_domain">Gib eine neue Join-Adresse ein (nur Buchstaben, Zahlen und Bindestriche).</string>
     <string name="praetor_hint_change_domain">Neuer Name (z.B. meinserver)</string>
-    <string name="praetor_subtitle_change_name">SERVER NAME ÄNDERN</string>
+    <string name="praetor_subtitle_change_name">Server-Name ändern</string>
     <string name="praetor_message_change_name">Gib einen neuen Anzeigenamen für deinen Server ein.</string>
     <string name="praetor_hint_change_name">Server Name</string>
     <string name="praetor_change_name_success">Server Name aktualisiert!</string>
@@ -279,6 +285,19 @@
     <string name="modpack_filter_all">Alle Versionen</string>
     <string name="java_runtime_label">Java-Runtime</string>
     <string name="java_runtime_auto">Auto (Java %1$d)</string>
+
+    <!-- start jar: welche Datei der Server wirklich startet -->
+    <string name="sd_start_jar_label">Start-Jar</string>
+    <string name="sd_start_jar_auto">Automatisch</string>
+    <string name="sd_start_jar_auto_value">Auto</string>
+    <string name="sd_start_jar_none">keine Jar gefunden</string>
+    <string name="sd_start_jar_title">Start-Jar</string>
+    <string name="sd_start_jar_message">Wähle die Datei, die dieser Server startet. Automatisch nimmt die Jar, die zum Server-Typ im Server-Ordner passt.</string>
+    <string name="sd_start_jar_warning">Die falsche Jar verhindert, dass der Server startet.</string>
+    <string name="sd_start_jar_current">Eingestellt: %1$s</string>
+    <string name="sd_start_jar_apply">Übernehmen</string>
+    <string name="sd_start_jar_waiting">Übernehmen in %1$d</string>
+    <string name="sd_start_jar_saved">Start-Jar gespeichert. Starte den Server neu, damit sie greift.</string>
 
     <string name="praetor_subtitle_jre_fallback">JAVA RUNTIME FALLBACK</string>
     <string name="praetor_reason_jre_fallback">Java %1$d konnte nicht geladen werden.\n\nGrund: %2$s\n\nDer Server wird stattdessen mit Java 25 gestartet. Dies kann zu Kompatibilitätsproblemen mit älteren Minecraft-Versionen oder Mods führen, die Java %1$d benötigen.</string>
@@ -519,8 +538,11 @@
     <string name="sd_eula_body">Durch das Starten dieses Minecraft-Servers akzeptierst du die Mojang/Microsoft EULA.\n\nDies beinhaltet:\n• Du darfst keinen Zugang zu Gameplay-Features verkaufen\n• Du darfst keine Minecraft-Inhalte umverteilen\n• Server müssen den EULA-Richtlinien entsprechen\n\nVollständige EULA:\nhttps://aka.ms/MinecraftEULA</string>
     <string name="sd_delete_dialog_title">Server löschen?</string>
     <string name="sd_delete_dialog_msg">Achtung: Dieser Vorgang wird den Server permanent löschen. Bitte warte...</string>
+    <string name="sd_delete_body_long">Welt, Plugins, Einstellungen und Backups auf diesem Handy werden gelöscht, und die Beitrittsadresse wird für andere Spieler freigegeben.</string>
+    <string name="sd_delete_cannot_undo">Das lässt sich nicht rückgängig machen.</string>
     <string name="sd_delete_btn_waiting">Löschen (%ds)</string>
-    <string name="sd_delete_btn_ready">LÖSCHEN</string>
+    <string name="sd_delete_btn_ready">Server löschen</string>
+    <string name="sd_delete_title_named">\"%1$s\" löschen?</string>
     <string name="error_unknown">Unbekannter Fehler</string>
     <string name="error_connection_refused">Verbindung zum Server abgelehnt.</string>
     <string name="error_timeout">Zeitüberschreitung. Bitte erneut versuchen.</string>
@@ -1278,11 +1300,11 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
 
     <!-- skins: notion und apple, nur für entwickler, standardmäßig aus -->
     <string name="dev_notion_skin">Notion-Design</string>
-    <string name="dev_notion_skin_hint">Weiße Fläche, Serif-Überschriften, blaue Links</string>
+    <string name="dev_notion_skin_hint">Weißer Hintergrund, Serif-Überschriften und blaue Links.</string>
     <string name="dev_notion_skin_on">Notion-Design an, die App lädt damit neu.</string>
     <string name="dev_notion_skin_off">Notion-Design aus.</string>
     <string name="dev_apple_skin">Apple-Design</string>
-    <string name="dev_apple_skin_hint">Gruppierte Karten, Chevrons, Systemblau</string>
+    <string name="dev_apple_skin_hint">Gruppierte Karten mit Pfeilen, wie bei iOS.</string>
     <string name="dev_apple_skin_on">Apple-Design an, die App lädt damit neu.</string>
     <string name="dev_apple_skin_off">Apple-Design aus.</string>
     <!-- Konsolen-Ausgaben: was der Serverstart, das Setup und die Hintergrund-Jobs in die Server-Konsole schreiben -->
@@ -1481,4 +1503,10 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="domain_switch_done">Server ist jetzt erreichbar unter %1$s</string>
     <string name="domain_switch_failed">Server konnte nicht verschoben werden: %1$s</string>
     <string name="domain_new_none">Gerade nimmt keine Domain neue Server an. Bitte versuche es später erneut.</string>
+    <string name="players_count_format">%1$d / %2$d Spieler</string>
+    <string name="pm_header_online">%1$s (Online)</string>
+    <string name="pm_header_offline">%1$s (Offline)</string>
+    <string name="region_blocked_title">In Festlandchina nicht verfügbar</string>
+    <string name="region_blocked_body">KodaHosting ist in Festlandchina nicht verfügbar.\n\nInternetdienste brauchen dort eine Zulassung (ICP-Registrierung). Auch das Hosten eines Spielservers, das Weiterleiten über einen Tunnel ins Ausland und das Anbieten für andere Spieler ist ohne die nötigen Genehmigungen nicht erlaubt, und diese App darf dort nicht angeboten werden.\n\nKodaHosting hat keine dieser Genehmigungen, deshalb darf die App von Festlandchina aus nicht benutzt werden. Das ist keine Sperre deines Kontos oder Geräts.</string>
+    <string name="region_blocked_close">Schließen</string>
 </resources>

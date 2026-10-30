@@ -8,7 +8,7 @@
   Foundation, version 3 of the License.
 
   KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
-  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
   PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License along with
@@ -17,144 +17,125 @@
   SPDX-FileCopyrightText: 2026 KodaHosting
   SPDX-License-Identifier: GPL-3.0-only
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#A6000000"
-    android:gravity="center"
-    android:padding="16dp">
+    android:background="#A6000000">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
         android:orientation="vertical"
-        android:layout_margin="16dp"
-        android:background="@drawable/bg_dialog_custom"
-        android:padding="16dp"
-        android:gravity="center">
+        android:background="@drawable/bg_koda_sheet"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="24dp">
 
-            <!-- title: P.R.A.E.T.O.R., colours get applied in code -->
-            <TextView
-                android:id="@+id/tv_praetor_title"
-                android:maxLines="1"
-        app:autoSizeTextType="uniform"
-        app:autoSizeMinTextSize="14sp"
-        app:autoSizeMaxTextSize="36sp"
-        app:autoSizeStepGranularity="2sp"
-        android:layout_width="match_parent"
-        android:paddingEnd="8dp"
-        android:paddingStart="8dp"
-        android:gravity="center"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/space_grotesk_bold"
-        app:fontFamily="@font/space_grotesk_bold"
-        android:text="@string/praetor_title"
-                android:textColor="#FF3333"
-                android:textSize="36sp"
-                android:textStyle="bold"
-                
-                 />
+        <View
+            android:layout_width="32dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:background="#3A3A44"
+            android:layout_marginBottom="14dp"/>
 
-            <!-- subtitle -->
+        <TextView
+            android:id="@+id/tv_praetor_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P.R.A.E.T.O.R."
+            android:textSize="11sp"
+            android:fontFamily="@font/space_grotesk_regular"
+            android:letterSpacing="0.18"/>
+
+        <TextView
+            android:id="@+id/tv_hibernate_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/praetor_hibernate_title"
+            android:textColor="#F5F5F7"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda"
+            android:lineSpacingExtra="2dp"/>
+
+        <TextView
+            android:id="@+id/tv_praetor_reason"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/praetor_hibernate_warning"
+            android:textColor="#BCBCC6"
+            android:textSize="14sp"
+            android:lineSpacingExtra="3dp"
+            android:fontFamily="@font/font_koda"/>
+
+        <TextView
+            android:id="@+id/btn_praetor_explanation"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:text="@string/praetor_hibernate_long_explanation"
+            android:textColor="#FFA45C"
+            android:textSize="12sp"
+            android:fontFamily="@font/font_koda"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <TextView
+            android:id="@+id/tv_praetor_countdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="10"
+            android:textColor="#FFA45C"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end|center_vertical"
+            android:layout_marginTop="14dp">
+
             <TextView
-                android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
-        android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/praetor_subtitle"
-                android:textColor="#8A8A9A"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                
+                android:id="@+id/btn_praetor_cancel"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
                 android:gravity="center"
-                android:layout_marginTop="8dp" />
-            
-            <View
-                android:layout_width="40dp"
-                android:layout_height="2dp"
-                android:background="#FF6B00"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="24dp" />
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:text="@string/praetor_hibernate_cancel"
+                android:textColor="#BCBCC6"
+                android:textSize="13sp"
+                android:fontFamily="@font/font_koda"
+                android:clickable="true"
+                android:focusable="true"/>
 
-            <!-- snowflake, this dialog is about putting the server to sleep -->
-            <TextView
-                android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
-        android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="❄"
-                android:textColor="#00BFFF"
-                android:textSize="48sp"
-                android:layout_marginBottom="16dp" />
-
-            <!-- why the server is being hibernated -->
-            <TextView
-                android:id="@+id/tv_praetor_reason"
-                android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
-        android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/praetor_hibernate_warning"
-                android:textColor="#F0F0F0"
-                android:textSize="16sp"
-                android:gravity="center"
-                android:layout_marginBottom="24dp" />
-
-            <!-- optional long read for whoever wants the details -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_praetor_explanation"
-                android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
-        android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                style="@style/KodaButton.Outline"
-                android:text="@string/praetor_hibernate_long_explanation"
-                android:layout_marginBottom="24dp" />
-
-            <!-- seconds left before the server goes down -->
-            <TextView
-                android:id="@+id/tv_praetor_countdown"
-                android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
-        android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#FFA500"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:text="10"
-                android:layout_marginBottom="16dp" />
-
-            <!-- confirm and cancel -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_praetor_confirm"
-                    android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
-        android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    style="@style/KodaButton"
-                    android:text="@string/praetor_hibernate_confirm"
-                    app:backgroundTint="#00BFFF"
-                    android:stateListAnimator="@null"
-                    android:enabled="false"
-                    android:layout_marginBottom="8dp"/>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_praetor_cancel"
-                    android:fontFamily="@font/space_grotesk_regular"
-        app:fontFamily="@font/space_grotesk_regular"
-        android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    style="@style/KodaButton.Outline"
-                    android:text="@string/praetor_hibernate_cancel"
-                    android:stateListAnimator="@null" />
-            </LinearLayout>
-
+                android:id="@+id/btn_praetor_confirm"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginStart="4dp"
+                android:minWidth="0dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="@string/praetor_hibernate_confirm"
+                android:textColor="#1A0F00"
+                android:textSize="13sp"
+                android:fontFamily="@font/font_koda"
+                app:backgroundTint="#FF6B00"
+                app:cornerRadius="10dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:textAllCaps="false"
+                android:enabled="false"/>
         </LinearLayout>
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>

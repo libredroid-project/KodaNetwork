@@ -430,6 +430,21 @@ public class TransferReceiverActivity extends AppCompatActivity {
                     }
                 }
 
+                // Phase 3.5: make sure the cloud row really is alive after the adopt. an
+                // older cleanup path on either side could have tombstoned it (host renamed
+                // to deleted_<host>_<uuid>), which left the server running but invisible:
+                // no status, no join address, no KodaDash. the rpc restores it for a device
+                // of the same account and does nothing when the row is fine.
+                for (int i = 0; i < session.packs.size(); i++) {
+                    try {
+                        JSONObject restore = new JSONObject();
+                        restore.put("p_app_uuid", App.getPrefs(this).getString("app_uuid", ""));
+                        restore.put("p_device_token", App.getPrefs(this).getString("device_token", ""));
+                        restore.put("p_host", session.packs.get(i).host);
+                        TransferSession.callRpc("/rest/v1/rpc/rpc_restore_server", restore.toString());
+                    } catch (Exception ignored) { }
+                }
+
                 // Phase 4: tell the old device it can clean up
                 JSONObject finish = new JSONObject();
                 finish.put("p_code", session.code);

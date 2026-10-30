@@ -188,8 +188,12 @@ public class App extends Application implements Application.ActivityLifecycleCal
                     if (android.os.Build.VERSION.SDK_INT >= 28) {
                         w.setNavigationBarDividerColor(android.graphics.Color.TRANSPARENT);
                     }
+                    if (android.os.Build.VERSION.SDK_INT >= 29) {
+                        // no grey system scrim behind the gesture handle
+                        w.setNavigationBarContrastEnforced(false);
+                    }
                     if (isGesture) {
-                        w.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+                        w.setNavigationBarColor(0xFF241C18);
                         android.view.View bottomBar = activity.findViewById(activity.getResources().getIdentifier("main_bottom_bar", "id", activity.getPackageName()));
                         if (bottomBar != null) {
                             bottomBar.setPadding(bottomBar.getPaddingLeft(), 0, bottomBar.getPaddingRight(), sysBars.bottom);
@@ -198,7 +202,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
                             v.setPadding(0, sysBars.top, 0, sysBars.bottom);
                         }
                     } else {
-                        w.setNavigationBarColor(color);
+                        w.setNavigationBarColor(0xFF241C18);
                         v.setPadding(0, sysBars.top, 0, sysBars.bottom);
                     }
                     return insets;

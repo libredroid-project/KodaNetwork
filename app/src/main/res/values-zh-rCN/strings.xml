@@ -217,6 +217,9 @@
     <string name="praetor_action_auto_ram">自动调整内存</string>
     <string name="praetor_action_start_anyway">无论如何启动 (有风险)</string>
     <string name="praetor_action_cancel">取消</string>
+    <string name="praetor_action_save">保存</string>
+    <string name="praetor_execute_waiting">执行（%1$ds）</string>
+    <string name="praetor_network_missing">无网络连接</string>
 
     <string name="email_verification">电子邮件验证</string>
     <string name="enter_code">请输入 6 位代码</string>
@@ -226,6 +229,9 @@
     <string name="praetor_hibernate_long_explanation">长篇解释</string>
     <string name="praetor_hibernate_confirm">休眠</string>
     <string name="praetor_hibernate_cancel">取消</string>
+    <string name="praetor_hibernate_title">让此服务器休眠？</string>
+    <string name="praetor_hibernate_btn_waiting">休眠（%1$ds）</string>
+    <string name="praetor_hibernate_explanation">服务器进入休眠时：\n\n1. DNS 记录（加入地址）将被删除，其他人可以占用该地址。\n2. 服务器文件将被压缩以节省空间。\n3. 服务器文件夹将被删除以释放存储空间。\n\n唤醒时会恢复压缩前的内容。如果加入地址已被占用，请选择新的地址。</string>
     <string name="praetor_reason_ram_conflict">服务器分配了过多的内存 (%1$d MB)。您的设备总共只有 %2$d MB 可用内存。此分配可能会导致您的手机或服务器崩溃。</string>
     <string name="praetor_reason_console_offline">服务器离线时无法打开控制台。请先启动服务器。</string>
     <string name="praetor_action_back">返回</string>
@@ -240,6 +246,7 @@
     <string name="praetor_message_change_domain">输入新的加入地址（仅限字母、数字和连字符）。</string>
     <string name="praetor_hint_change_domain">新名称（例如 myserver）</string>
     <string name="praetor_subtitle_change_name">更改服务器名称</string>
+
     <string name="praetor_message_change_name">为您的服务器输入新的显示名称。</string>
     <string name="praetor_hint_change_name">服务器名称</string>
     <string name="praetor_change_name_success">服务器名称已更新！</string>
@@ -293,6 +300,19 @@
     <string name="modpack_filter_all">所有版本</string>
     <string name="java_runtime_label">Java 运行时</string>
     <string name="java_runtime_auto">自动（Java %1$d）</string>
+
+    <!-- start jar: 服务器实际启动的文件 -->
+    <string name="sd_start_jar_label">启动 Jar</string>
+    <string name="sd_start_jar_auto">自动</string>
+    <string name="sd_start_jar_auto_value">自动</string>
+    <string name="sd_start_jar_none">未找到 jar</string>
+    <string name="sd_start_jar_title">启动 Jar</string>
+    <string name="sd_start_jar_message">选择此服务器启动的文件。自动会采用服务器文件夹中符合服务器类型的 jar。</string>
+    <string name="sd_start_jar_warning">错误的 jar 会导致服务器无法启动。</string>
+    <string name="sd_start_jar_current">当前设置：%1$s</string>
+    <string name="sd_start_jar_apply">应用</string>
+    <string name="sd_start_jar_waiting">%1$d 秒后可应用</string>
+    <string name="sd_start_jar_saved">启动 Jar 已保存。请重启服务器以生效。</string>
 
     <!-- praetor: the jre did not load, java 25 takes over -->
     <string name="praetor_subtitle_jre_fallback">JAVA 运行时回退</string>
@@ -534,8 +554,11 @@
     <string name="sd_eula_body">启动此 Minecraft 服务器即表示您接受 Mojang/Microsoft 最终用户许可协议。\n\n这包括：\n• 您不得出售游戏功能的使用权\n• 您不得重新分发 Minecraft 内容\n• 服务器必须遵守 EULA 准则\n\n完整 EULA：\nhttps://aka.ms/MinecraftEULA</string>
     <string name="sd_delete_dialog_title">删除服务器？</string>
     <string name="sd_delete_dialog_msg">警告：此操作将永久删除服务器。请稍候...</string>
+    <string name="sd_delete_body_long">此手机上的世界、插件、设置和备份将被删除，加入地址将释放给其他玩家。</string>
+    <string name="sd_delete_cannot_undo">此操作无法撤销。</string>
     <string name="sd_delete_btn_waiting">删除 (%ds)</string>
-    <string name="sd_delete_btn_ready">删除</string>
+    <string name="sd_delete_btn_ready">删除服务器</string>
+    <string name="sd_delete_title_named">删除“%1$s”？</string>
     <string name="error_unknown">未知错误</string>
     <string name="error_connection_refused">服务器连接被拒绝。</string>
     <string name="error_timeout">超时，请重试。</string>
@@ -1450,4 +1473,10 @@
     <string name="domain_switch_done">服务器现在可通过 %1$s 访问</string>
     <string name="domain_switch_failed">无法移动服务器：%1$s</string>
     <string name="domain_new_none">目前没有域名接受新服务器。请稍后重试。</string>
+    <string name="players_count_format">%1$d / %2$d 名玩家</string>
+    <string name="pm_header_online">%1$s（在线）</string>
+    <string name="pm_header_offline">%1$s（离线）</string>
+    <string name="region_blocked_title">中国大陆不可用</string>
+    <string name="region_blocked_body">KodaHosting 在中国大陆不可用。\n\n在中国大陆运营互联网服务需要许可（ICP 备案）。未经许可托管游戏服务器、通过隧道转发到境外并提供给其他玩家同样不被允许，本应用也不能在当地提供。\n\nKodaHosting 没有这些许可，因此不得在中国大陆使用本应用。这不是对您的账号或设备的封禁。</string>
+    <string name="region_blocked_close">关闭</string>
 </resources>

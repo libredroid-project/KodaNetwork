@@ -30,7 +30,9 @@
         <item name="colorOnBackground">#F0F0F0</item>
         <item name="colorOnSurface">#F0F0F0</item>
         <item name="android:statusBarColor">#0A0A0F</item>
-        <item name="android:navigationBarColor">#0A0A0F</item>
+        <item name="android:navigationBarColor">#241C18</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="android:windowTranslucentStatus">false</item>
         <item name="android:windowTranslucentNavigation">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
@@ -102,8 +104,9 @@
     </style>
 
     <style name="KodaBottomSheetDialog" parent="Theme.MaterialComponents.BottomSheetDialog">
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:navigationBarColor">#241C18</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="bottomSheetStyle">@style/KodaBottomSheet</item>
         <item name="enableEdgeToEdge">true</item>
         <item name="paddingBottomSystemWindowInsets">false</item>

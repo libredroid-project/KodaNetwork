@@ -2268,7 +2268,8 @@ function loadMotd() {
 }
 
 function saveMotd() {
-    var value = $('motd-input').value.replace(/§/g, '\\u00A7');
+    // roh senden: der Server escaped fuer die Datei (ISO-8859-1, Unicode-Escapes)
+    var value = $('motd-input').value;
     api('/api/settings', { method: 'POST', body: { properties: { motd: value } } })
         .then(function () {
             state.settings.motd = value;
