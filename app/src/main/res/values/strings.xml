@@ -1371,6 +1371,7 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="con_caused_by">\u0020\u0020✗ Caused by: %1$s</string>
     <string name="con_tunnel_log">\u0020\u0020⛓ [%1$s] %2$s</string>
     <string name="con_tunnel_crash">\u0020\u0020⚠ ⛌ Tunnel crashed at %1$s — Reason: %2$s</string>
+    <string name="con_tunnel_reconnect">\u0020\u0020↻ Tunnel dropped, the server stays online. Reconnecting the join address…</string>
     <string name="con_frpc_missing">\u0020\u0020✗ FRPC binary missing at %1$s - Did you rebuild the app after adding jniLibs?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Failed to create start script!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux Bridge Error!</string>

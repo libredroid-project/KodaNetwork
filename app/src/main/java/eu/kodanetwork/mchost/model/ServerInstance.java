@@ -78,6 +78,9 @@ public class ServerInstance {
     private String    aiPrompt      = "";
     private String    modpackName   = "";
     private int       javaRuntime   = 0; // 0 = auto (Fabric gets 21, otherwise 25)
+    /** local rcon for forge/neoforge, their embedded console does not read stdin. */
+    private int       rconPort     = 0;
+    private String    rconPassword = "";
     private boolean   bedrockSupport = false;
     private int       bedrockPort    = 0;
     private boolean   voicechat      = false;
@@ -204,6 +207,8 @@ public class ServerInstance {
         j.put("aiPrompt", aiPrompt);
         j.put("modpackName", modpackName);
         j.put("javaRuntime", javaRuntime);
+        j.put("rconPort", rconPort);
+        j.put("rconPassword", rconPassword == null ? "" : rconPassword);
         j.put("bedrockSupport", bedrockSupport);
         j.put("bedrockPort", bedrockPort);
         j.put("voicechat", voicechat);
@@ -275,6 +280,8 @@ public class ServerInstance {
         s.aiPrompt       = j.optString("aiPrompt", "");
         s.modpackName    = j.optString("modpackName", "");
         s.javaRuntime    = j.optInt("javaRuntime", 0);
+        s.rconPort       = j.optInt("rconPort", 0);
+        s.rconPassword   = j.optString("rconPassword", "");
         s.bedrockSupport = j.optBoolean("bedrockSupport", false);
         s.bedrockPort    = j.optInt("bedrockPort", 0);
         s.voicechat      = j.optBoolean("voicechat", false);
@@ -379,6 +386,35 @@ public class ServerInstance {
     public void   setModpackName(String v)     { modpackName = v; }
     public int    getJavaRuntime()             { return javaRuntime; }
     public void   setJavaRuntime(int v)        { javaRuntime = v; }
+    public int    getRconPort()                { return rconPort; }
+    public void   setRconPort(int v)           { rconPort = v; }
+    public String getRconPassword()            { return rconPassword == null ? "" : rconPassword; }
+    public void   setRconPassword(String v)    { rconPassword = v == null ? "" : v; }
+
+    /**
+     * minecraft before 1.13 reads numeric gamemode and difficulty from server.properties,
+     * 1.13+ the names. writing the name into an old file makes the server clamp it back,
+     * which then looks like a manual edit on the next open.
+     */
+    public boolean isLegacyProperties() {
+        try {
+            String[] p = (version == null ? "" : version).split("\\.");
+            if (p.length < 2) return false;
+            return Integer.parseInt(p[0]) == 1 && Integer.parseInt(p[1]) < 13;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String getGamemodePropValue() {
+        if (gamemode == null) return isLegacyProperties() ? "0" : "survival";
+        return isLegacyProperties() ? String.valueOf(gamemode.ordinal()) : gamemode.name().toLowerCase();
+    }
+
+    public String getDifficultyPropValue() {
+        if (difficulty == null) return isLegacyProperties() ? "2" : "normal";
+        return isLegacyProperties() ? String.valueOf(difficulty.ordinal()) : difficulty.name().toLowerCase();
+    }
     public boolean isBedrockSupport()          { return bedrockSupport; }
     public void   setBedrockSupport(boolean v) { bedrockSupport = v; }
     public int    getBedrockPort()             { return bedrockPort; }

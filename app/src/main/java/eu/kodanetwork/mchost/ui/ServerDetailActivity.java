@@ -6555,7 +6555,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerDifficulty.setAdapter(adapter);
 
-        String diff = props.getProperty("difficulty", "easy");
+        String diff = difficultyNameFromProp(props.getProperty("difficulty", "easy"));
         for (int i=0; i<difficulties.length; i++) {
             if (difficulties[i].equalsIgnoreCase(diff)) spinnerDifficulty.setSelection(i);
         }
@@ -6565,7 +6565,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             android.widget.ArrayAdapter<String> gmAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_item, gamemodes);
             gmAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             spinnerGamemode.setAdapter(gmAdapter);
-            String gm = props.getProperty("gamemode", "survival");
+            String gm = gamemodeNameFromProp(props.getProperty("gamemode", "survival"));
             for (int i = 0; i < gamemodes.length; i++) {
                 if (gamemodes[i].equalsIgnoreCase(gm)) spinnerGamemode.setSelection(i);
             }
@@ -6605,14 +6605,20 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
             java.util.Map<String, String> updates = new java.util.HashMap<>();
             updates.put("max-players", etMaxPlayers.getText().toString());
-            updates.put("difficulty", difficulties[spinnerDifficulty.getSelectedItemPosition()]);
+            String diffChoice = difficulties[spinnerDifficulty.getSelectedItemPosition()];
+            updates.put("difficulty", server.isLegacyProperties()
+                    ? String.valueOf(java.util.Arrays.asList(difficulties).indexOf(diffChoice))
+                    : diffChoice);
             // vanilla and paper only read section signs, so the typed ampersand codes and
             // hex values are turned into the form the server actually understands
             if (etMotd != null) updates.put("motd",
                     eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(
                             etMotd.getText().toString(), serverSupportsHexColor()));
             if (spinnerGamemode != null && spinnerGamemode.getSelectedItemPosition() >= 0) {
-                updates.put("gamemode", gamemodes[spinnerGamemode.getSelectedItemPosition()]);
+                String gmChoice = gamemodes[spinnerGamemode.getSelectedItemPosition()];
+                updates.put("gamemode", server.isLegacyProperties()
+                        ? String.valueOf(java.util.Arrays.asList(gamemodes).indexOf(gmChoice))
+                        : gmChoice);
             }
             if (switchForceGamemode != null) updates.put("force-gamemode", String.valueOf(switchForceGamemode.isChecked()));
             updates.put("view-distance", String.valueOf(sbViewDistance.getProgress() + 5));
@@ -6743,8 +6749,8 @@ public class ServerDetailActivity extends AppCompatActivity {
                 modelVals.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toAmpersand(modelMotd));
             }
         }
-        collectPropsDrift(props, "gamemode", server.getGamemode() == null ? null : server.getGamemode().name(), fileVals, modelVals);
-        collectPropsDrift(props, "difficulty", server.getDifficulty() == null ? null : server.getDifficulty().name(), fileVals, modelVals);
+        collectPropsDrift(props, "gamemode", server.getGamemodePropValue(), fileVals, modelVals);
+        collectPropsDrift(props, "difficulty", server.getDifficultyPropValue(), fileVals, modelVals);
         collectPropsDrift(props, "pvp", String.valueOf(server.isPvp()), fileVals, modelVals);
         collectPropsDrift(props, "white-list", String.valueOf(server.isWhitelist()), fileVals, modelVals);
         collectPropsDrift(props, "max-players", String.valueOf(server.getMaxPlayers()), fileVals, modelVals);
@@ -6783,9 +6789,11 @@ public class ServerDetailActivity extends AppCompatActivity {
                 switch (e.getKey()) {
                     case "motd": server.setMotd(eu.kodanetwork.mchost.util.MinecraftColors.toAmpersand(v)); break;
                     case "gamemode":
-                        try { server.setGamemode(ServerInstance.Gamemode.valueOf(v.toLowerCase())); } catch (Exception ignored) {} break;
+                        try { server.setGamemode(ServerInstance.Gamemode.valueOf(
+                                gamemodeNameFromProp(v))); } catch (Exception ignored) {} break;
                     case "difficulty":
-                        try { server.setDifficulty(ServerInstance.Difficulty.valueOf(v.toLowerCase())); } catch (Exception ignored) {} break;
+                        try { server.setDifficulty(ServerInstance.Difficulty.valueOf(
+                                difficultyNameFromProp(v))); } catch (Exception ignored) {} break;
                     case "pvp": server.setPvp(Boolean.parseBoolean(v)); break;
                     case "white-list": server.setWhitelist(Boolean.parseBoolean(v)); break;
                     case "max-players":
@@ -6805,8 +6813,8 @@ public class ServerDetailActivity extends AppCompatActivity {
                 restore.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(
                         server.getMotd(), serverSupportsHexColor()));
             }
-            if (server.getGamemode() != null) restore.put("gamemode", server.getGamemode().name());
-            if (server.getDifficulty() != null) restore.put("difficulty", server.getDifficulty().name());
+            if (server.getGamemode() != null) restore.put("gamemode", server.getGamemodePropValue());
+            if (server.getDifficulty() != null) restore.put("difficulty", server.getDifficultyPropValue());
             restore.put("pvp", String.valueOf(server.isPvp()));
             restore.put("white-list", String.valueOf(server.isWhitelist()));
             restore.put("max-players", String.valueOf(server.getMaxPlayers()));
@@ -6844,6 +6852,25 @@ public class ServerDetailActivity extends AppCompatActivity {
         driftDialog.setOnDismissListener(d -> propsDriftDialog = null);
         propsDriftDialog = driftDialog;
         driftDialog.show();
+    }
+
+    /** 1.12.2 writes gamemode/difficulty as a number, 1.13+ as a name. */
+    private static String gamemodeNameFromProp(String v) {
+        String[] names = {"survival", "creative", "adventure", "spectator"};
+        try {
+            int i = Integer.parseInt(v.trim());
+            if (i >= 0 && i < names.length) return names[i];
+        } catch (Exception ignored) {}
+        return v.trim().toLowerCase();
+    }
+
+    private static String difficultyNameFromProp(String v) {
+        String[] names = {"peaceful", "easy", "normal", "hard"};
+        try {
+            int i = Integer.parseInt(v.trim());
+            if (i >= 0 && i < names.length) return names[i];
+        } catch (Exception ignored) {}
+        return v.trim().toLowerCase();
     }
 
     private void collectPropsDrift(java.util.Properties props, String key, String modelVal,

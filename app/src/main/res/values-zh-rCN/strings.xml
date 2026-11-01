@@ -1352,6 +1352,7 @@
     <string name="con_caused_by">\u0020\u0020✗ 原因：%1$s</string>
     <string name="con_tunnel_log">\u0020\u0020⛓ [%1$s] %2$s</string>
     <string name="con_tunnel_crash">\u0020\u0020⚠ ⛌ 隧道于 %1$s 崩溃 — 原因：%2$s</string>
+    <string name="con_tunnel_reconnect">\u0020\u0020↻ 隧道已断开，服务器仍在运行。正在重连加入地址…</string>
     <string name="con_frpc_missing">\u0020\u0020✗ %1$s 处缺少 FRPC 可执行文件 - 添加 jniLibs 后是否重新构建了应用？</string>
     <string name="con_start_script_failed">\u0020\u0020✗ 创建启动脚本失败！</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux 桥接错误！</string>

@@ -195,6 +195,8 @@ public class KodaServerService extends Service {
     private static class RT {
         Process proc;
         Process frpcProc;
+        /** when frpc was last (re)started, the watchdog uses it to avoid double starts. */
+        long lastTunnelStart = 0L;
         java.io.PrintStream stdin;
         String fifoPath;
         boolean isNative;
@@ -1199,6 +1201,7 @@ public class KodaServerService extends Service {
             ensurePluginsInstalled(srv, pDir);
 
             writeEula(dir); 
+            ensureRconConfig(srv);
             writeProps(srv, dir);
             writeFrpcConfig(srv, dir);
             if (writePluginConfigs) writeDynamicPluginConfigs(srv, dir);
@@ -1968,6 +1971,19 @@ public class KodaServerService extends Service {
                 pb.directory(dir);
                 pb.redirectErrorStream(true);
                 rt.frpcProc = pb.start();
+                rt.lastTunnelStart = System.currentTimeMillis();
+                // the config carries the tunnel token, so it gets dropped as soon as frpc has
+                // read it. a fixed 1 s delay was a race on busy starts: the file could be gone
+                // before frpc opened it and the tunnel stayed dead without anyone noticing
+                final File frpcConfig = new File(dir, ".frpc.toml");
+                final java.util.concurrent.atomic.AtomicBoolean configGone =
+                        new java.util.concurrent.atomic.AtomicBoolean(false);
+                final Runnable dropConfig = () -> {
+                    if (configGone.compareAndSet(false, true) && frpcConfig.exists()) {
+                        frpcConfig.delete();
+                        Log.d(TAG, "Ghost-File: deleted .frpc.toml for " + srv.getId());
+                    }
+                };
                 // tunnel log -> console: disconnect causes become visible with timestamps
                 Thread frpcReader = new Thread(() -> {
                         String reason = "";
@@ -1980,7 +1996,7 @@ public class KodaServerService extends Service {
                         String lastLine = "";
                         while ((line = br.readLine()) != null) {
                             final String l = line;
-                            if (!l.trim().isEmpty()) lastLine = l;
+                            if (!l.trim().isEmpty()) { lastLine = l; dropConfig.run(); }
                             // the server token got rotated, so drop the cache. the next start
                             // fetches the new one automatically
                             if (l.contains("token") && (l.contains("doesn't match") || l.contains("mismatch"))) {
@@ -2001,13 +2017,7 @@ public class KodaServerService extends Service {
                 frpcReader.start();
                 
                 // root protection: drop the config from disk once frpc has read it
-                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                    File frpcConfig = new File(dir, ".frpc.toml");
-                    if (frpcConfig.exists()) {
-                        frpcConfig.delete();
-                        Log.d(TAG, "Ghost-File: deleted .frpc.toml for " + srv.getId());
-                    }
-                }, 1000);
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(dropConfig, 30000);
             } catch (Exception e) {
                 Log.e(TAG, "Failed to start native tunnel", e);
             }
@@ -2085,8 +2095,33 @@ public class KodaServerService extends Service {
                 sleep(10000); 
                 updateStatsLocally(id, srv);
                 updateRamUsage(id, srv);
+                ensureTunnelAlive(id, srv);
             } 
         });
+    }
+
+    /**
+     * the tunnel is a separate process and dies on its own sometimes: the phone kills it
+     * under memory pressure, a reconnect gives up, or an older build removed it while
+     * shutting another server down. a server that still shows ONLINE with a dead tunnel
+     * has a join address that leads nowhere, so the tunnel is brought back here instead
+     * of waiting for a manual restart.
+     */
+    private void ensureTunnelAlive(String id, ServerInstance srv) {
+        if (srv.state != ServerInstance.State.ONLINE) return;
+        RT rt = runtimes.get(id);
+        if (rt == null) return;
+        if (rt.frpcProc != null && rt.frpcProc.isAlive()) return;
+        long now = System.currentTimeMillis();
+        if (now - rt.lastTunnelStart < 30000L) return;
+        File dir = new File(srv.getServerDir());
+        try {
+            writeFrpcConfig(srv, dir);
+            log(id, getString(R.string.con_tunnel_reconnect));
+            startNativeTunnel(id, srv, dir, rt);
+        } catch (Exception e) {
+            Log.w(TAG, "Tunnel restart failed for " + srv.getSubdomain() + ": " + e.getMessage());
+        }
     }
 
     private void updateRamUsage(String id, ServerInstance srv) {
@@ -2173,7 +2208,10 @@ public class KodaServerService extends Service {
             }
         }
         
-        String killCmd = "if [ -f '" + srv.getServerDir() + "/server.pid' ]; then kill -9 `cat '" + srv.getServerDir() + "/server.pid'` || true; fi; if [ -f '" + srv.getServerDir() + "/frpc.pid' ]; then kill -9 `cat '" + srv.getServerDir() + "/frpc.pid'` || true; fi; pkill -f .frpc || true; fuser -k -9 " + srv.getPort() + "/tcp || true";
+        // only this server's port is touched here: a global "pkill -f .frpc" killed
+        // the tunnels of every OTHER running server as well, their join addresses
+        // stayed dead until someone restarted them
+        String killCmd = "if [ -f '" + srv.getServerDir() + "/server.pid' ]; then kill -9 `cat '" + srv.getServerDir() + "/server.pid'` || true; fi; if [ -f '" + srv.getServerDir() + "/frpc.pid' ]; then kill -9 `cat '" + srv.getServerDir() + "/frpc.pid'` || true; fi; fuser -k -9 " + srv.getPort() + "/tcp || true";
         RT rt = runtimes.get(id);
         
         if (rt != null && rt.frpcProc != null) {
@@ -2564,6 +2602,14 @@ public class KodaServerService extends Service {
     public void sendCmd(String id, String cmd) {
         RT rt = runtimes.get(id);
         if (rt == null) return;
+        ServerInstance srv = eu.kodanetwork.mchost.model.ServerRepo.get(this).byId(id);
+        if (srv != null && usesRcon(srv)) {
+            final String password = srv.getRconPassword();
+            final int port = srv.getRconPort();
+            exec.submit(() -> eu.kodanetwork.mchost.util.RconClient.runCommand(
+                    "127.0.0.1", port, password, cmd));
+            return;
+        }
         if (rt.stdin != null) {
             rt.stdin.println(cmd);
             rt.stdin.flush();
@@ -4370,8 +4416,16 @@ public class KodaServerService extends Service {
         updates.put("motd", eu.kodanetwork.mchost.util.MinecraftColors.toServerMotd(
                 s.getMotd() != null ? s.getMotd() : "", hexOk));
         updates.put("accepts-transfers", "true");
-        updates.put("gamemode", s.getGamemode() != null ? s.getGamemode().name().toLowerCase() : "survival");
-        updates.put("difficulty", s.getDifficulty() != null ? s.getDifficulty().name().toLowerCase() : "normal");
+        updates.put("gamemode", s.getGamemodePropValue());
+        updates.put("difficulty", s.getDifficultyPropValue());
+        // forge and neoforge do not act on stdin when the JVM is embedded, so the
+        // console talks to them over a local rcon instead
+        if (s.getType() == ServerInstance.Type.FORGE || s.getType() == ServerInstance.Type.NEOFORGE) {
+            updates.put("enable-rcon", "true");
+            updates.put("rcon.port", String.valueOf(s.getRconPort()));
+            updates.put("rcon.password", s.getRconPassword());
+            updates.put("broadcast-rcon-to-ops", "false");
+        }
         updates.put("pvp", String.valueOf(s.isPvp()));
         updates.put("white-list", String.valueOf(s.isWhitelist()));
         updates.put("max-players", String.valueOf(s.getMaxPlayers()));
@@ -4431,6 +4485,53 @@ public class KodaServerService extends Service {
         try (FileWriter fw = new FileWriter(f)) {
             fw.write(c);
         }
+    }
+
+    private boolean usesRcon(ServerInstance srv) {
+        return (srv.getType() == ServerInstance.Type.FORGE || srv.getType() == ServerInstance.Type.NEOFORGE)
+                && srv.getRconPort() > 0;
+    }
+
+    /**
+     * forge and neoforge never see console commands that are written into stdin when the
+     * JVM runs embedded, so every one of them gets a local rcon with a random password.
+     * only localhost can reach it; the game port is the only one that leaves the phone.
+     */
+    private void ensureRconConfig(ServerInstance srv) {
+        if (srv.getType() != ServerInstance.Type.FORGE && srv.getType() != ServerInstance.Type.NEOFORGE) return;
+        boolean changed = false;
+        if (srv.getRconPassword().isEmpty()) {
+            srv.setRconPassword(java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 20));
+            changed = true;
+        }
+        if (srv.getRconPort() <= 0) {
+            int port = allocateRconPort(srv);
+            if (port > 0) {
+                srv.setRconPort(port);
+                changed = true;
+            }
+        }
+        if (changed) eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
+    }
+
+    private int allocateRconPort(ServerInstance srv) {
+        for (int port = 25575; port < 26000; port++) {
+            boolean taken = false;
+            for (ServerInstance other : eu.kodanetwork.mchost.model.ServerRepo.get(this).all()) {
+                if (other != srv && other.getRconPort() == port) {
+                    taken = true;
+                    break;
+                }
+            }
+            if (taken) continue;
+            try (java.net.ServerSocket probe = new java.net.ServerSocket()) {
+                probe.bind(new java.net.InetSocketAddress("127.0.0.1", port));
+                return port;
+            } catch (Exception ignored) {
+                // busy right now, try the next one
+            }
+        }
+        return 0;
     }
 
     private void write(File f, byte[] b) throws IOException {
