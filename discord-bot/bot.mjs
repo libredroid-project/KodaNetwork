@@ -84,11 +84,11 @@ async function supabase(path, options = {}) {
     return text ? JSON.parse(text) : null;
 }
 
-function releaseEmbed(release) {
+function releaseEmbed(release, description) {
     const embed = new EmbedBuilder()
         .setColor(color)
         .setTitle(release.title || `${release.version_name} is out`)
-        .setDescription(release.changelog || '_No changelog provided._')
+        .setDescription(description)
         .addFields(
             { name: 'Version', value: release.version_name, inline: true },
             { name: 'Channel', value: release.channel, inline: true }
@@ -103,6 +103,35 @@ function releaseEmbed(release) {
     if (release.image_url) embed.setImage(release.image_url);
 
     return embed;
+}
+
+/**
+ * one message, one or two embeds. discord caps a single embed description at
+ * 4096 characters, and a changelog longer than that made the whole send fail
+ * (the release then stayed unannounced forever). old markdown headings are
+ * turned into bold lines because embeds do not render "#".
+ */
+function releaseEmbeds(release) {
+    let text = (release.changelog || '_No changelog provided._')
+        .replace(/^### (.+)$/gm, '**$1**')
+        .replace(/^## (.+)$/gm, '**$1**');
+    if (text.length > 5600) text = text.slice(0, 5600).trimEnd() + '\n\n…';
+
+    const chunks = [];
+    let rest = text;
+    while (rest.length > 3900 && chunks.length < 9) {
+        let cut = rest.lastIndexOf('\n\n', 3900);
+        if (cut < 500) cut = rest.lastIndexOf('\n', 3900);
+        if (cut < 500) cut = 3900;
+        chunks.push(rest.slice(0, cut).trim());
+        rest = rest.slice(cut).trim();
+    }
+    if (rest) chunks.push(rest);
+
+    const first = releaseEmbed(release, chunks[0]);
+    const more = chunks.slice(1).map(chunk =>
+        new EmbedBuilder().setColor(color).setDescription(chunk));
+    return [first, ...more];
 }
 
 /** posts every published release that has not been announced yet */
@@ -122,7 +151,7 @@ async function announcePendingReleases() {
         }
 
         for (const release of pending) {
-            const message = await channel.send({ embeds: [releaseEmbed(release)] });
+            const message = await channel.send({ embeds: releaseEmbeds(release) });
             await supabase(`releases?id=eq.${release.id}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
