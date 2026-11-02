@@ -67,6 +67,15 @@ public class CrashAlertActivity extends androidx.appcompat.app.AppCompatActivity
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
             WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         );
+        // the crash screen sits on the same warm surface as the sheets, nav bar included.
+        // android 15+ ignores setNavigationBarColor, so the window has to go edge to edge
+        // and the surface behind the bar has to be our own background.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(0xFF241C18);
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
 
         // ── intent data ──────────────────────────────────────────────────────
         String id            = getIntent().getStringExtra("id");
@@ -393,6 +402,13 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
 
         scroll.addView(root);
         setContentView(scroll);
+        // edge to edge: keep the content out of the bars, the warm surface fills them
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scroll, (v, insets) -> {
+            androidx.core.graphics.Insets bars = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars());
+            v.setPadding(0, bars.top, 0, bars.bottom);
+            return insets;
+        });
         eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
 
         // the theme treats every text above 26sp as a header and puts an orange glow
@@ -478,7 +494,8 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         if (aiSheet != null && aiSheet.isShowing()) return;
 
         aiSheet = new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        aiSheet.setContentView(buildAiSheetContent());
+        final View sheetView = buildAiSheetContent();
+        aiSheet.setContentView(sheetView);
         aiSheet.setCancelable(true);
         aiSheet.show();
         if (aiSheet.getWindow() != null) {
@@ -487,6 +504,8 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
                 aiSheet.getWindow().setNavigationBarContrastEnforced(false);
             }
         }
+        // the same staggered entrance every other sheet has
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheetView);
         showAiThinking();
         runAiRequest();
     }
