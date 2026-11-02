@@ -727,6 +727,25 @@ public class KodaServerService extends Service {
             log(srv.getId(), getString(R.string.con_not_starting_overloaded));
             return;
         }
+        // mods with desktop-only native libraries crash while loading the world, so the
+        // start is refused with the crash screen instead of a 30 second quiet failure
+        java.util.List<File> unsupported = eu.kodanetwork.mchost.util.ModCompat.findUnsupportedMods(srv);
+        if (!unsupported.isEmpty()) {
+            StringBuilder names = new StringBuilder();
+            for (File jar : unsupported) {
+                if (names.length() > 0) names.append(", ");
+                names.append(eu.kodanetwork.mchost.util.ModCompat.displayName(jar));
+            }
+            srv.crashExitCode = 0;
+            srv.crashCategory = "MOD_UNSUPPORTED";
+            srv.crashReason = getString(R.string.mod_unsupported_reason, names.toString());
+            srv.crashFixAction = "REMOVE_UNSUPPORTED_MOD";
+            srv.crashFix = getString(R.string.mod_unsupported_fix);
+            srv.crashStackTrace = names.toString();
+            log(srv.getId(), getString(R.string.con_mod_unsupported, names.toString()));
+            setState(srv, ServerInstance.State.CRASHED);
+            return;
+        }
         startServerInternal(srv, true);
     }
 

@@ -426,6 +426,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
             case "OOM":            return getString(R.string.crash_category_oom);
             case "PORT":           return getString(R.string.crash_category_port);
             case "MOD_CRASH":      return getString(R.string.crash_category_mod_crash);
+            case "MOD_UNSUPPORTED": return getString(R.string.crash_category_mod_unsupported);
             case "MISSING_JAR":    return getString(R.string.crash_category_missing_jar);
             case "JAVA_VERSION":   return getString(R.string.crash_category_java_version);
             case "PERMISSION":     return getString(R.string.crash_category_permission);

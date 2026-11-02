@@ -52,8 +52,16 @@ public class CrashFixer {
             case "REDOWNLOAD_JAR":  return flagRedownloadJar(srv);
             case "REDOWNLOAD_JRE":  return flagRedownloadJre(ctx, srv);
             case "INSTALL_MISSING_MODS": return installMissingMods(srv);
+            case "REMOVE_UNSUPPORTED_MOD": return removeUnsupportedMods(srv);
             default:               return new FixResult(false, "Unknown fix: " + fixAction);
         }
+    }
+
+    /** deletes mods that cannot run on Android (desktop-only native libraries). */
+    private static FixResult removeUnsupportedMods(ServerInstance srv) {
+        int removed = ModCompat.removeUnsupported(srv);
+        if (removed == 0) return new FixResult(false, "No unsupported mod found");
+        return new FixResult(true, removed + " mod(s) removed");
     }
 
     /** writes eula=true into eula.txt. */
