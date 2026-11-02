@@ -1388,6 +1388,7 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="mod_unsupported_reason">%1$s braucht eine eigene native Bibliothek, und dafür gibt es keinen Android-Build. Der Server würde beim Laden der Welt abstürzen. Entferne den Mod, nimm eine Version die auf Android läuft, oder hoste das Pack auf einem PC.</string>
     <string name="mod_unsupported_fix">Mod entfernen</string>
     <string name="crash_category_mod_unsupported">Mod läuft nicht auf Android</string>
+    <string name="crash_btn_full_logs">Alle Logs</string>
     <string name="con_frpc_missing">\u0020\u0020✗ FRPC-Binary fehlt unter %1$s - Wurde die App nach dem Hinzufügen der jniLibs neu gebaut?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Startskript konnte nicht erstellt werden!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux-Bridge-Fehler!</string>

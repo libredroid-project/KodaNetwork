@@ -1358,6 +1358,7 @@
     <string name="mod_unsupported_reason">%1$s 需要自己的原生库，而它没有 Android 版本。服务器会在加载世界时崩溃。请移除该模组、改用可在 Android 上运行的版本，或在 PC 上托管整合包。</string>
     <string name="mod_unsupported_fix">移除模组</string>
     <string name="crash_category_mod_unsupported">模组无法在 Android 上运行</string>
+    <string name="crash_btn_full_logs">完整日志</string>
     <string name="con_frpc_missing">\u0020\u0020✗ %1$s 处缺少 FRPC 可执行文件 - 添加 jniLibs 后是否重新构建了应用？</string>
     <string name="con_start_script_failed">\u0020\u0020✗ 创建启动脚本失败！</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux 桥接错误！</string>

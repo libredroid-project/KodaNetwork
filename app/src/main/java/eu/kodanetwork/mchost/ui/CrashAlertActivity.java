@@ -104,73 +104,52 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         kodaFont = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.space_grotesk_regular);
         kodaBold = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.space_grotesk_bold);
 
-        // ── root layout ──────────────────────────────────────────────────────
-        getWindow().getDecorView().setBackgroundColor(0xFF0F0808); // dark reddish black background
+        // ── root layout: the same language as the praetor sheets ────────────
+        getWindow().getDecorView().setBackgroundColor(0xFF241C18);
         ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(0xFF0F0808);
+        scroll.setBackgroundColor(0xFF241C18);
         scroll.setFillViewport(true);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(dp(28), dp(40), dp(28), dp(40));
+        root.setGravity(Gravity.START);
+        root.setPadding(dp(24), dp(28), dp(24), dp(24));
 
         // the root itself is the card here, there is no wrapper
         LinearLayout card = root;
 
-        // ── the P.R.A.E.T.O.R. title ─────────────────────────────────────────
+        // ── wordmark row, small letters plus the red triangle like the sheets ──
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+
         TextView tvPraetor = new TextView(this);
-        String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font><font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
+        String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
         tvPraetor.setText(Html.fromHtml(praetorHtml, Html.FROM_HTML_MODE_LEGACY));
         tvPraetor.setId(R.id.tv_praetor_wordmark);
-        tvPraetor.setTextSize(32f);
-        tvPraetor.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
-        tvPraetor.setLetterSpacing(0.1f);
-        tvPraetor.setGravity(Gravity.CENTER);
-        card.addView(tvPraetor);
+        tvPraetor.setTextSize(11f);
+        tvPraetor.setTypeface(kodaFont != null ? kodaFont : Typeface.DEFAULT);
+        tvPraetor.setLetterSpacing(0.18f);
+        headerRow.addView(tvPraetor);
 
-        // ── subtitle ─────────────────────────────────────────────────────────
-        TextView tvSubtitle = new TextView(this);
-        tvSubtitle.setText(getString(R.string.crash_subtitle));
-        tvSubtitle.setTextColor(0xFF8A8A9A);
-        tvSubtitle.setTextSize(9f);
-        tvSubtitle.setTypeface(kodaFont != null ? kodaFont : Typeface.DEFAULT_BOLD, Typeface.BOLD);
-        tvSubtitle.setLetterSpacing(0.05f);
-        tvSubtitle.setGravity(Gravity.CENTER);
-        tvSubtitle.setPadding(0, dp(6), 0, 0);
-        card.addView(tvSubtitle);
+        View headerSpacer = new View(this);
+        headerRow.addView(headerSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
 
-        // ── orange divider ───────────────────────────────────────────────────
-        View divider = new View(this);
-        LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(dp(40), dp(2));
-        divParams.setMargins(0, dp(20), 0, dp(20));
-        divParams.gravity = Gravity.CENTER;
-        divider.setLayoutParams(divParams);
-        divider.setBackgroundColor(0xFFFF6B00);
-        card.addView(divider);
+        TextView tvWarningTriangle = new TextView(this);
+        tvWarningTriangle.setText("\u26A0");
+        tvWarningTriangle.setTextColor(0xFFFF5449);
+        tvWarningTriangle.setTextSize(15f);
+        headerRow.addView(tvWarningTriangle);
 
-        // ── the pulsing warning icon ─────────────────────────────────────────
-        TextView tvIcon = new TextView(this);
-        tvIcon.setText("⚠");
-        tvIcon.setTextSize(44f);
-        tvIcon.setGravity(Gravity.CENTER);
-        tvIcon.setTextColor(0xFFFF3333);
-        card.addView(tvIcon);
-        tvIcon.startAnimation(new android.view.animation.AlphaAnimation(1.0f, 0.0f) {{
-            setDuration(300);
-            setRepeatMode(android.view.animation.Animation.REVERSE);
-            setRepeatCount(5);
-        }});
+        card.addView(headerRow);
 
-        // ── the CRASH title ──────────────────────────────────────────────────
+        // ── title, left aligned like every sheet ─────────────────────────────
         TextView tvTitle = new TextView(this);
         tvTitle.setText(getString(R.string.crash_title));
-        tvTitle.setTextColor(0xFFFF3355);
-        tvTitle.setTextSize(24f);
+        tvTitle.setTextColor(0xFFF5F5F7);
+        tvTitle.setTextSize(21f);
         tvTitle.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
-        tvTitle.setGravity(Gravity.CENTER);
-        tvTitle.setLetterSpacing(0.06f);
-        tvTitle.setPadding(0, dp(8), 0, 0);
+        tvTitle.setPadding(0, dp(10), 0, 0);
         card.addView(tvTitle);
 
         // ── server info line ─────────────────────────────────────────────────
@@ -178,20 +157,18 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         String verDisplay = serverVersion != null ? serverVersion : "";
         TextView tvServerInfo = new TextView(this);
         tvServerInfo.setText(getString(R.string.crash_server_info, name != null ? name : "Unknown", typeDisplay, verDisplay));
-        tvServerInfo.setTextColor(0xFF888899);
-        tvServerInfo.setTextSize(12f);
-        tvServerInfo.setGravity(Gravity.CENTER);
+        tvServerInfo.setTextColor(0xFF8A8A9A);
+        tvServerInfo.setTextSize(13f);
         tvServerInfo.setPadding(0, dp(6), 0, 0);
         card.addView(tvServerInfo);
 
-        // ── exit code badge ──────────────────────────────────────────────────
+        // ── exit code ────────────────────────────────────────────────────────
         if (crashExitCode != 0) {
             TextView tvExitCode = new TextView(this);
             tvExitCode.setText(getString(R.string.crash_exit_code, crashExitCode));
-            tvExitCode.setTextColor(0xFFFF6B00);
-            tvExitCode.setTextSize(10f);
+            tvExitCode.setTextColor(0xFFFF8A80);
+            tvExitCode.setTextSize(11f);
             tvExitCode.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-            tvExitCode.setGravity(Gravity.CENTER);
             tvExitCode.setLetterSpacing(0.08f);
             tvExitCode.setPadding(0, dp(6), 0, 0);
             card.addView(tvExitCode);
@@ -203,6 +180,10 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         if (crashCategory != null || crashReason != null) {
             LinearLayout causeCard = new LinearLayout(this);
             causeCard.setOrientation(LinearLayout.VERTICAL);
+            GradientDrawable causeBg = new GradientDrawable();
+            causeBg.setColor(0xFF1C1C22);
+            causeBg.setCornerRadius(dp(10));
+            causeCard.setBackground(causeBg);
             causeCard.setPadding(dp(16), dp(14), dp(16), dp(14));
             LinearLayout.LayoutParams causeParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -212,17 +193,17 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
             // the "cause" label
             TextView tvCauseLabel = new TextView(this);
             tvCauseLabel.setText(getString(R.string.crash_cause_label).toUpperCase());
-            tvCauseLabel.setTextColor(0xFFFF5555);
-            tvCauseLabel.setTextSize(10f);
+            tvCauseLabel.setTextColor(0xFFFF8A80);
+            tvCauseLabel.setTextSize(11f);
             tvCauseLabel.setTypeface(kodaFont, Typeface.BOLD);
-            tvCauseLabel.setLetterSpacing(0.15f);
+            tvCauseLabel.setLetterSpacing(0.12f);
             causeCard.addView(tvCauseLabel);
 
             // category in big type
             String categoryDisplay = getCategoryDisplayName(crashCategory);
             TextView tvCategory = new TextView(this);
             tvCategory.setText(categoryDisplay);
-            tvCategory.setTextColor(0xFFF0F0F0);
+            tvCategory.setTextColor(0xFFF5F5F7);
             tvCategory.setTextSize(18f);
             tvCategory.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
             tvCategory.setPadding(0, dp(8), 0, 0);
@@ -233,9 +214,9 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
                 String reasonDisplay = getReasonDisplayText(crashCategory, crashReason, serverRam, serverPort, crashExitCode);
                 TextView tvReason = new TextView(this);
                 tvReason.setText(reasonDisplay);
-                tvReason.setTextColor(0xFFAAAAAA);
-                tvReason.setTextSize(13f);
-                tvReason.setLineSpacing(4f, 1f);
+                tvReason.setTextColor(0xFFBCBCC6);
+                tvReason.setTextSize(14f);
+                tvReason.setLineSpacing(dp(2), 1f);
                 tvReason.setPadding(0, dp(8), 0, 0);
                 causeCard.addView(tvReason);
             }
@@ -282,7 +263,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         // ══════════════════════════════════════════════════════════════════════
         TextView tvLogLabel = new TextView(this);
         tvLogLabel.setText(getString(R.string.crash_log_label).toUpperCase() + " (TAP TO TOGGLE)");
-        tvLogLabel.setTextColor(0xFF777788);
+        tvLogLabel.setTextColor(0xFF8A8A9A);
         tvLogLabel.setTextSize(10f);
         tvLogLabel.setTypeface(kodaFont, Typeface.BOLD);
         tvLogLabel.setLetterSpacing(0.08f);
@@ -290,13 +271,13 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         card.addView(tvLogLabel);
 
         ScrollView scrollLog = new ScrollView(this);
-        scrollLog.setBackgroundColor(0xFF06060C);
+        scrollLog.setBackgroundColor(0xFF1C1C22);
         GradientDrawable logBg = new GradientDrawable();
-        logBg.setCornerRadius(dp(8));
-        logBg.setColor(0xFF06060C);
+        logBg.setCornerRadius(dp(10));
+        logBg.setColor(0xFF1C1C22);
         scrollLog.setBackground(logBg);
         LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(200));
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         scrollParams.setMargins(0, 0, 0, 0);
         scrollLog.setLayoutParams(scrollParams);
 
@@ -340,10 +321,14 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         // dismiss
         com.google.android.material.button.MaterialButton btnDismiss = new com.google.android.material.button.MaterialButton(this);
         btnDismiss.setText(getString(R.string.crash_btn_dismiss));
-        btnDismiss.setTextColor(0xFFBBBBBB);
-        btnDismiss.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF2A2A33));
-        btnDismiss.setCornerRadius(dp(8));
-        btnDismiss.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
+        btnDismiss.setTextColor(0xFFBCBCC6);
+        btnDismiss.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0x00000000));
+        btnDismiss.setCornerRadius(dp(10));
+        btnDismiss.setTypeface(kodaFont != null ? kodaFont : Typeface.DEFAULT);
+        btnDismiss.setTextSize(13f);
+        btnDismiss.setAllCaps(false);
+        btnDismiss.setInsetTop(0);
+        btnDismiss.setInsetBottom(0);
         LinearLayout.LayoutParams dismissParams = new LinearLayout.LayoutParams(0, dp(48), 1.0f);
         dismissParams.setMargins(0, 0, dp(8), 0);
         btnDismiss.setLayoutParams(dismissParams);
@@ -355,11 +340,15 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         
         // straight to the whole log file
         com.google.android.material.button.MaterialButton btnFullLogs = new com.google.android.material.button.MaterialButton(this);
-        btnFullLogs.setText("FULL LOGS");
-        btnFullLogs.setTextColor(0xFFFFFFFF);
-        btnFullLogs.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF333344));
-        btnFullLogs.setCornerRadius(dp(8));
-        btnFullLogs.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
+        btnFullLogs.setText(getString(R.string.crash_btn_full_logs));
+        btnFullLogs.setTextColor(0xFFF0F0F0);
+        btnFullLogs.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF2E2A26));
+        btnFullLogs.setCornerRadius(dp(10));
+        btnFullLogs.setTypeface(kodaFont != null ? kodaFont : Typeface.DEFAULT);
+        btnFullLogs.setTextSize(13f);
+        btnFullLogs.setAllCaps(false);
+        btnFullLogs.setInsetTop(0);
+        btnFullLogs.setInsetBottom(0);
         LinearLayout.LayoutParams fullLogsParams = new LinearLayout.LayoutParams(0, dp(48), 1.0f);
         fullLogsParams.setMargins(dp(8), 0, 0, 0);
         btnFullLogs.setLayoutParams(fullLogsParams);
@@ -377,14 +366,17 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
 
         card.addView(btnBar);
 
-        // ask AI: a content-sized window with the 3-dot loading animation
+        // ask AI: opens the answer as a praetor bottom sheet
         com.google.android.material.button.MaterialButton btnAskAi = new com.google.android.material.button.MaterialButton(this);
         btnAskAi.setText(getString(R.string.ai_ask_button));
-        btnAskAi.setTextColor(0xFF111111);
+        btnAskAi.setTextColor(0xFF1A0F00);
         btnAskAi.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFFF6B00));
-        btnAskAi.setCornerRadius(dp(8));
+        btnAskAi.setCornerRadius(dp(10));
         btnAskAi.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
-        btnAskAi.setAllCaps(true);
+        btnAskAi.setTextSize(13f);
+        btnAskAi.setAllCaps(false);
+        btnAskAi.setInsetTop(0);
+        btnAskAi.setInsetBottom(0);
         LinearLayout.LayoutParams askAiParams = new LinearLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
         askAiParams.setMargins(0, dp(10), 0, 0);
@@ -408,13 +400,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         android.widget.TextView wordmark = findViewById(R.id.tv_praetor_wordmark);
         if (wordmark != null) wordmark.setShadowLayer(0f, 0f, 0f, 0);
 
-        // ── subtle pulse on the background ──────────────────────────────────
-        anim = ObjectAnimator.ofInt(getWindow().getDecorView(), "backgroundColor", 0xFF0F0808, 0xFF1A0A0A);
-        anim.setDuration(1200);
-        anim.setEvaluator(new ArgbEvaluator());
-        anim.setRepeatMode(ValueAnimator.REVERSE);
-        anim.setRepeatCount(ValueAnimator.INFINITE);
-        anim.start();
+        // no background pulse: the calmer sheet design keeps the surface still
         // no auto-dismiss: the AI analysis can take a while; the screen stays until dismissed
     }
 
@@ -469,13 +455,13 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
     }
 
 
-    private android.app.Dialog aiDialog;
+    private com.google.android.material.bottomsheet.BottomSheetDialog aiSheet;
     private TextView tvPraetorReason;
-    private TextView tvPraetorIcon;
+    private com.airbnb.lottie.LottieAnimationView aiDots;
     private com.google.android.material.button.MaterialButton btnPraetorAction;
     private eu.kodanetwork.mchost.util.AiHelper.AiResult aiResult;
 
-    /** the AI window: 3-dot loading animation first, then the answer. */
+    /** the AI answer as a praetor bottom sheet, same language as the other sheets. */
     private void showAiDialog() {
         if (!eu.kodanetwork.mchost.util.AiHelper.hasConsent(this)) {
             new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
@@ -489,100 +475,132 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
                     .show();
             return;
         }
-        if (aiDialog != null && aiDialog.isShowing()) return;
+        if (aiSheet != null && aiSheet.isShowing()) return;
 
-        aiDialog = new android.app.Dialog(this);
-        aiDialog.setContentView(buildAiDialogContent());
-        eu.kodanetwork.mchost.util.DialogLandFix.apply(aiDialog);
-        if (aiDialog.getWindow() != null) {
-            aiDialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-            aiDialog.getWindow().setLayout(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-        }
-        aiDialog.show();
-        showAiThinking();
-
-        final String tail = buildAiLogTail();
-        new Thread(() -> {
-            try {
-                eu.kodanetwork.mchost.util.AiHelper.AiResult res =
-                        eu.kodanetwork.mchost.util.AiHelper.askAiSync(this, srv, tail, crashCategory);
-                runOnUiThread(() -> showAiResult(res));
-            } catch (eu.kodanetwork.mchost.util.AiHelper.RateLimitException e) {
-                runOnUiThread(() -> showAiError(getString(R.string.ai_rate_limited, e.used)));
-            } catch (Exception e) {
-                runOnUiThread(() -> showAiError(e.getMessage() != null ? e.getMessage() : "unknown"));
+        aiSheet = new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        aiSheet.setContentView(buildAiSheetContent());
+        aiSheet.setCancelable(true);
+        aiSheet.show();
+        if (aiSheet.getWindow() != null) {
+            aiSheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                aiSheet.getWindow().setNavigationBarContrastEnforced(false);
             }
-        }).start();
+        }
+        showAiThinking();
+        runAiRequest();
     }
 
-    private View buildAiDialogContent() {
-        View root = getLayoutInflater().inflate(R.layout.activity_praetor_warning, null);
-        TextView tvTitle = root.findViewById(R.id.tv_praetor_title);
-        tvPraetorReason = root.findViewById(R.id.tv_praetor_reason);
-        tvPraetorIcon = root.findViewById(R.id.tv_warning_icon);
-        btnPraetorAction = root.findViewById(R.id.btn_praetor_action);
-        View mathInput = root.findViewById(R.id.et_math_answer);
-        View countdown = root.findViewById(R.id.tv_praetor_countdown);
-        View ramButtons = root.findViewById(R.id.layout_ram_buttons);
-        if (mathInput != null) mathInput.setVisibility(View.GONE);
-        if (countdown != null) countdown.setVisibility(View.GONE);
-        if (ramButtons != null) ramButtons.setVisibility(View.GONE);
+    private View buildAiSheetContent() {
+        LinearLayout sheet = new LinearLayout(this);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        sheet.setBackgroundResource(R.drawable.bg_koda_sheet);
+        sheet.setPadding(dp(24), dp(12), dp(24), dp(24));
 
-        // letter colours of P.R.A.E.T.O.R., like PraetorMemoryLimitActivity, plus the AI tag
-        String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font>"
-                + "<font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font>"
-                + "<font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font>"
-                + "<font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font>"
-                + "<font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
-        tvTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
-        tvPraetorIcon.setText("\u2728"); // the sparkle replaces the praetor warning sign
+        View handle = new View(this);
+        GradientDrawable handleBg = new GradientDrawable();
+        handleBg.setColor(0xFF3A3A44);
+        handleBg.setCornerRadius(dp(2));
+        handle.setBackground(handleBg);
+        LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(dp(32), dp(4));
+        handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+        handleParams.bottomMargin = dp(18);
+        sheet.addView(handle, handleParams);
 
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView wordmark = new TextView(this);
+        wordmark.setText(Html.fromHtml(
+                "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                Html.FROM_HTML_MODE_LEGACY));
+        wordmark.setTextSize(11f);
+        wordmark.setTypeface(kodaFont != null ? kodaFont : Typeface.DEFAULT);
+        wordmark.setLetterSpacing(0.18f);
+        headerRow.addView(wordmark);
+        headerRow.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+
+        TextView triangle = new TextView(this);
+        triangle.setText("\u26A0");
+        triangle.setTextColor(0xFFFF5449);
+        triangle.setTextSize(15f);
+        headerRow.addView(triangle);
+        sheet.addView(headerRow);
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText(getString(R.string.ai_ask_button));
+        tvTitle.setTextColor(0xFFF5F5F7);
+        tvTitle.setTextSize(21f);
+        tvTitle.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
+        tvTitle.setPadding(0, dp(10), 0, 0);
+        sheet.addView(tvTitle);
+
+        aiDots = new com.airbnb.lottie.LottieAnimationView(this);
+        aiDots.setAnimation(R.raw.koda_boot);
+        aiDots.loop(true);
+        aiDots.setVisibility(View.GONE);
+        LinearLayout.LayoutParams dotsParams = new LinearLayout.LayoutParams(dp(44), dp(44));
+        dotsParams.gravity = Gravity.CENTER_HORIZONTAL;
+        dotsParams.topMargin = dp(6);
+        sheet.addView(aiDots, dotsParams);
+
+        tvPraetorReason = new TextView(this);
+        tvPraetorReason.setTextSize(14f);
+        tvPraetorReason.setTextColor(0xFFBCBCC6);
+        tvPraetorReason.setLineSpacing(dp(2), 1f);
+        // long answers scroll inside the sheet, the action button stays at the bottom
+        ScrollView reasonScroll = new ScrollView(this);
+        reasonScroll.setFillViewport(false);
+        reasonScroll.addView(tvPraetorReason);
+        LinearLayout.LayoutParams reasonParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        reasonParams.topMargin = dp(10);
+        sheet.addView(reasonScroll, reasonParams);
+
+        btnPraetorAction = new com.google.android.material.button.MaterialButton(this);
+        btnPraetorAction.setTextColor(0xFF1A0F00);
+        btnPraetorAction.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFFF6B00));
+        btnPraetorAction.setCornerRadius(dp(10));
+        btnPraetorAction.setTypeface(kodaFont != null ? kodaFont : Typeface.DEFAULT);
+        btnPraetorAction.setTextSize(13f);
+        btnPraetorAction.setAllCaps(false);
+        btnPraetorAction.setInsetTop(0);
+        btnPraetorAction.setInsetBottom(0);
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(44));
+        actionParams.topMargin = dp(18);
+        btnPraetorAction.setLayoutParams(actionParams);
         btnPraetorAction.setOnClickListener(v -> {
             if (aiResult != null && aiResult.autoFixAction != null) {
                 confirmAutoFix();
-            } else if (aiDialog != null) {
-                aiDialog.dismiss();
+            } else if (aiSheet != null) {
+                aiSheet.dismiss();
             }
         });
-        return root;
+        sheet.addView(btnPraetorAction);
+
+        return sheet;
     }
 
     private void showAiThinking() {
-        tvPraetorIcon.setVisibility(View.VISIBLE);
+        if (aiDots != null) {
+            aiDots.setVisibility(View.VISIBLE);
+            if (!aiDots.isAnimating()) aiDots.playAnimation();
+        }
         tvPraetorReason.setText(getString(R.string.ai_thinking));
         tvPraetorReason.setTextColor(0xFF8A8A9A);
+        tvPraetorReason.setTextSize(14f);
         btnPraetorAction.setEnabled(false);
         btnPraetorAction.setAlpha(0.5f);
         btnPraetorAction.setText(getString(R.string.ai_thinking));
-        // the layout's own warning icon stays, the pulse makes it read as loading
-        com.airbnb.lottie.LottieAnimationView dots = (com.airbnb.lottie.LottieAnimationView) tvPraetorReason.getTag();
-        if (dots == null) {
-            // drop the koda_boot 3-dot lottie above the reason text, like the praetor icon slot
-            android.view.ViewGroup card = (android.view.ViewGroup) tvPraetorReason.getParent();
-            dots = new com.airbnb.lottie.LottieAnimationView(this);
-            dots.setAnimation(R.raw.koda_boot);
-            dots.loop(true);
-            dots.playAnimation();
-            int size = dp(48);
-            LinearLayout.LayoutParams lLp = new LinearLayout.LayoutParams(size, size);
-            lLp.gravity = Gravity.CENTER_HORIZONTAL;
-            lLp.topMargin = dp(4);
-            lLp.bottomMargin = dp(8);
-            card.addView(dots, card.indexOfChild(tvPraetorReason), lLp);
-            dots.setTag(tvPraetorReason);
-            tvPraetorReason.setTag(dots);
-        }
-        dots.setVisibility(View.VISIBLE);
-        if (!dots.isAnimating()) dots.playAnimation();
     }
 
     private void showAiError(String msg) {
         stopAiDots();
-        tvPraetorIcon.setVisibility(View.VISIBLE);
         tvPraetorReason.setText(getString(R.string.ai_error_prefix) + " " + msg);
-        tvPraetorReason.setTextColor(0xFFFF5555);
+        tvPraetorReason.setTextColor(0xFFFF8A80);
+        tvPraetorReason.setTextSize(14f);
         btnPraetorAction.setEnabled(true);
         btnPraetorAction.setAlpha(1f);
         btnPraetorAction.setText(getString(R.string.ai_retry));
@@ -617,10 +635,9 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
     }
 
     private void stopAiDots() {
-        Object tag = tvPraetorReason != null ? tvPraetorReason.getTag() : null;
-        if (tag instanceof com.airbnb.lottie.LottieAnimationView) {
-            ((com.airbnb.lottie.LottieAnimationView) tag).setVisibility(View.GONE);
-            ((com.airbnb.lottie.LottieAnimationView) tag).pauseAnimation();
+        if (aiDots != null) {
+            aiDots.pauseAnimation();
+            aiDots.setVisibility(View.GONE);
         }
     }
 
@@ -651,8 +668,8 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
             sb.append("<br><br><font color=\"#FF6B00\"><b>HOW TO FIX IT</b></font><br>").append(esc(res.fix));
         }
         tvPraetorReason.setText(android.text.Html.fromHtml(sb.toString(), android.text.Html.FROM_HTML_MODE_LEGACY));
-        tvPraetorReason.setTextColor(0xFFF0F0F0);
-        tvPraetorReason.setTextSize(13f);
+        tvPraetorReason.setTextColor(0xFFBCBCC6);
+        tvPraetorReason.setTextSize(14f);
 
         btnPraetorAction.setEnabled(true);
         btnPraetorAction.setAlpha(1f);
@@ -665,7 +682,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
             btnPraetorAction.setOnClickListener(v -> confirmCrashFixerFix());
         } else {
             btnPraetorAction.setText(getString(R.string.crash_btn_dismiss));
-            btnPraetorAction.setOnClickListener(v -> { if (aiDialog != null) aiDialog.dismiss(); });
+            btnPraetorAction.setOnClickListener(v -> { if (aiSheet != null) aiSheet.dismiss(); });
         }
     }
 
@@ -681,7 +698,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
                             eu.kodanetwork.mchost.util.CrashFixer.executeFix(this, srv, srv.crashFixAction);
                     Toast.makeText(this, r.success ? getString(R.string.ai_fix_applied) : getString(R.string.ai_fix_failed),
                             Toast.LENGTH_LONG).show();
-                    if (r.success && aiDialog != null) aiDialog.dismiss();
+                    if (r.success && aiSheet != null) aiSheet.dismiss();
                 })
                 .setNegativeButton(getString(R.string.sd_action_cancel), null)
                 .show();
@@ -710,7 +727,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
             ServerRepo.get(this).update(srv);
             Toast.makeText(this, getString(R.string.ai_fix_applied), Toast.LENGTH_LONG).show();
             HapticUtil.forceVibrate(this, 60);
-            if (aiDialog != null) aiDialog.dismiss();
+            if (aiSheet != null) aiSheet.dismiss();
         } catch (Exception e) {
             Toast.makeText(this, getString(R.string.ai_fix_failed), Toast.LENGTH_LONG).show();
         }
