@@ -122,6 +122,7 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         TextView tvPraetor = new TextView(this);
         String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font><font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
         tvPraetor.setText(Html.fromHtml(praetorHtml, Html.FROM_HTML_MODE_LEGACY));
+        tvPraetor.setId(R.id.tv_praetor_wordmark);
         tvPraetor.setTextSize(32f);
         tvPraetor.setTypeface(kodaBold != null ? kodaBold : Typeface.DEFAULT_BOLD);
         tvPraetor.setLetterSpacing(0.1f);
@@ -401,6 +402,11 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         scroll.addView(root);
         setContentView(scroll);
         eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
+
+        // the theme treats every text above 26sp as a header and puts an orange glow
+        // behind it. the praetor wordmark has its own letter colours and stays flat.
+        android.widget.TextView wordmark = findViewById(R.id.tv_praetor_wordmark);
+        if (wordmark != null) wordmark.setShadowLayer(0f, 0f, 0f, 0);
 
         // ── subtle pulse on the background ──────────────────────────────────
         anim = ObjectAnimator.ofInt(getWindow().getDecorView(), "backgroundColor", 0xFF0F0808, 0xFF1A0A0A);

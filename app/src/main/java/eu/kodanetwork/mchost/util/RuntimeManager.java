@@ -168,6 +168,10 @@ public class RuntimeManager {
     }
     
     public static int resolveAutoVersion(String ver, boolean isFabric) {
+        // minecraft switched to calendar versions (26.3, 27.1, ...) and those need Java 25,
+        // for every loader. before this fabric always got 21 and crashed with
+        // UnsupportedClassVersionError (class file 69, runtime 65) on 26.x
+        if (ver != null && !ver.startsWith("1.") && ver.matches("^\\d{2,}\\..*")) return 25;
         if (ver == null || !ver.startsWith("1.")) return isFabric ? 21 : 25;
         try {
             String[] parts = ver.split("\\.");
