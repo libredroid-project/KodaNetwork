@@ -1247,6 +1247,22 @@ public class KodaServerService extends Service {
     }
 
     /**
+     * modern forge (1.17+) has no server jar in the root, the installer only writes the
+     * launcher args under libraries/. that file is the "installation complete" signal.
+     */
+    private boolean hasForgeUnixArgs(File serverDir, ServerInstance.Type type) {
+        File dir = new File(serverDir, type == ServerInstance.Type.NEOFORGE
+                ? "libraries/net/neoforged/neoforge"
+                : "libraries/net/minecraftforge/forge");
+        File[] versions = dir.listFiles(File::isDirectory);
+        if (versions == null) return false;
+        for (File v : versions) {
+            if (new File(v, "unix_args.txt").isFile()) return true;
+        }
+        return false;
+    }
+
+    /**
      * minecraft catches a crash in its main loop, writes crash-reports/ and then ends
      * with exit code 0. a report written in the last three minutes is the reliable
      * signal that the server did not stop on purpose.
@@ -1374,8 +1390,10 @@ public class KodaServerService extends Service {
             }
             File forgeJar = isForgeFamily ? findForgeServerJar(serverDir) : null;
             // a forge folder without the real server jar gets --installServer, no matter
-            // what the downloaded file is called (1.12.2 installers are often server.jar)
-            boolean needsInstall = manualJar == null && isForgeFamily && forgeJar == null;
+            // what the downloaded file is called (1.12.2 installers are often server.jar).
+            // 1.17+ never writes a root jar, so unix_args.txt also counts as installed.
+            boolean needsInstall = manualJar == null && isForgeFamily && forgeJar == null
+                    && !hasForgeUnixArgs(serverDir, srv.getType());
             final boolean installing = needsInstall;
 
             final File launchJar;
@@ -1470,12 +1488,27 @@ public class KodaServerService extends Service {
                             if (line.isEmpty()) continue;
                             
                             if (!foundMain) {
-                                if (line.equals("-p")) {
-                                    jvmOut.write("--module-path=" + br.readLine().trim() + "\n");
-                                } else if (line.equals("--add-modules") || line.equals("--add-opens") || line.equals("--add-exports")) {
-                                    jvmOut.write(line + "=" + br.readLine().trim() + "\n");
-                                } else if (line.equals("-cp") || line.equals("-classpath")) {
-                                    jvmOut.write("-Djava.class.path=" + br.readLine().trim() + "\n");
+                                // modern forge writes "-p <paths>" and "--add-modules X" as one
+                                // line, older files put the value on the next line. every line
+                                // becomes ONE jvm option here, so it has to be in "=" form or
+                                // the JVM ignores it and the bootstrapper class is not found.
+                                String key = line;
+                                String value = null;
+                                int space = line.indexOf(' ');
+                                if (space > 0) {
+                                    key = line.substring(0, space);
+                                    value = line.substring(space + 1).trim();
+                                }
+                                if (key.equals("-p") || key.equals("--module-path")) {
+                                    if (value == null) value = br.readLine().trim();
+                                    jvmOut.write("--module-path=" + value + "\n");
+                                } else if (key.equals("--add-modules") || key.equals("--add-opens")
+                                        || key.equals("--add-exports") || key.equals("--patch-module")) {
+                                    if (value == null) value = br.readLine().trim();
+                                    jvmOut.write(key + "=" + value + "\n");
+                                } else if (key.equals("-cp") || key.equals("-classpath")) {
+                                    if (value == null) value = br.readLine().trim();
+                                    jvmOut.write("-Djava.class.path=" + value + "\n");
                                 } else if (!line.startsWith("-")) {
                                     mainClassName = line.replace(".", "/");
                                     foundMain = true;
@@ -1485,8 +1518,17 @@ public class KodaServerService extends Service {
                                     jvmOut.write(line + "\n");
                                 }
                             } else {
-                                // everything after the main class is a program arg
-                                progOut.write(line + "\n");
+                                // everything after the main class is a program arg. forge
+                                // writes "--launchTarget forgeserver" as one line, and the
+                                // jvm hands every line over as ONE argument, so flag and
+                                // value have to be split or modlauncher never sees them
+                                int argSpace = line.startsWith("--") ? line.indexOf(' ') : -1;
+                                if (argSpace > 0) {
+                                    progOut.write(line.substring(0, argSpace) + "\n");
+                                    progOut.write(line.substring(argSpace + 1).trim() + "\n");
+                                } else {
+                                    progOut.write(line + "\n");
+                                }
                             }
                         }
                         
@@ -1635,11 +1677,15 @@ public class KodaServerService extends Service {
                         // exit is never a server crash. either the server starts now or the
                         // installation did not get far enough.
                         File installedJar = findForgeServerJar(serverDir);
-                        boolean installed = installedJar != null;
+                        // 1.12.2 leaves a forge-<mc>-<ver>.jar in the root, 1.17+ leaves no
+                        // root jar at all, only libraries/.../unix_args.txt. both mean done.
+                        boolean installed = installedJar != null
+                                || hasForgeUnixArgs(serverDir, srv.getType());
                         if (installed) {
                             log(id, getString(R.string.con_install_complete_reboot));
+                            final File nextJar = installedJar != null ? installedJar : jar;
                             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                startEmbeddedJvmFlow(srv, installedJar, logFile);
+                                startEmbeddedJvmFlow(srv, nextJar, logFile);
                             }, 2000);
                         } else {
                             log(id, getString(R.string.con_installer_stopped_exit, result));
@@ -1726,7 +1772,8 @@ public class KodaServerService extends Service {
                 } else if (installing) {
                     // same rule as above, just without an exit code to look at
                     File installedJar = findForgeServerJar(new File(srv.getServerDir()));
-                    boolean installed = installedJar != null;
+                    boolean installed = installedJar != null
+                            || hasForgeUnixArgs(new File(srv.getServerDir()), srv.getType());
                     if (installed) {
                         log(id, getString(R.string.con_install_complete_reboot));
                         if (rt.frpcProc != null) {
@@ -1738,7 +1785,7 @@ public class KodaServerService extends Service {
                             try { unbindService(jvmConnRef[0]); } catch (Exception ignored) {}
                         }
                         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                            startEmbeddedJvmFlow(srv, installedJar, logFile);
+                            startEmbeddedJvmFlow(srv, installedJar != null ? installedJar : jar, logFile);
                         }, 2000);
                     } else {
                         log(id, getString(R.string.con_installer_stopped));
