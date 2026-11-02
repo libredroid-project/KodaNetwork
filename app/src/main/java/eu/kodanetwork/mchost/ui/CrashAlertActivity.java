@@ -363,13 +363,27 @@ crashStack = getIntent().getStringExtra("crashStackTrace");
         btnFullLogs.setLayoutParams(fullLogsParams);
         btnFullLogs.setOnClickListener(v -> {
             HapticUtil.forceVibrate(this, 40);
-            if (srv != null) {
-                Intent logIntent = new Intent(this, eu.kodanetwork.mchost.ui.FileEditorActivity.class);
-                logIntent.putExtra("filePath", srv.getServerDir() + "/logs/latest.log");
-                logIntent.putExtra("title", "Server Logs");
-                logIntent.putExtra("readOnly", true);
-                startActivity(logIntent);
+            if (srv == null) return;
+            // FileEditorActivity reads "path", not "filePath", and a startup crash often
+            // has no logs/latest.log yet, so pick whatever really exists
+            File dir = new File(srv.getServerDir());
+            File log = new File(dir, "logs/latest.log");
+            if (!log.exists() || log.length() == 0) log = new File(dir, "server.log");
+            if (!log.exists() || log.length() == 0) {
+                File reports = new File(dir, "crash-reports");
+                File[] files = reports.listFiles((d, n) -> n.endsWith(".txt"));
+                if (files != null && files.length > 0) {
+                    log = files[0];
+                    for (File f : files) if (f.lastModified() > log.lastModified()) log = f;
+                }
             }
+            if (!log.exists()) {
+                Toast.makeText(this, getString(R.string.crash_log_unavailable), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Intent logIntent = new Intent(this, eu.kodanetwork.mchost.ui.FileEditorActivity.class);
+            logIntent.putExtra("path", log.getAbsolutePath());
+            startActivity(logIntent);
         });
         btnBar.addView(btnFullLogs);
 
