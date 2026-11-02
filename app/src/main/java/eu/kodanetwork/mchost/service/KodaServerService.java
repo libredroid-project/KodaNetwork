@@ -1246,6 +1246,25 @@ public class KodaServerService extends Service {
         return best;
     }
 
+    /**
+     * minecraft catches a crash in its main loop, writes crash-reports/ and then ends
+     * with exit code 0. a report written in the last three minutes is the reliable
+     * signal that the server did not stop on purpose.
+     */
+    private File findFreshCrashReport(File serverDir) {
+        File dir = new File(serverDir, "crash-reports");
+        File[] files = dir.listFiles((d, name) -> name.endsWith(".txt"));
+        if (files == null) return null;
+        File best = null;
+        long now = System.currentTimeMillis();
+        for (File f : files) {
+            if (!f.isFile()) continue;
+            if (now - f.lastModified() > 3 * 60_000L) continue;
+            if (best == null || f.lastModified() > best.lastModified()) best = f;
+        }
+        return best;
+    }
+
     private void startEmbeddedJvmFlow(ServerInstance srv, File jar, File logFile) {
         new Thread(() -> {
             String id = srv.getId();
@@ -1670,7 +1689,26 @@ public class KodaServerService extends Service {
                         }
                         setState(srv, ServerInstance.State.CRASHED);
                     } else {
-                        setState(srv, ServerInstance.State.OFFLINE);
+                        // minecraft catches a crash in its own main loop, writes a report into
+                        // crash-reports/ and returns from main, so the process exit code is 0
+                        // and the app used to show OFFLINE instead of the crash screen
+                        File freshReport = findFreshCrashReport(serverDir);
+                        if (freshReport != null) {
+                            eu.kodanetwork.mchost.util.CrashAnalyzer.Result cr =
+                                    eu.kodanetwork.mchost.util.CrashAnalyzer.analyze(srv, 0);
+                            srv.crashExitCode = 0;
+                            srv.crashCategory = cr != null && cr.isCrash ? cr.category : "MOD_CRASH";
+                            srv.crashReason = cr != null && cr.reason != null
+                                    ? cr.reason
+                                    : "The server crashed while starting, see crash-reports/" + freshReport.getName();
+                            srv.crashFix = cr != null ? cr.fixDescription : null;
+                            srv.crashFixAction = cr != null ? cr.fixAction : null;
+                            srv.crashStackTrace = cr != null ? cr.stackTrace : null;
+                            log(id, getString(R.string.con_crash_report_found, freshReport.getName()));
+                            setState(srv, ServerInstance.State.CRASHED);
+                        } else {
+                            setState(srv, ServerInstance.State.OFFLINE);
+                        }
                     }
                 } else {
                     log(id, getString(R.string.con_jvm_connect_failed));

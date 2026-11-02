@@ -71,6 +71,14 @@ public class CrashAnalyzer {
         p.add(new CrashPattern("(?i)Go to eula\\.txt", "EULA",
                 "EULA not accepted", "Accept the Minecraft EULA automatically", "ACCEPT_EULA"));
 
+        // ── a mod's own native library (valkyrienskies/Krunch and friends) ─────
+        // these binaries only exist for desktop platforms, so "re-download the JRE"
+        // would be wrong advice here
+        p.add(new CrashPattern("(?i)Krunch|(?i)Couldn't load shared library|(?i)no (?!libjvm|jvm)[A-Za-z0-9_]+ in java\\.library\\.path",
+                "MOD_CRASH",
+                "A mod needs its own native library and there is no Android build of it. This mod cannot run on a phone server; remove it (and the mods that depend on it) or host the pack on a PC",
+                null, null));
+
         // ── native library, usually a broken jre ─────────────────────────────
         p.add(new CrashPattern("(?i)UnsatisfiedLinkError", "NATIVE_LIB",
                 "Missing or incompatible native library (libjvm.so)",
