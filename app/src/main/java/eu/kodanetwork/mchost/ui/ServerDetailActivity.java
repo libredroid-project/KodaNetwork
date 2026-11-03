@@ -126,6 +126,7 @@ public class ServerDetailActivity extends AppCompatActivity {
     private java.util.List<TiltEffectHelper> tiltHelpers = new java.util.ArrayList<>();
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private android.view.View layoutFullLoading;
+    private eu.kodanetwork.mchost.util.KodaBootSteps bootSteps;
     private TextView tvFullLoadingMsg;
 
     private final androidx.activity.result.ActivityResultLauncher<Intent> iconPickerLauncher =
@@ -361,6 +362,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             if (layoutFullLoading != null) {
                 layoutFullLoading.setVisibility(View.VISIBLE);
                 layoutFullLoading.setAlpha(1f);
+                if (bootSteps != null) bootSteps.reset();
                 com.airbnb.lottie.LottieAnimationView boot = findViewById(R.id.lottie_full_loading);
                 if (boot != null) {
                     boot.setVisibility(View.VISIBLE);
@@ -468,6 +470,10 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
 
         layoutFullLoading = findViewById(R.id.layout_full_loading);
+        android.view.View bootStepsView = findViewById(R.id.layout_boot_steps);
+        if (bootStepsView instanceof android.widget.LinearLayout) {
+            bootSteps = new eu.kodanetwork.mchost.util.KodaBootSteps((android.widget.LinearLayout) bootStepsView);
+        }
         tvFullLoadingMsg = findViewById(R.id.tv_full_loading_msg);
         android.view.View btnCloseLoading = findViewById(R.id.btn_close_loading);
         if (btnCloseLoading != null) {
@@ -1697,6 +1703,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         // and show the loading screen while it boots
         if (layoutFullLoading != null) {
             layoutFullLoading.setVisibility(View.VISIBLE);
+            if (bootSteps != null) bootSteps.reset();
         }
     }
     
@@ -2662,6 +2669,27 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     private long lastScrollTime = 0;
 
+    /** maps the real startup lines to the short boot story on the loading screen. */
+    private void feedBootStep(String line) {
+        if (bootSteps == null || layoutFullLoading == null
+                || layoutFullLoading.getVisibility() != View.VISIBLE) return;
+        String l = line.toLowerCase();
+        if (l.contains("done (") || l.contains("server started successfully")) {
+            bootSteps.push(getString(R.string.boot_step_ready));
+        } else if (l.contains("preparing level") || l.contains("preparing spawn area")) {
+            bootSteps.push(getString(R.string.boot_step_world));
+        } else if (l.contains("modlauncher") || l.contains("loading mods")) {
+            bootSteps.push(getString(R.string.boot_step_mods));
+        } else if (l.contains("loading minecraft") || l.contains("starting minecraft server")
+                || l.contains("starting org.bukkit") || l.contains("loading properties")) {
+            bootSteps.push(getString(R.string.boot_step_minecraft));
+        } else if (l.contains("running") && l.contains("installer")) {
+            bootSteps.push(getString(R.string.boot_step_install));
+        } else if (l.contains("starting java") || l.contains("jvm")) {
+            bootSteps.push(getString(R.string.boot_step_java));
+        }
+    }
+
     private void appendLog(String raw) {
         if (raw == null || raw.isEmpty() || tvLog == null) return;
         
@@ -2672,6 +2700,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             if (line.isEmpty()) continue;
             // strip the ANSI escape codes, the log is full of them
             line = line.replaceAll("\\\u001B\\[[;\\d]*[ -/]*[@-~]", "").replaceAll("\\[[0-9;]*m", "");
+            feedBootStep(line);
 
             int col;
             if (line.contains("ERROR") || line.contains("Exception"))   col = Color.parseColor("#FF5555");

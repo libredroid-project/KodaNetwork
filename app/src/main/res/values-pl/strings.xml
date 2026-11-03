@@ -1328,6 +1328,12 @@
     <string name="mod_unsupported_fix">Usuń mod</string>
     <string name="crash_category_mod_unsupported">Mod nie działa na Androidzie</string>
     <string name="crash_btn_full_logs">Pełne logi</string>
+    <string name="boot_step_install">Instalowanie plików serwera</string>
+    <string name="boot_step_java">Uruchamianie Javy</string>
+    <string name="boot_step_minecraft">Wczytywanie Minecrafta</string>
+    <string name="boot_step_mods">Wczytywanie modów</string>
+    <string name="boot_step_world">Przygotowywanie świata</string>
+    <string name="boot_step_ready">Świat gotowy</string>
     <string name="con_frpc_missing">\u0020\u0020✗ Brak binarki FRPC w %1$s - czy przebudowano aplikację po dodaniu jniLibs?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Nie udało się utworzyć skryptu startowego!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Błąd mostu Termux!</string>

@@ -1378,6 +1378,12 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="mod_unsupported_fix">Remove the mod</string>
     <string name="crash_category_mod_unsupported">Mod not supported on Android</string>
     <string name="crash_btn_full_logs">Full logs</string>
+    <string name="boot_step_install">Installing server files</string>
+    <string name="boot_step_java">Starting Java</string>
+    <string name="boot_step_minecraft">Loading Minecraft</string>
+    <string name="boot_step_mods">Loading mods</string>
+    <string name="boot_step_world">Preparing the world</string>
+    <string name="boot_step_ready">World ready</string>
     <string name="con_frpc_missing">\u0020\u0020✗ FRPC binary missing at %1$s - Did you rebuild the app after adding jniLibs?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Failed to create start script!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux Bridge Error!</string>

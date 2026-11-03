@@ -1260,6 +1260,14 @@
                 android:textColor="#555566" android:textSize="11sp"
                 android:fontFamily="@font/font_koda"/>
 
+            <LinearLayout android:id="@+id/layout_boot_steps"
+                android:layout_width="280dp" android:layout_height="78dp"
+                android:layout_marginTop="30dp"
+                android:orientation="vertical"
+                android:gravity="bottom"
+                android:clipChildren="true"
+                android:clipToPadding="true"/>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_close_loading"
                 style="@style/KodaButton.Outline"

@@ -1340,6 +1340,14 @@
                 android:textColor="#FFFFFF" android:textSize="11sp"
                 android:fontFamily="@font/font_koda"/>
 
+            <LinearLayout android:id="@+id/layout_boot_steps"
+                android:layout_width="280dp" android:layout_height="78dp"
+                android:layout_marginTop="30dp"
+                android:orientation="vertical"
+                android:gravity="bottom"
+                android:clipChildren="true"
+                android:clipToPadding="true"/>
+
             <com.google.android.material.button.MaterialButton
         android:background="@drawable/bg_mc_button_dark"
         app:backgroundTint="@null"
