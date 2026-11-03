@@ -127,7 +127,6 @@ public class ServerDetailActivity extends AppCompatActivity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private android.view.View layoutFullLoading;
     private eu.kodanetwork.mchost.util.KodaBootSteps bootSteps;
-    private ServerInstance.State lastDashState;
     private TextView tvFullLoadingMsg;
 
     private final androidx.activity.result.ActivityResultLauncher<Intent> iconPickerLauncher =
@@ -2019,13 +2018,6 @@ public class ServerDetailActivity extends AppCompatActivity {
     private void updateDash() {
         maybeOfferDomainSwitch();
         ServerInstance.State st = server.state;
-        // a stop the user asked for gets a short undo, a crash does not
-        if (lastDashState == ServerInstance.State.STOPPING && st == ServerInstance.State.OFFLINE) {
-            eu.kodanetwork.mchost.util.KodaUndo.show(findViewById(android.R.id.content),
-                    getString(R.string.undo_server_stopped, server.getName()),
-                    this::startServer);
-        }
-        lastDashState = st;
         boolean bannedNow = isServerBannedCached();
         String label; int col;
         switch (st) {
@@ -2937,12 +2929,15 @@ public class ServerDetailActivity extends AppCompatActivity {
                 boolean isZip = file.isFile()
                         && (file.getName().toLowerCase().endsWith(".zip")
                             || file.getName().toLowerCase().endsWith(".rar"));
+                boolean inTrash = file.getAbsolutePath()
+                        .contains("/" + eu.kodanetwork.mchost.util.FileTrash.DIR + "/");
                 java.util.List<String> actionList = new java.util.ArrayList<>(java.util.Arrays.asList(
                         getString(R.string.sd_dialog_rename), getString(R.string.sd_action_copy),
                         getString(R.string.sd_action_cut), getString(R.string.sd_action_delete),
                         getString(R.string.sd_files_export)));
                 if (isZip) actionList.add(getString(R.string.sd_files_unpack));
                 actionList.add(getString(R.string.sd_files_info));
+                if (inTrash) actionList.add(getString(R.string.trash_restore));
                 String[] actions = actionList.toArray(new String[0]);
                 new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                     .setTitle(file.getName())
@@ -2967,12 +2962,19 @@ public class ServerDetailActivity extends AppCompatActivity {
                             clipCut = true;
                             Toast.makeText(this, getString(R.string.sd_toast_cut_hint), Toast.LENGTH_LONG).show();
                         } else if (which == 3) { // delete
-                            if (file.isDirectory()) {
-                                deleteRecursive(file);
-                            } else {
-                                file.delete();
-                            }
+                            File serverRoot = new File(server.getServerDir());
+                            File trashed = eu.kodanetwork.mchost.util.FileTrash.moveToTrash(serverRoot, file);
                             refreshFiles();
+                            if (trashed == null) {
+                                Toast.makeText(this, getString(R.string.sd_toast_error_prefix) + file.getName(), Toast.LENGTH_SHORT).show();
+                            } else {
+                                final File trashedRef = trashed;
+                                eu.kodanetwork.mchost.util.KodaUndo.show(findViewById(android.R.id.content),
+                                        getString(R.string.undo_file_deleted, file.getName()),
+                                        () -> {
+                                            if (eu.kodanetwork.mchost.util.FileTrash.restore(serverRoot, trashedRef)) refreshFiles();
+                                        });
+                            }
                         } else if (which == 4 && file.isFile()) { // export through SAF
                             pendingExportFile = file;
                             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -2982,6 +2984,11 @@ public class ServerDetailActivity extends AppCompatActivity {
                             startActivityForResult(intent, REQ_EXPORT_FILE);
                         } else if (actions[which].equals(getString(R.string.sd_files_info))) {
                             showFileInfo(file);
+                        } else if (actions[which].equals(getString(R.string.trash_restore))) {
+                            if (eu.kodanetwork.mchost.util.FileTrash.restore(new File(server.getServerDir()), file)) {
+                                Toast.makeText(this, getString(R.string.trash_restored), Toast.LENGTH_SHORT).show();
+                                refreshFiles();
+                            }
                         } else if (isZip && actions[which].equals(getString(R.string.sd_files_unpack))) {
                             unpackZipHere(file);
                         }

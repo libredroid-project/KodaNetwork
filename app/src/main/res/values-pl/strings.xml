@@ -1337,6 +1337,9 @@
     <string name="undo_action">Cofnij</string>
     <string name="undo_server_stopped">%1$s zatrzymany</string>
     <string name="undo_rename">Nazwa zmieniona na %1$s</string>
+    <string name="undo_file_deleted">%1$s przeniesiono do kosza</string>
+    <string name="trash_restore">Przywróć</string>
+    <string name="trash_restored">Przywrócono</string>
     <string name="con_frpc_missing">\u0020\u0020✗ Brak binarki FRPC w %1$s - czy przebudowano aplikację po dodaniu jniLibs?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Nie udało się utworzyć skryptu startowego!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Błąd mostu Termux!</string>

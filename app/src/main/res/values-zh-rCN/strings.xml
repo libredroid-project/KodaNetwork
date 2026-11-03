@@ -1368,6 +1368,9 @@
     <string name="undo_action">撤销</string>
     <string name="undo_server_stopped">%1$s 已停止</string>
     <string name="undo_rename">名称已改为 %1$s</string>
+    <string name="undo_file_deleted">%1$s 已移到回收站</string>
+    <string name="trash_restore">恢复</string>
+    <string name="trash_restored">已恢复</string>
     <string name="con_frpc_missing">\u0020\u0020✗ %1$s 处缺少 FRPC 可执行文件 - 添加 jniLibs 后是否重新构建了应用？</string>
     <string name="con_start_script_failed">\u0020\u0020✗ 创建启动脚本失败！</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux 桥接错误！</string>
