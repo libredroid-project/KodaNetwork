@@ -31,8 +31,10 @@ import android.os.Looper;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -467,6 +469,10 @@ public class ServerDetailActivity extends AppCompatActivity {
         View btnImportFile = findViewById(R.id.btn_import_file);
         if (btnImportFile != null) {
             btnImportFile.setOnClickListener(v -> showFilesActionDialog());
+        }
+        View btnFilesTrash = findViewById(R.id.btn_files_trash);
+        if (btnFilesTrash != null) {
+            btnFilesTrash.setOnClickListener(v -> showTrashSheet());
         }
 
         layoutFullLoading = findViewById(R.id.layout_full_loading);
@@ -3248,6 +3254,297 @@ public class ServerDetailActivity extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+
+    /** the trash as a praetor sheet: list, restore, delete for good, info, empty all. */
+    private void showTrashSheet() {
+        final File serverRoot = new File(server.getServerDir());
+        final float d = getResources().getDisplayMetrics().density;
+
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundResource(R.drawable.bg_koda_sheet);
+        content.setPadding((int) (24 * d), (int) (12 * d), (int) (24 * d), (int) (24 * d));
+
+        View handle = new View(this);
+        android.graphics.drawable.GradientDrawable handleBg = new android.graphics.drawable.GradientDrawable();
+        handleBg.setColor(0xFF3A3A44);
+        handleBg.setCornerRadius(2 * d);
+        handle.setBackground(handleBg);
+        LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams((int) (32 * d), (int) (4 * d));
+        handleLp.gravity = Gravity.CENTER_HORIZONTAL;
+        handleLp.bottomMargin = (int) (18 * d);
+        content.addView(handle, handleLp);
+
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView wordmark = new TextView(this);
+        wordmark.setText(android.text.Html.fromHtml(
+                "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                android.text.Html.FROM_HTML_MODE_LEGACY));
+        wordmark.setTextSize(11f);
+        wordmark.setLetterSpacing(0.18f);
+        headerRow.addView(wordmark);
+        headerRow.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+        TextView triangle = new TextView(this);
+        triangle.setText("\u26A0");
+        triangle.setTextColor(0xFFFF5449);
+        triangle.setTextSize(15f);
+        headerRow.addView(triangle);
+        content.addView(headerRow);
+
+        TextView title = new TextView(this);
+        title.setText(getString(R.string.trash_title));
+        title.setTextColor(0xFFF5F5F7);
+        title.setTextSize(21f);
+        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setPadding(0, (int) (10 * d), 0, 0);
+        content.addView(title);
+
+        java.util.List<eu.kodanetwork.mchost.util.FileTrash.Entry> entries =
+                eu.kodanetwork.mchost.util.FileTrash.list(serverRoot);
+        long totalBytes = 0;
+        for (eu.kodanetwork.mchost.util.FileTrash.Entry e : entries) totalBytes += e.size;
+
+        TextView summary = new TextView(this);
+        summary.setText(getString(R.string.trash_summary, entries.size(),
+                eu.kodanetwork.mchost.util.FileTrash.humanSize(totalBytes)));
+        summary.setTextColor(0xFF8A8A9A);
+        summary.setTextSize(13f);
+        summary.setPadding(0, (int) (6 * d), 0, 0);
+        content.addView(summary);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(rows);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        scrollLp.topMargin = (int) (12 * d);
+        content.addView(scroll, scrollLp);
+
+        if (entries.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText(getString(R.string.trash_nothing));
+            empty.setTextColor(0xFF8A8A9A);
+            empty.setTextSize(13f);
+            empty.setPadding(0, (int) (8 * d), 0, (int) (8 * d));
+            rows.addView(empty);
+        } else {
+            java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault());
+            for (eu.kodanetwork.mchost.util.FileTrash.Entry e : entries) {
+                rows.addView(buildTrashRow(e, sheet, fmt), trashRowParams(d));
+            }
+        }
+
+        LinearLayout actionsRow = new LinearLayout(this);
+        actionsRow.setOrientation(LinearLayout.HORIZONTAL);
+        actionsRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        actionsLp.topMargin = (int) (14 * d);
+
+        TextView restoreAll = new TextView(this);
+        restoreAll.setText(getString(R.string.trash_restore_all));
+        restoreAll.setTextColor(0xFFBCBCC6);
+        restoreAll.setTextSize(13f);
+        restoreAll.setPadding((int) (14 * d), (int) (12 * d), (int) (14 * d), (int) (12 * d));
+        restoreAll.setClickable(true);
+        restoreAll.setFocusable(true);
+        restoreAll.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+            int restored = eu.kodanetwork.mchost.util.FileTrash.restoreAll(serverRoot);
+            Toast.makeText(this, getString(R.string.trash_restored_all, restored), Toast.LENGTH_SHORT).show();
+            refreshFiles();
+            sheet.dismiss();
+        });
+        actionsRow.addView(restoreAll);
+
+        com.google.android.material.button.MaterialButton emptyBtn = new com.google.android.material.button.MaterialButton(this);
+        emptyBtn.setText(getString(R.string.trash_empty));
+        emptyBtn.setTextColor(0xFFFFFFFF);
+        emptyBtn.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFFF5449));
+        emptyBtn.setCornerRadius((int) (10 * d));
+        emptyBtn.setTextSize(13f);
+        emptyBtn.setAllCaps(false);
+        emptyBtn.setInsetTop(0);
+        emptyBtn.setInsetBottom(0);
+        emptyBtn.setEnabled(!entries.isEmpty());
+        emptyBtn.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+            confirmEmptyTrash(entries.size(), serverRoot, sheet);
+        });
+        actionsRow.addView(emptyBtn);
+
+        content.addView(actionsRow, actionsLp);
+        sheet.setContentView(content);
+        sheet.setCancelable(true);
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        // long lists scroll, short ones keep the sheet small
+        scroll.post(() -> {
+            int cap = (int) (340 * d);
+            if (rows.getHeight() > cap) {
+                scroll.getLayoutParams().height = cap;
+                scroll.requestLayout();
+            }
+        });
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
+    }
+
+    private LinearLayout.LayoutParams trashRowParams(float d) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = (int) (8 * d);
+        return lp;
+    }
+
+    private View buildTrashRow(final eu.kodanetwork.mchost.util.FileTrash.Entry entry,
+                               final com.google.android.material.bottomsheet.BottomSheetDialog sheet,
+                               java.text.SimpleDateFormat fmt) {
+        final float d = getResources().getDisplayMetrics().density;
+        final File serverRoot = new File(server.getServerDir());
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(0xFF1C1C22);
+        bg.setCornerRadius(10 * d);
+        row.setBackground(bg);
+        row.setPadding((int) (14 * d), (int) (12 * d), (int) (14 * d), (int) (6 * d));
+
+        TextView name = new TextView(this);
+        name.setText(entry.name);
+        name.setTextColor(0xFFF5F5F7);
+        name.setTextSize(14f);
+        name.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        row.addView(name);
+
+        TextView path = new TextView(this);
+        path.setText(entry.original);
+        path.setTextColor(0xFF8A8A9A);
+        path.setTextSize(11f);
+        path.setSingleLine(true);
+        path.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        path.setPadding(0, (int) (3 * d), 0, 0);
+        row.addView(path);
+
+        TextView meta = new TextView(this);
+        meta.setText(eu.kodanetwork.mchost.util.FileTrash.humanSize(entry.size)
+                + " · " + fmt.format(new java.util.Date(entry.deletedAt)));
+        meta.setTextColor(0xFF6E6E7A);
+        meta.setTextSize(11f);
+        meta.setPadding(0, (int) (3 * d), 0, 0);
+        row.addView(meta);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+
+        TextView restore = trashAction(getString(R.string.trash_action_restore), 0xFFFF6B00);
+        restore.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+            if (eu.kodanetwork.mchost.util.FileTrash.restore(serverRoot, entry.payload)) {
+                Toast.makeText(this, getString(R.string.trash_restored), Toast.LENGTH_SHORT).show();
+                refreshFiles();
+                sheet.dismiss();
+            } else {
+                Toast.makeText(this, getString(R.string.trash_restore_failed), Toast.LENGTH_LONG).show();
+            }
+        });
+        actions.addView(restore);
+
+        TextView delete = trashAction(getString(R.string.trash_action_delete), 0xFFFF8A80);
+        delete.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+            if (eu.kodanetwork.mchost.util.FileTrash.deleteEntry(entry)) {
+                Toast.makeText(this, getString(R.string.trash_deleted), Toast.LENGTH_SHORT).show();
+                sheet.dismiss();
+                showTrashSheet();
+            }
+        });
+        actions.addView(delete);
+
+        TextView info = trashAction(getString(R.string.trash_action_info), 0xFFBCBCC6);
+        info.setOnClickListener(v -> showFileInfo(entry.payload));
+        actions.addView(info);
+
+        row.addView(actions);
+        return row;
+    }
+
+    private TextView trashAction(String label, int color) {
+        float d = getResources().getDisplayMetrics().density;
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextColor(color);
+        tv.setTextSize(12f);
+        tv.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
+        tv.setClickable(true);
+        tv.setFocusable(true);
+        return tv;
+    }
+
+    private void confirmEmptyTrash(int count, final File serverRoot,
+                                   final com.google.android.material.bottomsheet.BottomSheetDialog trashSheet) {
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+        sheet.setContentView(R.layout.sheet_praetor_confirm);
+
+        TextView wordmark = sheet.findViewById(R.id.tv_praetor_wordmark);
+        if (wordmark != null) {
+            wordmark.setText(android.text.Html.fromHtml(
+                    "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
+        ((TextView) sheet.findViewById(R.id.tv_delete_title)).setText(getString(R.string.trash_confirm_title));
+        ((TextView) sheet.findViewById(R.id.tv_delete_body)).setText(getString(R.string.trash_confirm_body, count));
+
+        final android.widget.Button pos = sheet.findViewById(R.id.btn_dialog_delete);
+        View neg = sheet.findViewById(R.id.btn_dialog_cancel);
+        pos.setEnabled(false);
+        pos.setText(getString(R.string.trash_confirm_waiting, 3));
+        final android.os.CountDownTimer timer = new android.os.CountDownTimer(3000, 1000) {
+            @Override public void onTick(long ms) {
+                pos.setText(getString(R.string.trash_confirm_waiting, (int) (ms / 1000)));
+            }
+            @Override public void onFinish() {
+                pos.setText(getString(R.string.trash_confirm_btn));
+                pos.setEnabled(true);
+            }
+        };
+        timer.start();
+        neg.setOnClickListener(v -> { timer.cancel(); sheet.dismiss(); });
+        pos.setOnClickListener(v -> {
+            timer.cancel();
+            eu.kodanetwork.mchost.util.FileTrash.empty(serverRoot);
+            Toast.makeText(this, getString(R.string.trash_emptied), Toast.LENGTH_SHORT).show();
+            sheet.dismiss();
+            trashSheet.dismiss();
+        });
+        sheet.setOnDismissListener(x -> timer.cancel());
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheet.findViewById(R.id.sheet_root));
     }
 
     /** creates a file (opened in the editor right away) or a folder in the current files-tab dir. */

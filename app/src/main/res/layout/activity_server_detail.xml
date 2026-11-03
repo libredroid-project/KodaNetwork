@@ -571,6 +571,12 @@
                 android:layout_weight="1"
                 android:textColor="#B7AE9F" android:textSize="12sp"
                 android:fontFamily="@font/font_koda"         android:ellipsize="middle"/>
+            <ImageButton android:id="@+id/btn_files_trash"
+                android:layout_width="32dp" android:layout_height="32dp"
+                android:layout_marginEnd="4dp"
+                android:src="@android:drawable/ic_menu_delete"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="#8A8A9A"/>
             <ImageButton android:id="@+id/btn_import_file"
                 android:layout_width="32dp" android:layout_height="32dp"
                 android:src="@android:drawable/ic_menu_add"
