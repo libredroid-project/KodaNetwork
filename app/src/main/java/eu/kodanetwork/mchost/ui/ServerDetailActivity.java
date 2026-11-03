@@ -127,6 +127,7 @@ public class ServerDetailActivity extends AppCompatActivity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private android.view.View layoutFullLoading;
     private eu.kodanetwork.mchost.util.KodaBootSteps bootSteps;
+    private ServerInstance.State lastDashState;
     private TextView tvFullLoadingMsg;
 
     private final androidx.activity.result.ActivityResultLauncher<Intent> iconPickerLauncher =
@@ -2018,6 +2019,13 @@ public class ServerDetailActivity extends AppCompatActivity {
     private void updateDash() {
         maybeOfferDomainSwitch();
         ServerInstance.State st = server.state;
+        // a stop the user asked for gets a short undo, a crash does not
+        if (lastDashState == ServerInstance.State.STOPPING && st == ServerInstance.State.OFFLINE) {
+            eu.kodanetwork.mchost.util.KodaUndo.show(findViewById(android.R.id.content),
+                    getString(R.string.undo_server_stopped, server.getName()),
+                    this::startServer);
+        }
+        lastDashState = st;
         boolean bannedNow = isServerBannedCached();
         String label; int col;
         switch (st) {
@@ -8045,12 +8053,23 @@ public class ServerDetailActivity extends AppCompatActivity {
                     startActivity(new android.content.Intent(this,
                             eu.kodanetwork.mchost.ui.CrisisSupportActivity.class));
                 }
+                final String previousName = server.getName();
                 server.setName(newName);
                 repo.update(server);
                 TextView tvTitle = findViewById(R.id.tv_title);
                 if (tvTitle != null) tvTitle.setText(newName);
                 android.widget.Toast.makeText(this, getString(R.string.praetor_change_name_success), android.widget.Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
+                // the rename is reversible, so offer the way back instead of a dead end
+                eu.kodanetwork.mchost.util.KodaUndo.show(findViewById(android.R.id.content),
+                        getString(R.string.undo_rename, newName),
+                        () -> {
+                            server.setName(previousName);
+                            repo.update(server);
+                            TextView tv = findViewById(R.id.tv_title);
+                            if (tv != null) tv.setText(previousName);
+                            updateDash();
+                        });
             } else {
                 android.widget.Toast.makeText(this, getString(R.string.praetor_change_name_error), android.widget.Toast.LENGTH_SHORT).show();
             }

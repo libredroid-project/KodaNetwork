@@ -1384,6 +1384,9 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="boot_step_mods">Loading mods</string>
     <string name="boot_step_world">Preparing the world</string>
     <string name="boot_step_ready">World ready</string>
+    <string name="undo_action">Undo</string>
+    <string name="undo_server_stopped">%1$s stopped</string>
+    <string name="undo_rename">Name changed to %1$s</string>
     <string name="con_frpc_missing">\u0020\u0020✗ FRPC binary missing at %1$s - Did you rebuild the app after adding jniLibs?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Failed to create start script!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux Bridge Error!</string>

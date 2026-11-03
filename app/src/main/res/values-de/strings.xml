@@ -1395,6 +1395,9 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="boot_step_mods">Mods werden geladen</string>
     <string name="boot_step_world">Welt wird vorbereitet</string>
     <string name="boot_step_ready">Welt ist bereit</string>
+    <string name="undo_action">Rückgängig</string>
+    <string name="undo_server_stopped">%1$s gestoppt</string>
+    <string name="undo_rename">Name geändert in %1$s</string>
     <string name="con_frpc_missing">\u0020\u0020✗ FRPC-Binary fehlt unter %1$s - Wurde die App nach dem Hinzufügen der jniLibs neu gebaut?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Startskript konnte nicht erstellt werden!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux-Bridge-Fehler!</string>
