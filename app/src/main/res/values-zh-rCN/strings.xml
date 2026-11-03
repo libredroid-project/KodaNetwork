@@ -1387,6 +1387,13 @@
     <string name="trash_confirm_body">这将永久删除 %1$d 项。</string>
     <string name="trash_confirm_btn">清空</string>
     <string name="trash_confirm_waiting">%1$d 秒后清空</string>
+    <string name="dash_checking">正在检查控制台…</string>
+    <string name="dash_unreachable_title">KodaDash 无法访问</string>
+    <string name="dash_unreachable_http">%1$s 返回 HTTP %2$d。</string>
+    <string name="dash_unreachable_error">无法连接到 %1$s（%2$s）。</string>
+    <string name="dash_unreachable_hint">请检查服务器是否在线、KodaDash 是否启用以及隧道是否运行。</string>
+    <string name="dash_open_direct">直接打开</string>
+    <string name="dash_close">关闭</string>
     <string name="con_frpc_missing">\u0020\u0020✗ %1$s 处缺少 FRPC 可执行文件 - 添加 jniLibs 后是否重新构建了应用？</string>
     <string name="con_start_script_failed">\u0020\u0020✗ 创建启动脚本失败！</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux 桥接错误！</string>

@@ -1406,6 +1406,13 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="trash_confirm_body">This deletes %1$d items for good.</string>
     <string name="trash_confirm_btn">Empty</string>
     <string name="trash_confirm_waiting">Empty in %1$d</string>
+    <string name="dash_checking">Checking the dashboard…</string>
+    <string name="dash_unreachable_title">KodaDash is not reachable</string>
+    <string name="dash_unreachable_http">%1$s answered with HTTP %2$d.</string>
+    <string name="dash_unreachable_error">No connection to %1$s (%2$s).</string>
+    <string name="dash_unreachable_hint">Check that the server is online, KodaDash is enabled and the tunnel is running.</string>
+    <string name="dash_open_direct">Open directly</string>
+    <string name="dash_close">Close</string>
     <string name="con_frpc_missing">\u0020\u0020✗ FRPC binary missing at %1$s - Did you rebuild the app after adding jniLibs?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Failed to create start script!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux Bridge Error!</string>

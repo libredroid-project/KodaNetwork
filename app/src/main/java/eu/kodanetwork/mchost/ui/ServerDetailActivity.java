@@ -7753,27 +7753,189 @@ public class ServerDetailActivity extends AppCompatActivity {
         // until then the plain tunnel address is used.
         String shown;
         String url;
+        final String directUrl = "http://" + host + ":" + port + (token.isEmpty() ? "" : "?token=" + token);
         if (requireHttpsDashboard()) {
             shown = host;
             url = "https://" + host + (token.isEmpty() ? "" : "/?token=" + token);
         } else {
             shown = host + ":" + port;
-            url = "http://" + shown + (token.isEmpty() ? "" : "?token=" + token);
+            url = directUrl;
         }
+        final String finalUrl = url;
+        final boolean overHttps = requireHttpsDashboard();
 
         tvUrl.setText(shown);
         tvUrl.setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
-            try {
-                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)));
-            } catch (Exception e) {
-                copyToClipboard("KodaDash", url);
+            if (overHttps) {
+                openKodadashChecked(finalUrl, directUrl);
+            } else {
+                openExternal(finalUrl);
             }
         });
         tvUrl.setOnLongClickListener(v -> {
             copyToClipboard("KodaDash", url);
             return true;
         });
+    }
+
+    private void openExternal(String url) {
+        try {
+            startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)));
+        } catch (Exception e) {
+            copyToClipboard("KodaDash", url);
+        }
+    }
+
+    /**
+     * checks the https address before opening it. a 502 from the vps would otherwise land
+     * in the browser as a bare error page; here it becomes a proper message with the
+     * direct tunnel link as a way out.
+     */
+    private void openKodadashChecked(final String url, final String directUrl) {
+        Toast.makeText(this, getString(R.string.dash_checking), Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            int code = -1;
+            String error = null;
+            try {
+                java.net.URL u = new java.net.URL(url);
+                if (!"https".equalsIgnoreCase(u.getProtocol())) throw new IllegalArgumentException("https only");
+                String target = u.getHost();
+                if (target == null || target.isEmpty()) throw new IllegalArgumentException("no host");
+                // never probe loopback, private or link local addresses
+                java.net.InetAddress[] addrs = java.net.InetAddress.getAllByName(target);
+                for (java.net.InetAddress a : addrs) {
+                    if (a.isAnyLocalAddress() || a.isLoopbackAddress()
+                            || a.isLinkLocalAddress() || a.isSiteLocalAddress()) {
+                        throw new IllegalArgumentException("private address");
+                    }
+                }
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
+                c.setConnectTimeout(6000);
+                c.setReadTimeout(6000);
+                c.setInstanceFollowRedirects(false);
+                c.setRequestMethod("GET");
+                code = c.getResponseCode();
+                c.disconnect();
+            } catch (Exception e) {
+                error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            }
+            final int finalCode = code;
+            final String finalError = error;
+            runOnUiThread(() -> {
+                if (finalCode >= 200 && finalCode < 400) {
+                    openExternal(url);
+                } else {
+                    showDashUnreachable(finalCode, finalError, directUrl);
+                }
+            });
+        }, "KodaDashCheck").start();
+    }
+
+    /** the "not reachable" sheet, with the direct tunnel link as the way out. */
+    private void showDashUnreachable(int code, String error, final String directUrl) {
+        final float d = getResources().getDisplayMetrics().density;
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        setupWindowDecor(sheet.getWindow());
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundResource(R.drawable.bg_koda_sheet);
+        content.setPadding((int) (24 * d), (int) (12 * d), (int) (24 * d), (int) (24 * d));
+
+        View handle = new View(this);
+        android.graphics.drawable.GradientDrawable handleBg = new android.graphics.drawable.GradientDrawable();
+        handleBg.setColor(0xFF3A3A44);
+        handleBg.setCornerRadius(2 * d);
+        handle.setBackground(handleBg);
+        LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams((int) (32 * d), (int) (4 * d));
+        handleLp.gravity = Gravity.CENTER_HORIZONTAL;
+        handleLp.bottomMargin = (int) (18 * d);
+        content.addView(handle, handleLp);
+
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView wordmark = new TextView(this);
+        wordmark.setText(android.text.Html.fromHtml(
+                "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                android.text.Html.FROM_HTML_MODE_LEGACY));
+        wordmark.setTextSize(11f);
+        wordmark.setLetterSpacing(0.18f);
+        headerRow.addView(wordmark);
+        headerRow.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+        TextView triangle = new TextView(this);
+        triangle.setText("\u26A0");
+        triangle.setTextColor(0xFFFF5449);
+        triangle.setTextSize(15f);
+        headerRow.addView(triangle);
+        content.addView(headerRow);
+
+        TextView title = new TextView(this);
+        title.setText(getString(R.string.dash_unreachable_title));
+        title.setTextColor(0xFFF5F5F7);
+        title.setTextSize(21f);
+        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setPadding(0, (int) (10 * d), 0, 0);
+        content.addView(title);
+
+        String detail = code > 0
+                ? getString(R.string.dash_unreachable_http, server.getJoinAddress(), code)
+                : getString(R.string.dash_unreachable_error, server.getJoinAddress(),
+                        error == null ? "?" : error);
+        TextView body = new TextView(this);
+        body.setText(detail + "\n\n" + getString(R.string.dash_unreachable_hint));
+        body.setTextColor(0xFFBCBCC6);
+        body.setTextSize(14f);
+        body.setLineSpacing(2 * d, 1f);
+        body.setPadding(0, (int) (10 * d), 0, 0);
+        content.addView(body);
+
+        LinearLayout actionsRow = new LinearLayout(this);
+        actionsRow.setOrientation(LinearLayout.HORIZONTAL);
+        actionsRow.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        actionsLp.topMargin = (int) (18 * d);
+
+        TextView close = new TextView(this);
+        close.setText(getString(R.string.dash_close));
+        close.setTextColor(0xFFBCBCC6);
+        close.setTextSize(13f);
+        close.setPadding((int) (14 * d), (int) (12 * d), (int) (14 * d), (int) (12 * d));
+        close.setClickable(true);
+        close.setFocusable(true);
+        close.setOnClickListener(v -> sheet.dismiss());
+        actionsRow.addView(close);
+
+        com.google.android.material.button.MaterialButton direct =
+                new com.google.android.material.button.MaterialButton(this);
+        direct.setText(getString(R.string.dash_open_direct));
+        direct.setTextColor(0xFF1A0F00);
+        direct.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFFF6B00));
+        direct.setCornerRadius((int) (10 * d));
+        direct.setTextSize(13f);
+        direct.setAllCaps(false);
+        direct.setInsetTop(0);
+        direct.setInsetBottom(0);
+        direct.setOnClickListener(v -> {
+            sheet.dismiss();
+            openExternal(directUrl);
+        });
+        actionsRow.addView(direct);
+
+        content.addView(actionsRow, actionsLp);
+        sheet.setContentView(content);
+        sheet.setCancelable(true);
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
     }
 
     /**

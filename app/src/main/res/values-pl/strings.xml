@@ -1356,6 +1356,13 @@
     <string name="trash_confirm_body">Spowoduje to trwałe usunięcie %1$d plików.</string>
     <string name="trash_confirm_btn">Opróżnij</string>
     <string name="trash_confirm_waiting">Opróżnij za %1$d</string>
+    <string name="dash_checking">Sprawdzanie dashboardu…</string>
+    <string name="dash_unreachable_title">KodaDash jest nieosiągalny</string>
+    <string name="dash_unreachable_http">%1$s odpowiedział HTTP %2$d.</string>
+    <string name="dash_unreachable_error">Brak połączenia z %1$s (%2$s).</string>
+    <string name="dash_unreachable_hint">Sprawdź, czy serwer jest online, KodaDash włączony, a tunel działa.</string>
+    <string name="dash_open_direct">Otwórz bezpośrednio</string>
+    <string name="dash_close">Zamknij</string>
     <string name="con_frpc_missing">\u0020\u0020✗ Brak binarki FRPC w %1$s - czy przebudowano aplikację po dodaniu jniLibs?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Nie udało się utworzyć skryptu startowego!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Błąd mostu Termux!</string>

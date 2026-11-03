@@ -1417,6 +1417,13 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="trash_confirm_body">Dabei werden %1$d Dateien endgültig gelöscht.</string>
     <string name="trash_confirm_btn">Leeren</string>
     <string name="trash_confirm_waiting">Leeren in %1$d</string>
+    <string name="dash_checking">Dashboard wird geprüft…</string>
+    <string name="dash_unreachable_title">KodaDash ist nicht erreichbar</string>
+    <string name="dash_unreachable_http">%1$s antwortet mit HTTP %2$d.</string>
+    <string name="dash_unreachable_error">Keine Verbindung zu %1$s (%2$s).</string>
+    <string name="dash_unreachable_hint">Prüfe, ob der Server online ist, KodaDash aktiviert ist und der Tunnel läuft.</string>
+    <string name="dash_open_direct">Direkt öffnen</string>
+    <string name="dash_close">Schließen</string>
     <string name="con_frpc_missing">\u0020\u0020✗ FRPC-Binary fehlt unter %1$s - Wurde die App nach dem Hinzufügen der jniLibs neu gebaut?</string>
     <string name="con_start_script_failed">\u0020\u0020✗ Startskript konnte nicht erstellt werden!</string>
     <string name="con_termux_bridge_error">\u0020\u0020✗ Termux-Bridge-Fehler!</string>
