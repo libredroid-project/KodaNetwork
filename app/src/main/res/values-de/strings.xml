@@ -24,8 +24,8 @@
     <string name="system_default">Systemstandard</string>
     <string name="danger_zone">GEFAHRENZONE</string>
     <string name="export_as_zip">ALS ZIP EXPORTIEREN</string>
-    <string name="hibernate">WINTERSCHLAF</string>
-    <string name="wake_up">AUFWECKEN</string>
+    <string name="hibernate">Winterschlaf</string>
+    <string name="wake_up">Aufwecken</string>
     <string name="status_online">ONLINE</string>
     <string name="status_offline">OFFLINE</string>
     <string name="status_starting">STARTET</string>
@@ -89,6 +89,15 @@
     <string name="logout">Abmelden</string>
     <string name="device_info">GERÄTE- &amp; APP-INFO</string>
     <string name="danger_zone_desc">Diese Aktionen können nicht rückgängig gemacht werden</string>
+    <string name="danger_hard_reset_desc">Beendet den Prozess und räumt die Sitzung auf</string>
+    <string name="danger_redownload">Server.jar neu laden</string>
+    <string name="danger_redownload_desc">Holt die Jar erneut von der Quelle</string>
+    <string name="danger_export">Als ZIP exportieren</string>
+    <string name="danger_export_desc">Speichert ein ZIP des Servers in Downloads</string>
+    <string name="danger_transfer_desc">Verschiebt den Server auf ein anderes Handy</string>
+    <string name="danger_hibernate_desc">Komprimiert den Server und gibt Speicher frei</string>
+    <string name="danger_delete_server">Server löschen</string>
+    <string name="danger_delete_server_desc">Entfernt ihn von diesem Handy und aus dem Netzwerk</string>
     <string name="danger_delete_title">Alle Server löschen</string>
     <string name="danger_delete_desc">Entfernt jeden Server und seine Dateien von diesem Gerät</string>
     <string name="danger_revoke_title">AGB-Zustimmung widerrufen</string>
@@ -142,7 +151,7 @@
     <string name="bedrock_address">BEDROCK-ADRESSE</string>
     <string name="installing">INSTALLIERT...</string>
     <string name="controls">STEUERUNG</string>
-    <string name="hard_reset">âš  HARD RESET</string>
+    <string name="hard_reset">Hard Reset</string>
     <string name="copy_log">LOG KOPIEREN</string>
     <string name="console_fullscreen">Vollbild</string>
     <string name="console_fullscreen_exit">Vollbild verlassen</string>
@@ -1038,7 +1047,7 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
 
     <!-- device transfer: servers move phone to phone over the local network -->
     <string name="transfer_title">Server-Übertragung</string>
-    <string name="transfer_action_server_detail">AUF ANDERES GERÄT ÜBERTRAGEN</string>
+    <string name="transfer_action_server_detail">Auf ein anderes Gerät übertragen</string>
     <string name="transfer_settings_send">Server auf ein neues Gerät senden</string>
     <string name="transfer_settings_receive">Server von einem anderen Gerät empfangen</string>
     <string name="transfer_picker_title">Welche Server sollen umziehen?</string>

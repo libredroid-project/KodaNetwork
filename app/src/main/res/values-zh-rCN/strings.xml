@@ -95,6 +95,15 @@
     <string name="logout">登出</string>
     <string name="device_info">设备与应用信息</string>
     <string name="danger_zone_desc">这些操作无法撤销</string>
+    <string name="danger_hard_reset_desc">结束进程并清理会话</string>
+    <string name="danger_redownload">重新下载 server.jar</string>
+    <string name="danger_redownload_desc">从来源重新获取 jar</string>
+    <string name="danger_export">导出为 ZIP</string>
+    <string name="danger_export_desc">将服务器 ZIP 保存到下载目录</string>
+    <string name="danger_transfer_desc">将服务器移到另一台手机</string>
+    <string name="danger_hibernate_desc">压缩服务器并释放存储</string>
+    <string name="danger_delete_server">删除服务器</string>
+    <string name="danger_delete_server_desc">从这台手机和网络中移除</string>
     <string name="danger_delete_title">删除所有服务器</string>
     <string name="danger_delete_desc">从此设备移除每个服务器及其文件</string>
     <string name="danger_revoke_title">撤销服务条款同意</string>
@@ -156,7 +165,7 @@
     <string name="bedrock_address">基岩版地址</string>
     <string name="installing">正在安装...</string>
     <string name="controls">控制</string>
-    <string name="hard_reset">⚠ 强制重置</string>
+    <string name="hard_reset">硬重置</string>
     <string name="copy_log">复制日志</string>
     <string name="console_fullscreen">全屏</string>
     <string name="console_fullscreen_exit">退出全屏</string>
@@ -1008,7 +1017,7 @@
 
     <!-- device transfer: servers move phone to phone over the local network -->
     <string name="transfer_title">服务器转移</string>
-    <string name="transfer_action_server_detail">转移到其他设备</string>
+    <string name="transfer_action_server_detail">转移到另一台设备</string>
     <string name="transfer_settings_send">将服务器发送到新设备</string>
     <string name="transfer_settings_receive">从其他设备接收服务器</string>
     <string name="transfer_picker_title">要转移哪些服务器？</string>

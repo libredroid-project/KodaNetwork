@@ -25,8 +25,8 @@
     <string name="system_default">Domyślny systemowy</string>
     <string name="danger_zone">STREFA NIEBEZPIECZEŃSTWA</string>
     <string name="export_as_zip">EKSPORTUJ JAKO ZIP</string>
-    <string name="hibernate">UŚPIJ</string>
-    <string name="wake_up">WYBUDŹ</string>
+    <string name="hibernate">Hibernacja</string>
+    <string name="wake_up">Wybudź</string>
     <string name="status_online">ONLINE</string>
     <string name="status_offline">OFFLINE</string>
     <string name="status_starting">URUCHAMIANIE</string>
@@ -94,6 +94,15 @@
     <string name="logout">Wyloguj się</string>
     <string name="device_info">URZĄDZENIE I APLIKACJA</string>
     <string name="danger_zone_desc">Tych działań nie można cofnąć</string>
+    <string name="danger_hard_reset_desc">Zabija proces i czyści sesję</string>
+    <string name="danger_redownload">Pobierz server.jar ponownie</string>
+    <string name="danger_redownload_desc">Pobiera jar jeszcze raz ze źródła</string>
+    <string name="danger_export">Eksportuj jako ZIP</string>
+    <string name="danger_export_desc">Zapisuje ZIP serwera w Pobranych</string>
+    <string name="danger_transfer_desc">Przenosi serwer na inny telefon</string>
+    <string name="danger_hibernate_desc">Kompresuje serwer i zwalnia miejsce</string>
+    <string name="danger_delete_server">Usuń serwer</string>
+    <string name="danger_delete_server_desc">Usuwa go z tego telefonu i z sieci</string>
     <string name="danger_delete_title">Usuń wszystkie serwery</string>
     <string name="danger_delete_desc">Usuwa każdy serwer i jego pliki z tego urządzenia</string>
     <string name="danger_revoke_title">Wycofaj akceptację regulaminu</string>
@@ -152,7 +161,7 @@
     <string name="bedrock_address">ADRES BEDROCK</string>
     <string name="installing">INSTALOWANIE...</string>
     <string name="controls">STEROWANIE</string>
-    <string name="hard_reset">⚠ TWARDY RESET</string>
+    <string name="hard_reset">Twardy reset</string>
     <string name="copy_log">KOPIUJ LOG</string>
     <string name="console_fullscreen">Pełny ekran</string>
     <string name="console_fullscreen_exit">Wyjdź z pełnego ekranu</string>
@@ -984,7 +993,7 @@
     <string name="welcome_recovery_zip_ok">Świat dla %1$s zaimportowany</string>
     <string name="welcome_recovery_zip_fail">Nie udało się zaimportować %1$s, spróbuj później w aplikacji</string>
     <string name="transfer_title">Transfer serwerów</string>
-    <string name="transfer_action_server_detail">PRZENIEŚ NA INNE URZĄDZENIE</string>
+    <string name="transfer_action_server_detail">Przenieś na inne urządzenie</string>
     <string name="transfer_settings_send">Wyślij serwery na nowe urządzenie</string>
     <string name="transfer_settings_receive">Odbierz serwery z innego urządzenia</string>
     <string name="transfer_picker_title">Które serwery mają się przenieść?</string>

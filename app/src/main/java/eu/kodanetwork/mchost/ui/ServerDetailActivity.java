@@ -96,7 +96,8 @@ public class ServerDetailActivity extends AppCompatActivity {
 
     // dashboard
     private TextView tvBadge, tvUptime, tvPlayers, tvJoinAddr, tvRamInfo, tvVerInfo, tvJavaInfo, tvBedrockPortDash;
-    private MaterialButton btnStart, btnStop, btnRestart, btnKill;
+    private MaterialButton btnStart, btnStop, btnRestart;
+    private android.view.View btnKill;
     private View dlProgress;
     private View dot;
     private TextView tvDlMsg;
@@ -121,7 +122,7 @@ public class ServerDetailActivity extends AppCompatActivity {
     // settings
     private TextView tvSettingsInfo;
     private TextView tvTermuxStatus, tvDomainStatus;
-    private MaterialButton btnDlJar, btnDelServer;
+    private android.view.View btnDlJar, btnDelServer;
     private MaterialButton btnTermuxSetup, btnLinkDomain;
     private MaterialButton btnCreateInvite;
     private android.widget.LinearLayout layoutInvites;
@@ -2165,9 +2166,9 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (btnRestart != null) btnRestart.setEnabled(running && !updating);
         if (btnKill != null) btnKill.setEnabled((running || restarting) && !updating);
         
-        android.widget.TextView btnHibernate = findViewById(R.id.btn_hibernate);
-        if (btnHibernate != null) {
-            btnHibernate.setText(hibernated ? getString(R.string.wake_up) : getString(R.string.hibernate));
+        android.widget.TextView tvHibernateTitle = findViewById(R.id.tv_hibernate_title);
+        if (tvHibernateTitle != null) {
+            tvHibernateTitle.setText(hibernated ? getString(R.string.wake_up) : getString(R.string.hibernate));
         }
         // the little dot in the header
         if (dot != null) {
@@ -4500,7 +4501,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             btnTransferDevice.setOnClickListener(v -> startDeviceTransfer());
         }
 
-        android.widget.TextView btnHibernate = findViewById(R.id.btn_hibernate);
+        android.view.View btnHibernate = findViewById(R.id.btn_hibernate);
         if (btnHibernate != null) {
             btnHibernate.setOnClickListener(v -> {
                 if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(ServerDetailActivity.this)) return;

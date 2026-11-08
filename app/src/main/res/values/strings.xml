@@ -25,8 +25,8 @@
     <string name="system_default">System Default</string>
     <string name="danger_zone">DANGER ZONE</string>
     <string name="export_as_zip">EXPORT AS ZIP</string>
-    <string name="hibernate">HIBERNATE</string>
-    <string name="wake_up">WAKE UP</string>
+    <string name="hibernate">Hibernate</string>
+    <string name="wake_up">Wake up</string>
     <string name="status_online">ONLINE</string>
     <string name="status_offline">OFFLINE</string>
     <string name="status_starting">STARTING</string>
@@ -62,6 +62,15 @@
     <string name="logout">Log Out</string>
     <string name="device_info">DEVICE &amp; APP INFO</string>
     <string name="danger_zone_desc">These actions cannot be undone</string>
+    <string name="danger_hard_reset_desc">Kills the process and clears the session</string>
+    <string name="danger_redownload">Redownload server.jar</string>
+    <string name="danger_redownload_desc">Fetches the jar again from the source</string>
+    <string name="danger_export">Export as ZIP</string>
+    <string name="danger_export_desc">Saves a ZIP of the server to Downloads</string>
+    <string name="danger_transfer_desc">Moves the server to another phone</string>
+    <string name="danger_hibernate_desc">Compresses the server and frees the storage</string>
+    <string name="danger_delete_server">Delete server</string>
+    <string name="danger_delete_server_desc">Removes it from this phone and the network</string>
     <string name="danger_delete_title">Delete all servers</string>
     <string name="danger_delete_desc">Removes every server and its files from this device</string>
     <string name="danger_revoke_title">Revoke ToS acceptance</string>
@@ -124,7 +133,7 @@
     <string name="bedrock_address">BEDROCK ADDRESS</string>
     <string name="installing">INSTALLING...</string>
     <string name="controls">CONTROLS</string>
-    <string name="hard_reset">⚠ HARD RESET</string>
+    <string name="hard_reset">Hard reset</string>
     <string name="copy_log">COPY LOG</string>
     <string name="console_fullscreen">Fullscreen</string>
     <string name="console_fullscreen_exit">Exit fullscreen</string>
@@ -1027,7 +1036,7 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
 
     <!-- device transfer: servers move phone to phone over the local network -->
     <string name="transfer_title">Server transfer</string>
-    <string name="transfer_action_server_detail">TRANSFER TO ANOTHER DEVICE</string>
+    <string name="transfer_action_server_detail">Transfer to another device</string>
     <string name="transfer_settings_send">Send servers to a new device</string>
     <string name="transfer_settings_receive">Receive servers from another device</string>
     <string name="transfer_picker_title">Which servers should move?</string>
