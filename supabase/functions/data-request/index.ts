@@ -329,31 +329,31 @@ function cell(value: unknown): string {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  account_profile: "Profil",
-  accounts: "Konten und Geräte",
-  servers: "Server",
-  support_tickets: "Support-Tickets",
-  support_messages: "Ticket-Nachrichten",
-  support_bugs: "Bug-Meldungen",
-  support_reports: "Server-Meldungen",
-  data_requests: "Datenanträge",
-  server_invites: "Einladungen",
-  server_guests: "Gastzugänge",
-  server_transfers: "Gerätetransfers",
+  account_profile: "Profile",
+  accounts: "Accounts and devices",
+  servers: "Servers",
+  support_tickets: "Support tickets",
+  support_messages: "Ticket messages",
+  support_bugs: "Bug reports",
+  support_reports: "Server reports",
+  data_requests: "Data requests",
+  server_invites: "Invites",
+  server_guests: "Guest access",
+  server_transfers: "Device transfers",
   extensions: "Extensions",
-  extension_versions: "Extension-Versionen",
-  notifications: "Benachrichtigungen",
-  notification_reads: "Gelesene Benachrichtigungen",
-  notification_settings: "Benachrichtigungs-Einstellungen",
-  hwid_bans: "HWID-Sperren",
-  high_risk_hwids: "Risiko-Einträge",
+  extension_versions: "Extension versions",
+  notifications: "Notifications",
+  notification_reads: "Notification read markers",
+  notification_settings: "Notification settings",
+  hwid_bans: "HWID bans",
+  high_risk_hwids: "High risk records",
   ports: "Ports",
-  otp_codes: "OTP-Vorgänge",
-  password_reset_requests: "Passwort-Reset-Vorgänge",
+  otp_codes: "OTP requests",
+  password_reset_requests: "Password reset requests",
 };
 
 function humanTable(title: string, rows: any[]): string {
-  if (!rows.length) return `<h2>${escapeHtml(title)}</h2><p class="empty">Keine Einträge.</p>`;
+  if (!rows.length) return `<h2>${escapeHtml(title)}</h2><p class="empty">No entries.</p>`;
   const keys = [...new Set(rows.flatMap((row) => Object.keys(row ?? {})))];
   const head = keys.map((key) => `<th>${escapeHtml(key)}</th>`).join("");
   const body = rows
@@ -385,8 +385,8 @@ function renderHumanHtml(doc: any): string {
   }
 
   return `<!doctype html>
-<html lang="de"><head><meta charset="utf-8">
-<title>KodaHosting Datenexport</title>
+<html lang="en"><head><meta charset="utf-8">
+<title>KodaHosting data export</title>
 <style>
   body{margin:0;background:#141010;color:#D8D5D2;font-family:-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
   .wrap{max-width:1100px;margin:0 auto;padding:36px 24px}
@@ -404,20 +404,24 @@ function renderHumanHtml(doc: any): string {
 </style></head>
 <body><div class="wrap">
   <div class="brand"><span class="a">P.R.</span><span class="b">A.E.T.</span><span class="c">O.R.</span></div>
-  <h1>Datenexport</h1>
+  <h1>Data export</h1>
   <div class="meta">
-    Erstellt ${escapeHtml(doc.generated_at)} · Antrag ${escapeHtml(doc.request_id)}<br>
-    Gerät ${escapeHtml(doc.app_uuid)} · Konto ${escapeHtml(doc.auth_id ?? "nicht verknüpft")}<br>
-    E-Mail ${escapeHtml(doc.account?.email ?? "nicht registriert")}
+    Generated ${escapeHtml(doc.generated_at)} · Request ${escapeHtml(doc.request_id)}<br>
+    Device ${escapeHtml(doc.app_uuid)} · Account ${escapeHtml(doc.auth_id ?? "not linked")}<br>
+    E-mail ${escapeHtml(doc.account?.email ?? "not registered")}
   </div>
   ${parts.join("\n")}
-  <footer>Diese Datei enthält dieselben Daten wie die JSON-Dateien im Archiv. KodaHosting, host.kodanetwork.eu</footer>
+  <footer>This file contains the same data as the JSON files in the archive. KodaHosting, host.kodanetwork.eu</footer>
 </div></body></html>`;
 }
 
 async function buildExport(admin: Admin, request: any, cors: Record<string, string>) {
   if (request.kind !== "EXPORT") return json({ error: "not_an_export" }, 400, cors);
-  if (!["PENDING", "READY"].includes(request.status)) return json({ error: "wrong_status" }, 409, cors);
+  // a fulfilled request can be rebuilt (format change, re-issue); it stays fulfilled
+  if (!["PENDING", "READY", "FULFILLED"].includes(request.status)) {
+    return json({ error: "wrong_status" }, 409, cors);
+  }
+  const rebuild = request.status === "FULFILLED";
 
   const data = await collect(admin, request);
   const sections = sectionsOf(data);
@@ -443,18 +447,18 @@ async function buildExport(admin: Admin, request: any, cors: Record<string, stri
   const pretty = (value: unknown) => strToU8(JSON.stringify(value, null, 2));
   const files: Record<string, Uint8Array> = {
     "README.txt": strToU8(
-      "KodaHosting Datenexport\n" +
-      "=====================\n\n" +
-      "export.html   - dieselben Daten zum Lesen im Browser\n" +
-      "export.json   - alles in einer Datei (maschinenlesbar)\n\n" +
-      "account.json        Konto, Geraete, Profil, Extensions\n" +
-      "servers.json        alle Server\n" +
-      "support.json        Tickets, Nachrichten, Bug- und Servermeldungen\n" +
-      "requests.json       alle Datenantraege\n" +
-      "notifications.json  Benachrichtigungen, Lesestaende, Einstellungen\n" +
-      "network.json        Einladungen, Gastzugaenge, Transfers, Ports\n" +
-      "moderation.json     HWID-Sperren und Risikoeintraege\n" +
-      "security.json       OTP- und Passwort-Reset-Vorgaenge\n",
+      "KodaHosting data export\n" +
+      "=======================\n\n" +
+      "export.html   the same data to read in a browser\n" +
+      "export.json   everything in one file (machine readable)\n\n" +
+      "account.json        account, devices, profile, extensions\n" +
+      "servers.json        all servers\n" +
+      "support.json        tickets, messages, bug and server reports\n" +
+      "requests.json       all data requests\n" +
+      "notifications.json  notifications, read markers, settings\n" +
+      "network.json        invites, guest access, transfers, ports\n" +
+      "moderation.json     HWID bans and high risk records\n" +
+      "security.json       OTP and password reset requests\n",
     ),
     "export.json": pretty(doc),
     "account.json": pretty({
@@ -505,7 +509,12 @@ async function buildExport(admin: Admin, request: any, cors: Record<string, stri
 
   const expiresAt = new Date(Date.now() + EXPORT_TTL_SECONDS * 1000).toISOString();
   await admin.from("data_requests")
-    .update({ status: "READY", export_path: path, export_expires_at: expiresAt })
+    .update({
+      status: rebuild ? "FULFILLED" : "READY",
+      export_path: path,
+      export_expires_at: expiresAt,
+    })
+
     .eq("id", request.id);
 
   return json({
@@ -557,8 +566,8 @@ async function decide(admin: Admin, body: any, cors: Record<string, string>) {
       request.id,
       request.app_uuid,
       "data_export_ready",
-      "Datenexport bereit",
-      "Dein Datenexport steht bereit, du kannst ihn in der App oder per E-Mail herunterladen.",
+      "Data export ready",
+      "Your data export is ready. Download it in the app or from the e-mail.",
     );
 
     if (mail) {
