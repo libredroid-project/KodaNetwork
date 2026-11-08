@@ -23,6 +23,7 @@
 //   POST { notification_id } -> { sent, skipped }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.6";
 import { sendKodaMail } from "../_shared/resend.ts";
+import { isServiceRoleRequest } from "../_shared/serviceAuth.ts";
 
 const MAX_RECIPIENTS = 500;
 
@@ -33,32 +34,37 @@ function adminClient() {
   );
 }
 
-function json(body: unknown, status: number) {
+const ALLOWED_ORIGINS = new Set([
+  "https://kodanetwork.eu",
+  "https://host.kodanetwork.eu",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
+
+function corsFor(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://kodanetwork.eu",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+function json(body: unknown, status: number, cors: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "https://kodanetwork.eu",
-      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "https://kodanetwork.eu",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: cors });
   }
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405, cors);
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const auth = req.headers.get("authorization") ?? "";
-  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : "";
-  if (!serviceKey || bearer !== serviceKey) return json({ error: "unauthorized" }, 401);
+  if (!isServiceRoleRequest(req)) return json({ error: "unauthorized" }, 401, cors);
 
   try {
     const admin = adminClient();
@@ -111,6 +117,7 @@ Deno.serve(async (req) => {
     }
 
     let sent = 0;
+    const failures: string[] = [];
     for (const mail of mails) {
       const result = await sendKodaMail({
         to: mail,
@@ -120,9 +127,10 @@ Deno.serve(async (req) => {
         footnote: "Du bekommst diese Mail, weil du für diese Kategorie E-Mail-Kopien aktiviert hast. In der App kannst du das jederzeit ändern.",
       });
       if (result.ok) sent++;
+      else failures.push(`resend ${result.status}: ${result.error ?? "unknown"}`);
     }
 
-    return json({ sent, skipped: null }, 200);
+    return json({ sent, failed: failures.length, errors: failures.slice(0, 3), skipped: null }, 200);
   } catch (e) {
     console.error("notify-dispatch error:", e);
     return json({ error: "internal_error" }, 500);

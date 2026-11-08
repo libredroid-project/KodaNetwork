@@ -21,6 +21,9 @@
 // and the delete account confirmation. secrets stay in the function environment.
 
 export const MAIL_FROM = "KodaHosting <no-reply@kodaserv.eu>";
+// used when kodaserv.eu is not verified in Resend (yet). the reset mail already sends
+// from this domain, so it is the safe fallback.
+export const MAIL_FROM_FALLBACK = "KodaHosting <noreply@kodanetwork.eu>";
 
 export interface KodaMail {
   to: string;
@@ -103,27 +106,38 @@ export function renderKodaMail(mail: KodaMail): string {
 </body></html>`;
 }
 
-export async function sendKodaMail(mail: KodaMail): Promise<{ ok: boolean; status: number; error?: string }> {
+export async function sendKodaMail(mail: KodaMail): Promise<{ ok: boolean; status: number; error?: string; from?: string }> {
   const key = Deno.env.get("RESEND_API_KEY");
   if (!key) return { ok: false, status: 0, error: "RESEND_API_KEY missing" };
 
-  const from = Deno.env.get("KODA_MAIL_FROM") || MAIL_FROM;
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      from,
-      to: [mail.to],
-      subject: mail.subject,
-      html: renderKodaMail(mail),
-    }),
-  });
+  const primary = Deno.env.get("KODA_MAIL_FROM") || MAIL_FROM;
+  const senders = primary === MAIL_FROM_FALLBACK ? [primary] : [primary, MAIL_FROM_FALLBACK];
+  let last = { ok: false, status: 0, error: "not sent" as string | undefined, from: undefined as string | undefined };
 
-  if (!response.ok) {
-    return { ok: false, status: response.status, error: (await response.text()).slice(0, 300) };
+  for (const from of senders) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        from,
+        to: [mail.to],
+        subject: mail.subject,
+        html: renderKodaMail(mail),
+      }),
+    });
+
+    if (response.ok) {
+      return { ok: true, status: response.status, from };
+    }
+
+    const text = (await response.text()).slice(0, 300);
+    last = { ok: false, status: response.status, error: text, from };
+    // a not-verified sender is the one case where the next sender can help
+    if (!(response.status === 403 && text.includes("not verified"))) break;
   }
-  return { ok: true, status: response.status };
+
+  return last;
 }

@@ -26,6 +26,7 @@
 //   POST { action: "retention" }            -> removes expired retention snapshots
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.6";
 import { sendKodaMail } from "../_shared/resend.ts";
+import { isServiceRoleRequest } from "../_shared/serviceAuth.ts";
 
 const BUCKET = "data_exports";
 const EXPORT_TTL_SECONDS = 60 * 60 * 24 * 7; // seven days, then the link dies
@@ -299,11 +300,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405, cors);
 
-  // only the admin tools hold the service role key
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const auth = req.headers.get("authorization") ?? "";
-  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : "";
-  if (!serviceKey || bearer !== serviceKey) return json({ error: "unauthorized" }, 401, cors);
+  // only the admin tools (service role, from the panel, the admin app or the VPS)
+  if (!isServiceRoleRequest(req)) return json({ error: "unauthorized" }, 401, cors);
 
   try {
     const admin = adminClient();
