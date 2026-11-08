@@ -3701,9 +3701,9 @@ public class ServerDetailActivity extends AppCompatActivity {
     private android.graphics.drawable.GradientDrawable jarRowBackground(boolean selected) {
         float d = getResources().getDisplayMetrics().density;
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(selected ? 0xFF2A2222 : 0xFF232329);
+        bg.setColor(selected ? 0xFF2A2226 : 0xFF1C1C22);
         bg.setCornerRadius(10 * d);
-        if (selected) bg.setStroke((int) Math.max(1, d), 0xFFFF5449);
+        if (selected) bg.setStroke((int) Math.max(1, d), 0xFFFF8C38);
         return bg;
     }
 
@@ -3863,7 +3863,8 @@ public class ServerDetailActivity extends AppCompatActivity {
         eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
                 eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300), 300);
-        blinkWarning(sheet.findViewById(R.id.tv_warning_triangle));
+        android.view.View jarTriangle = sheet.findViewById(R.id.tv_warning_triangle);
+        if (jarTriangle != null) jarTriangle.setVisibility(android.view.View.GONE);
         eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(root);
     }
 

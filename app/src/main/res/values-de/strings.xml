@@ -174,7 +174,7 @@
     <string name="tab_files">Dateien</string>
     <string name="tab_settings">Einstellungen</string>
 
-    <string name="players_manage_title">SPIELER VERWALTEN</string>
+    <string name="players_manage_title">Spieler verwalten</string>
     <string name="players_online">ONLINE</string>
     <string name="players_offline_known">OFFLINE (Bekannt)</string>
     <string name="players_none_known">Noch keine Spieler bekannt.</string>

@@ -182,7 +182,7 @@
     <string name="tab_console">Konsola</string>
     <string name="tab_files">Pliki</string>
     <string name="tab_settings">Ustawienia</string>
-    <string name="players_manage_title">ZARZĄDZAJ GRACZAMI</string>
+    <string name="players_manage_title">Zarządzaj graczami</string>
     <string name="players_online">ONLINE</string>
     <string name="players_offline_known">OFFLINE (znani)</string>
     <string name="players_none_known">Brak znanych graczy.</string>
