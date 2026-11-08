@@ -851,6 +851,12 @@ public class ServerDetailActivity extends AppCompatActivity {
             new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
         sheet.setContentView(R.layout.bottom_sheet_player_list);
         setupWindowDecor(sheet.getWindow());
+        android.widget.TextView pmWordmark = sheet.findViewById(R.id.tv_pm_wordmark);
+        if (pmWordmark != null) {
+            pmWordmark.setText(android.text.Html.fromHtml(
+                    "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
 
         android.widget.LinearLayout containerOnline = sheet.findViewById(R.id.container_pm_online);
         android.widget.LinearLayout containerOffline = sheet.findViewById(R.id.container_pm_offline);
@@ -3862,97 +3868,112 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showJavaRuntimePicker(TextView tvJavaRuntime) {
-        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+        final float d = getResources().getDisplayMetrics().density;
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
                 new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setBackgroundColor(0xFF0A0807);
-        int pad = (int)(20 * getResources().getDisplayMetrics().density);
-        container.setPadding(pad, pad, pad, pad);
+        setupWindowDecor(sheet.getWindow());
 
-        TextView tvTitle = new TextView(this);
-        tvTitle.setText(getString(R.string.java_runtime_label));
-        tvTitle.setTextColor(0xFFFF6B00);
-        tvTitle.setTextSize(13);
-        tvTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        tvTitle.setLetterSpacing(0.12f);
-        tvTitle.setPadding(0, 0, 0, pad);
-        container.addView(tvTitle);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundResource(R.drawable.bg_koda_sheet);
+        content.setPadding((int) (24 * d), (int) (12 * d), (int) (24 * d), (int) (24 * d));
+
+        View handle = new View(this);
+        android.graphics.drawable.GradientDrawable hb = new android.graphics.drawable.GradientDrawable();
+        hb.setColor(0xFF3A3A44);
+        hb.setCornerRadius(2 * d);
+        handle.setBackground(hb);
+        LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams((int) (32 * d), (int) (4 * d));
+        hlp.gravity = Gravity.CENTER_HORIZONTAL;
+        hlp.bottomMargin = (int) (18 * d);
+        content.addView(handle, hlp);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        TextView wm = new TextView(this);
+        wm.setText(android.text.Html.fromHtml(
+                "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                android.text.Html.FROM_HTML_MODE_LEGACY));
+        wm.setTextSize(11f);
+        android.graphics.Typeface sg = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.space_grotesk_regular);
+        wm.setTypeface(sg != null ? sg : android.graphics.Typeface.DEFAULT);
+        wm.setLetterSpacing(0.18f);
+        header.addView(wm);
+        content.addView(header);
+
+        TextView title = new TextView(this);
+        title.setText(getString(R.string.java_runtime_label));
+        title.setTextColor(0xFFF5F5F7);
+        title.setTextSize(21f);
+        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setPadding(0, (int) (10 * d), 0, 0);
+        content.addView(title);
 
         final int[] choices = {0, 8, 17, 21, 25};
-        for (int choice : choices) {
-            String label;
-            if (choice == 0) {
-                label = getString(R.string.java_runtime_auto, eu.kodanetwork.mchost.util.RuntimeManager.resolveAutoVersion(server));
-            } else {
-                label = getString(R.string.java_runtime_manual, choice);
-            }
+        for (int i = 0; i < choices.length; i++) {
+            final int choice = choices[i];
+            String label = choice == 0
+                    ? getString(R.string.java_runtime_auto, eu.kodanetwork.mchost.util.RuntimeManager.resolveAutoVersion(server))
+                    : getString(R.string.java_runtime_manual, choice);
             boolean selected = server.getJavaRuntime() == choice;
-            MaterialButton btn = selected
-                    ? eu.kodanetwork.mchost.util.KodaButtons.primary(this, label)
-                    : eu.kodanetwork.mchost.util.KodaButtons.dark(this, label);
-            
-            if (selected) {
-                android.graphics.drawable.GradientDrawable bg = (android.graphics.drawable.GradientDrawable) btn.getBackground();
-                bg.setStroke((int)(2 * getResources().getDisplayMetrics().density), android.graphics.Color.WHITE);
-                float[] hsv = new float[]{0, 1, 1};
-                android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofFloat(0, 360);
-                anim.setDuration(2500);
-                anim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-                anim.addUpdateListener(a -> {
-                    hsv[0] = (float) a.getAnimatedValue();
-                    bg.setStroke((int)(2 * getResources().getDisplayMetrics().density), android.graphics.Color.HSVToColor(hsv));
-                    btn.invalidate();
-                });
-                anim.start();
-            }
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, (int)(52 * getResources().getDisplayMetrics().density));
-            lp.bottomMargin = (int)(8 * getResources().getDisplayMetrics().density);
-            final int sel = choice;
-            btn.setOnClickListener(v -> {
-                server.setJavaRuntime(sel);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(0, (int) (12 * d), 0, (int) (12 * d));
+            row.setClickable(true);
+            row.setFocusable(true);
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+            row.setBackgroundResource(outValue.resourceId);
+
+            TextView tv = new TextView(this);
+            tv.setText(label);
+            tv.setTextSize(15f);
+            tv.setTextColor(selected ? 0xFFFF8C38 : 0xFFF0F0F0);
+            if (selected) tv.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+            tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(tv);
+
+            TextView check = new TextView(this);
+            check.setText(selected ? "\u2713" : "");
+            check.setTextColor(0xFFFF8C38);
+            check.setTextSize(15f);
+            row.addView(check);
+
+            row.setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+                server.setJavaRuntime(choice);
                 repo.update(server);
                 updateJavaRuntimeLabel(tvJavaRuntime);
                 sheet.dismiss();
                 applyJavaRuntimeChange();
             });
 
-            // the row: the button plus an explicit "more infos" button (file, source,
-            // size and the sha256 the download is checked against)
-            LinearLayout rowWrap = new LinearLayout(this);
-            rowWrap.setOrientation(LinearLayout.HORIZONTAL);
-            rowWrap.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            rowWrap.addView(btn, new LinearLayout.LayoutParams(
-                    0, (int)(52 * getResources().getDisplayMetrics().density), 1f));
-
-            android.widget.ImageButton btnInfo = new android.widget.ImageButton(this);
-            btnInfo.setImageResource(android.R.drawable.ic_menu_info_details);
-            btnInfo.setColorFilter(0xFFB7AE9F);
-            btnInfo.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-            btnInfo.setContentDescription(getString(R.string.jdk_info_button));
-            btnInfo.setOnClickListener(v -> {
-                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
-                showJavaRuntimeInfo(sel);
-            });
-            LinearLayout.LayoutParams infoLp = new LinearLayout.LayoutParams(
-                    (int)(44 * getResources().getDisplayMetrics().density),
-                    (int)(44 * getResources().getDisplayMetrics().density));
-            infoLp.leftMargin = (int)(6 * getResources().getDisplayMetrics().density);
-            rowWrap.addView(btnInfo, infoLp);
-
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            rowLp.bottomMargin = (int)(8 * getResources().getDisplayMetrics().density);
-            container.addView(rowWrap, rowLp);
+            content.addView(row, rlp);
+            if (i < choices.length - 1) {
+                View sep = new View(this);
+                sep.setBackgroundColor(0xFF2A2226);
+                content.addView(sep, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 1));
+            }
         }
-        sheet.setContentView(container);
-        eu.kodanetwork.mchost.util.SheetFix.apply(sheet);
+
+        sheet.setContentView(content);
+        sheet.setCancelable(true);
         sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
     }
 
-    /** "more infos" for one java runtime: file, source, size on disk and the checksum. */
     private void showJavaRuntimeInfo(int choice) {
         final int version = choice == 0
                 ? eu.kodanetwork.mchost.util.RuntimeManager.resolveAutoVersion(server) : choice;

@@ -1157,75 +1157,85 @@
 
             <!-- controls card, the danger zone: hard reset, re-download jar, export, transfer,
                  hibernate, delete -->
+                        <!-- controls card, the danger zone: hard reset, re-download jar, export, transfer,
+                 hibernate, delete. same surface and spacing as every other card. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_settings_controls"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="#2A1010"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
                 app:cardCornerRadius="12dp" app:cardElevation="0dp"
-        app:strokeWidth="0dp">
+                app:strokeWidth="0dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="vertical" android:padding="16dp">
-                    
+
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="DANGER ZONE" android:textColor="#FF4444"
+                        android:text="@string/danger_zone" android:textColor="#FF8A80"
                         android:textSize="11sp" android:fontFamily="@font/font_koda"
-                        android:letterSpacing="0.1" android:layout_marginBottom="12dp"/>
+                        android:letterSpacing="0.1"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/danger_zone_desc" android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp" android:fontFamily="@font/font_koda"
+                        android:layout_marginTop="4dp" android:layout_marginBottom="10dp"/>
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_kill" style="@style/KodaButton.Outline"
+                        android:id="@+id/btn_kill"
                         android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="@string/hard_reset" android:textColor="#FF3344"
-                        android:fontFamily="@font/font_koda"
-                        android:textSize="13sp"
-                        app:cornerRadius="10dp"
-                        android:layout_marginBottom="12dp"/>
+                        android:text="@string/hard_reset" android:fontFamily="@font/font_koda"
+                        android:textSize="13sp" android:textAllCaps="false"
+                        android:textColor="#FF8A80"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        android:layout_marginBottom="8dp"/>
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_dl_jar" style="@style/KodaButton"
+                        android:id="@+id/btn_dl_jar"
                         android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Redownload server.jar"
-                        android:fontFamily="@font/font_koda"
-                        android:textSize="13sp"
-                        app:cornerRadius="10dp"
-                        android:layout_marginBottom="12dp"/>
+                        android:text="Redownload server.jar" android:fontFamily="@font/font_koda"
+                        android:textSize="13sp" android:textAllCaps="false"
+                        android:textColor="#F0F0F0"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        android:layout_marginBottom="8dp"/>
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_export_zip" style="@style/KodaButton.Outline"
+                        android:id="@+id/btn_export_zip"
                         android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="EXPORT AS ZIP"
-                        android:fontFamily="@font/font_koda"
-                        android:textSize="13sp"
-                        app:cornerRadius="10dp"
-                        android:layout_marginBottom="12dp"/>
-
-<com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_transfer_device" style="@style/KodaButton.Outline"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="@string/transfer_action_server_detail"
-                        android:fontFamily="@font/font_koda"
-                        android:textSize="13sp"
-                        app:cornerRadius="10dp"
-                        android:layout_marginBottom="12dp"/>
+                        android:text="Export as ZIP" android:fontFamily="@font/font_koda"
+                        android:textSize="13sp" android:textAllCaps="false"
+                        android:textColor="#F0F0F0"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        android:layout_marginBottom="8dp"/>
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_hibernate" style="@style/KodaButton.Outline"
+                        android:id="@+id/btn_transfer_device"
                         android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="WINTERSCHLAF (HIBERNATE)"
-                        android:fontFamily="@font/font_koda"
-                        android:textSize="13sp"
-                        app:cornerRadius="10dp"
-                        android:layout_marginBottom="12dp"/>
+                        android:text="@string/transfer_action_server_detail" android:fontFamily="@font/font_koda"
+                        android:textSize="13sp" android:textAllCaps="false"
+                        android:textColor="#F0F0F0"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_hibernate"
+                        android:layout_width="match_parent" android:layout_height="48dp"
+                        android:text="@string/hibernate" android:fontFamily="@font/font_koda"
+                        android:textSize="13sp" android:textAllCaps="false"
+                        android:textColor="#F0F0F0"
+                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        android:layout_marginBottom="8dp"/>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_del_server"
                         android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="DELETE SERVER"
-                        android:fontFamily="@font/font_koda"
-                        android:textSize="13sp"
-                        android:textColor="?attr/colorOnSurface"
-                        app:backgroundTint="#FF4444" app:cornerRadius="10dp"
-                        app:rippleColor="#44FFFFFF"/>
+                        android:text="Delete server" android:fontFamily="@font/font_koda"
+                        android:textSize="13sp" android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        app:backgroundTint="#FF5449" app:cornerRadius="10dp"
+                        android:insetTop="0dp" android:insetBottom="0dp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

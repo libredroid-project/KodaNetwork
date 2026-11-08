@@ -22,27 +22,47 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#0A0807"
-    android:paddingBottom="48dp">
+    android:background="@drawable/bg_koda_sheet"
+    android:paddingBottom="24dp">
 
-    <!-- sheet title -->
+    <View
+        android:layout_width="32dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="18dp"
+        android:background="#3A3A44" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <TextView
+            android:id="@+id/tv_pm_wordmark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P.R.A.E.T.O.R."
+            android:textSize="11sp"
+            android:fontFamily="@font/space_grotesk_regular"
+            android:letterSpacing="0.18" />
+    </LinearLayout>
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/players_manage_title"
-        android:textColor="#FF6B00"
-        android:textSize="14sp"
+        android:textColor="#F5F5F7"
+        android:textSize="21sp"
         android:textStyle="bold"
-        android:letterSpacing="0.12"
+        android:fontFamily="@font/font_koda"
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
-        android:paddingTop="20dp"
-        android:paddingBottom="12dp" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#222230" />
+        android:paddingTop="10dp"
+        android:paddingBottom="16dp" />
 
     <ScrollView
         android:layout_width="match_parent"

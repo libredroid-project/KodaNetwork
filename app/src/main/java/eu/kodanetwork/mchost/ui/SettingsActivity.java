@@ -1253,6 +1253,7 @@ public class SettingsActivity extends Activity {
                 tvRole.setText(isMain ? "Main Account" : "Secondary Account");
                 tvRole.setTextColor(0xFF8A8A9A);
                 tvRole.setTextSize(12);
+                tvRole.setSingleLine(true);
                 textLayout.addView(tvRole);
                 
                 accLayout.addView(textLayout);
@@ -1261,6 +1262,9 @@ public class SettingsActivity extends Activity {
                 btnManage.setText("Manage");
                 btnManage.setTextSize(12);
                 btnManage.setTextColor(0xFFFF8C38);
+                btnManage.setMinWidth(0);
+                btnManage.setMinimumWidth(0);
+                btnManage.setPadding(0, 0, (int) (10 * accD), 0);
                 btnManage.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                 btnManage.setOnClickListener(v -> {
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
@@ -1273,6 +1277,9 @@ public class SettingsActivity extends Activity {
                 btnUnlink.setText("Unlink");
                 btnUnlink.setTextSize(12);
                 btnUnlink.setTextColor(0xFFFF8A80);
+                btnUnlink.setMinWidth(0);
+                btnUnlink.setMinimumWidth(0);
+                btnUnlink.setPadding(0, 0, 0, 0);
                 btnUnlink.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                 btnUnlink.setOnClickListener(v -> {
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
