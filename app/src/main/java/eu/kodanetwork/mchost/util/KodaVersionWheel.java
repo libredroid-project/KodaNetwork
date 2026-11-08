@@ -170,17 +170,18 @@ public final class KodaVersionWheel {
         });
         root.addView(btnConfirm, btnLp);
 
-        sheet.setOnShowListener(d -> {
-            BottomSheetDialog bsd = (BottomSheetDialog) d;
-            FrameLayout bottomSheet = bsd.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-            if (bottomSheet != null) {
-                BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_EXPANDED);
-            }
-        });
+        KodaSheet.styleWindow(sheet.getWindow());
+        KodaSheet.applyInsets(content, 24);
         SheetFix.apply(sheet);
         sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
         HapticUtil.applyHapticsToView(content, activity);
-        KodaSheetMotion.reveal(content);
+        content.post(() -> KodaSheetMotion.reveal(content));
     }
 
     private static String describe(Map<String, String> descriptions, String version, Activity activity) {

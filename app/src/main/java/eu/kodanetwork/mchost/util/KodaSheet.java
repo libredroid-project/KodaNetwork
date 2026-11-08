@@ -361,26 +361,55 @@ public final class KodaSheet {
         return b;
     }
 
-    /** shows the sheet expanded with the app nav bar, the content flies in. */
+    /**
+     * the same edge-to-edge window the PRAETOR sheets use. without it the dialog stops above
+     * the nav bar and the activity shows through, which reads as a transparent nav bar.
+     */
+    public static void styleWindow(android.view.Window w) {
+        if (w == null) return;
+        w.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        w.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        w.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(w, false);
+        // the sheet surface is dark in every theme, so the icons stay light
+        int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+        w.getDecorView().setSystemUiVisibility(flags);
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            w.setNavigationBarContrastEnforced(false);
+        }
+    }
+
+    /**
+     * moves the sheet content out of the nav bar area. the padding stays because the window
+     * now draws behind the nav bar, and the nav bar itself shows the sheet colour.
+     */
+    public static void applyInsets(View view, int baseBottomDp) {
+        if (view == null) return;
+        final float density = view.getResources().getDisplayMetrics().density;
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            int bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(),
+                    (int) (baseBottomDp * density) + bottom);
+            return insets;
+        });
+    }
+
+    /** shows the sheet, slides up like the other sheets and lets the content fly in. */
     public void show() {
         sheet.setContentView(root);
-        sheet.setOnShowListener(dialog -> {
-            BottomSheetDialog bsd = (BottomSheetDialog) dialog;
-            if (bsd.getWindow() != null) {
-                bsd.getWindow().setNavigationBarColor(0xFF241C18);
-                if (android.os.Build.VERSION.SDK_INT >= 29) {
-                    bsd.getWindow().setNavigationBarContrastEnforced(false);
-                }
-            }
-            android.view.View sheetView = bsd.findViewById(
-                    com.google.android.material.R.id.design_bottom_sheet);
-            if (sheetView != null) {
-                BottomSheetBehavior.from(sheetView).setState(BottomSheetBehavior.STATE_EXPANDED);
-            }
-        });
+        styleWindow(sheet.getWindow());
+        applyInsets(root, 24);
         SheetFix.apply(sheet);
         sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
         HapticUtil.applyHapticsToView(root, activity);
-        KodaSheetMotion.reveal(root);
+        // the reveal has to wait for the first layout, otherwise it runs while the window
+        // is still invisible and the sheet just pops in without the animation
+        root.post(() -> KodaSheetMotion.reveal(root));
     }
 }

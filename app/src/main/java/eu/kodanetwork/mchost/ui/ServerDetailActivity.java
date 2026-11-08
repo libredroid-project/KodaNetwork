@@ -957,8 +957,11 @@ public class ServerDetailActivity extends AppCompatActivity {
 
         eu.kodanetwork.mchost.util.SheetFix.apply(sheet);
         sheet.show();
+        android.view.View listRoot = sheet.findViewById(R.id.sheet_player_list_root);
+        if (listRoot != null) listRoot.post(() ->
+                eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(listRoot));
     }
-    
+
     private void showPlayerActionSheet(String player, boolean isOnline) {
         com.google.android.material.bottomsheet.BottomSheetDialog sheet = 
             new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
@@ -969,6 +972,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         
         android.view.Window w = sheet.getWindow();
         setupWindowDecor(w);
+        eu.kodanetwork.mchost.util.KodaSheet.applyInsets(view, 24);
         
         // header: wordmark, the name as the title and the state one size smaller
         TextView pmWordmark = view.findViewById(R.id.tv_pm_manage_wordmark);
@@ -1245,6 +1249,9 @@ public class ServerDetailActivity extends AppCompatActivity {
         }).start();
 
         sheet.show();
+        android.view.View manageRoot = view.findViewById(R.id.sheet_player_manage_root);
+        if (manageRoot != null) manageRoot.post(() ->
+                eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(manageRoot));
     }
 
     /** true when the player has an entry in banned-players.json. */

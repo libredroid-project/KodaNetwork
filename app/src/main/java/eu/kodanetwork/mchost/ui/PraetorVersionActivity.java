@@ -84,6 +84,8 @@ public class PraetorVersionActivity extends AppCompatActivity {
         sheetContent = getLayoutInflater().inflate(R.layout.activity_praetor_version, null);
         versionSheet.setContentView(sheetContent);
         versionSheet.setCancelable(true);
+        eu.kodanetwork.mchost.util.KodaSheet.styleWindow(versionSheet.getWindow());
+        eu.kodanetwork.mchost.util.KodaSheet.applyInsets(sheetContent, 24);
         versionSheet.show();
         if (versionSheet.getWindow() != null) {
             versionSheet.getWindow().setNavigationBarColor(0xFF241C18);
@@ -91,7 +93,7 @@ public class PraetorVersionActivity extends AppCompatActivity {
                 versionSheet.getWindow().setNavigationBarContrastEnforced(false);
             }
         }
-        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheetContent);
+        sheetContent.post(() -> eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheetContent));
 
         String serverId = getIntent().getStringExtra(EXTRA_SERVER_ID);
         targetVersion = getIntent().getStringExtra(EXTRA_TARGET_VERSION);
