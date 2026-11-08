@@ -55,19 +55,43 @@ public class PraetorVersionActivity extends AppCompatActivity {
     private String targetVersion;
     private boolean downgrade;
 
+    private com.google.android.material.bottomsheet.BottomSheetDialog versionSheet;
+    private android.view.View sheetContent;
+
+    /** the screen is a bottom sheet now, so views have to be looked up in the sheet first. */
+    @Override
+    public <T extends android.view.View> T findViewById(int id) {
+        if (sheetContent != null) {
+            T hit = sheetContent.findViewById(id);
+            if (hit != null) return hit;
+        }
+        return super.findViewById(id);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (versionSheet != null && versionSheet.isShowing()) versionSheet.dismiss();
+        super.onDestroy();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        if (android.os.Build.VERSION.SDK_INT >= 21) {
-            getWindow().setStatusBarColor(0xFF241C18);
-            getWindow().setNavigationBarColor(0xFF241C18);
+        // nothing behind the sheet, the activity only hosts it
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0x00000000));
+
+        versionSheet = new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        sheetContent = getLayoutInflater().inflate(R.layout.activity_praetor_version, null);
+        versionSheet.setContentView(sheetContent);
+        versionSheet.setCancelable(true);
+        versionSheet.show();
+        if (versionSheet.getWindow() != null) {
+            versionSheet.getWindow().setNavigationBarColor(0xFF241C18);
             if (android.os.Build.VERSION.SDK_INT >= 29) {
-                getWindow().setNavigationBarContrastEnforced(false);
+                versionSheet.getWindow().setNavigationBarContrastEnforced(false);
             }
         }
-        setContentView(R.layout.activity_praetor_version);
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(sheetContent);
 
         String serverId = getIntent().getStringExtra(EXTRA_SERVER_ID);
         targetVersion = getIntent().getStringExtra(EXTRA_TARGET_VERSION);
