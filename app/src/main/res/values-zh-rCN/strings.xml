@@ -95,6 +95,26 @@
     <string name="logout">登出</string>
     <string name="device_info">设备与应用信息</string>
     <string name="danger_zone_desc">这些操作无法撤销</string>
+    <string name="danger_delete_title">删除所有服务器</string>
+    <string name="danger_delete_desc">从此设备移除每个服务器及其文件</string>
+    <string name="danger_revoke_title">撤销服务条款同意</string>
+    <string name="danger_revoke_desc">托管前需要重新接受条款</string>
+    <string name="legacy_sheet_title">旧版模式</string>
+    <string name="legacy_sheet_body">旧版模式使用旧的启动方式而不是内置 JVM。它更慢也更不稳定，启动故事等功能在其中不可用。仅在正常启动在你的设备上失败时使用。来自 Play 商店的版本无法使用。</string>
+    <string name="legacy_sheet_enable">启用</string>
+    <string name="legacy_sheet_waiting">%1$d 秒后启用</string>
+    <string name="legacy_sheet_enabled">旧版模式已启用</string>
+    <string name="acc_sheet_title">%1$s 的权限</string>
+    <string name="acc_sheet_body">设置该账户可以在你的服务器上做什么。</string>
+    <string name="acc_sheet_save">保存</string>
+    <string name="acc_perm_start">启动服务器</string>
+    <string name="acc_perm_stop">停止服务器</string>
+    <string name="acc_perm_restart">重启服务器</string>
+    <string name="acc_perm_settings">修改设置</string>
+    <string name="acc_perm_players">管理玩家</string>
+    <string name="acc_perm_plugins">管理插件</string>
+    <string name="acc_perm_console">控制台命令</string>
+    <string name="acc_perm_delete">删除服务器</string>
     <string name="clear_docs">清除文档</string>
     <string name="clear_app_data">清除应用数据</string>
 

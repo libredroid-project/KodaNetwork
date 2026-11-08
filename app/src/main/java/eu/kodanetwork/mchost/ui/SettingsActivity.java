@@ -1263,10 +1263,7 @@ public class SettingsActivity extends Activity {
                 btnManage.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                 btnManage.setOnClickListener(v -> {
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
-                    Intent intent = new Intent(this, eu.kodanetwork.mchost.ui.PraetorAccountsActivity.class);
-                    intent.putExtra("extra_row_id", rowId);
-                    intent.putExtra("extra_mc_name", mcName);
-                    startActivity(intent);
+                    showAccountPermissionsSheet(rowId, mcName);
                 });
                 accLayout.addView(btnManage);
                 
@@ -1688,8 +1685,8 @@ public class SettingsActivity extends Activity {
     }
 
     private void setupStorageOptions() {
-        Button btnDeleteServers = findViewById(R.id.btn_delete_servers);
-        Button btnRevokeTos = findViewById(R.id.btn_revoke_tos);
+        View btnDeleteServers = findViewById(R.id.btn_delete_servers);
+        View btnRevokeTos = findViewById(R.id.btn_revoke_tos);
 
         if (btnDeleteServers != null) {
             btnDeleteServers.setOnClickListener(v -> {
@@ -1742,13 +1739,339 @@ public class SettingsActivity extends Activity {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
             boolean currentLegacy = !prefs.getBoolean("beta_jni_embedded", true);
             if (!currentLegacy) {
-                Intent i = new Intent(this, LegacyModeWarningActivity.class);
-                startActivityForResult(i, 9002);
+                showLegacyModeSheet(btn);
             } else {
                 prefs.edit().putBoolean("beta_jni_embedded", true).apply();
                 updateLegacyModeBtn(btn, false);
             }
         });
+    }
+
+    /** legacy mode warning as a praetor sheet instead of the old full screen stages. */
+    private void showLegacyModeSheet(final Button trigger) {
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        final float d = getResources().getDisplayMetrics().density;
+        LinearLayout content = kodaSheet(getString(R.string.legacy_sheet_title),
+                getString(R.string.legacy_sheet_body));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams al = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        al.topMargin = (int) (18 * d);
+
+        TextView cancel = new TextView(this);
+        cancel.setText(getString(R.string.praetor_action_cancel));
+        cancel.setTextColor(0xFFBCBCC6);
+        cancel.setTextSize(13f);
+        cancel.setPadding((int) (14 * d), (int) (12 * d), (int) (14 * d), (int) (12 * d));
+        cancel.setClickable(true);
+        cancel.setFocusable(true);
+        cancel.setOnClickListener(v -> sheet.dismiss());
+        actions.addView(cancel);
+
+        final com.google.android.material.button.MaterialButton enable =
+                new com.google.android.material.button.MaterialButton(this);
+        enable.setText(getString(R.string.legacy_sheet_waiting, 5));
+        enable.setTextColor(0xFFFFFFFF);
+        enable.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFFF5449));
+        enable.setCornerRadius((int) (10 * d));
+        enable.setTextSize(13f);
+        enable.setAllCaps(false);
+        enable.setInsetTop(0);
+        enable.setInsetBottom(0);
+        enable.setEnabled(false);
+        actions.addView(enable);
+        content.addView(actions, al);
+
+        final android.os.CountDownTimer timer = new android.os.CountDownTimer(5000, 1000) {
+            @Override public void onTick(long ms) {
+                enable.setText(getString(R.string.legacy_sheet_waiting, (int) (ms / 1000)));
+            }
+            @Override public void onFinish() {
+                enable.setText(getString(R.string.legacy_sheet_enable));
+                enable.setEnabled(true);
+            }
+        };
+        timer.start();
+
+        enable.setOnClickListener(v -> {
+            timer.cancel();
+            prefs.edit().putBoolean("beta_jni_embedded", false).apply();
+            updateLegacyModeBtn(trigger, true);
+            Toast.makeText(this, getString(R.string.legacy_sheet_enabled), Toast.LENGTH_SHORT).show();
+            sheet.dismiss();
+        });
+        sheet.setOnDismissListener(x -> timer.cancel());
+
+        sheet.setContentView(content);
+        sheet.setCancelable(true);
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300), 300);
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
+    }
+
+    /**
+     * the sheet chrome every settings sheet shares: warm surface, small wordmark with the
+     * red triangle, left aligned title and body. callers append controls and actions.
+     */
+    private LinearLayout kodaSheet(String title, String body) {
+        final float d = getResources().getDisplayMetrics().density;
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundResource(R.drawable.bg_koda_sheet);
+        content.setPadding((int) (24 * d), (int) (12 * d), (int) (24 * d), (int) (24 * d));
+
+        View handle = new View(this);
+        android.graphics.drawable.GradientDrawable hb = new android.graphics.drawable.GradientDrawable();
+        hb.setColor(0xFF3A3A44);
+        hb.setCornerRadius(2 * d);
+        handle.setBackground(hb);
+        LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams((int) (32 * d), (int) (4 * d));
+        hlp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
+        hlp.bottomMargin = (int) (18 * d);
+        content.addView(handle, hlp);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        TextView wm = new TextView(this);
+        wm.setText(android.text.Html.fromHtml(
+                "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                android.text.Html.FROM_HTML_MODE_LEGACY));
+        wm.setTextSize(11f);
+        android.graphics.Typeface sg = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.space_grotesk_regular);
+        wm.setTypeface(sg != null ? sg : android.graphics.Typeface.DEFAULT);
+        wm.setLetterSpacing(0.18f);
+        header.addView(wm);
+        header.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+        TextView tri = new TextView(this);
+        tri.setText("\u26A0");
+        tri.setTextColor(0xFFFF5449);
+        tri.setTextSize(15f);
+        header.addView(tri);
+        content.addView(header);
+
+        TextView t = new TextView(this);
+        t.setText(title);
+        t.setTextColor(0xFFF5F5F7);
+        t.setTextSize(21f);
+        t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        t.setPadding(0, (int) (10 * d), 0, 0);
+        content.addView(t);
+
+        if (body != null && !body.isEmpty()) {
+            TextView b = new TextView(this);
+            b.setText(body);
+            b.setTextColor(0xFFBCBCC6);
+            b.setTextSize(14f);
+            b.setLineSpacing(2 * d, 1f);
+            b.setPadding(0, (int) (10 * d), 0, 0);
+            content.addView(b);
+        }
+        return content;
+    }
+
+    /** one permission row: label on the left, the switch on the right. */
+    private LinearLayout permissionRow(String label, android.widget.Switch sw) {
+        final float d = getResources().getDisplayMetrics().density;
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(0, (int) (4 * d), 0, (int) (4 * d));
+
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextColor(0xFFF0F0F0);
+        tv.setTextSize(14f);
+        tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(tv);
+        row.addView(sw);
+
+        sw.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFFB388FF));
+        sw.setTrackTintList(android.content.res.ColorStateList.valueOf(0x668E6BD9));
+        return row;
+    }
+
+    /** the 8 permissions of one linked account, editable in a sheet. */
+    private void showAccountPermissionsSheet(final String rowId, final String mcName) {
+        final float d = getResources().getDisplayMetrics().density;
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        final LinearLayout content = kodaSheet(getString(R.string.acc_sheet_title, mcName),
+                getString(R.string.acc_sheet_body));
+
+        final String[] keys = {"perm_start", "perm_stop", "perm_restart", "perm_settings",
+                "perm_players", "perm_plugins", "perm_console", "perm_delete"};
+        final String[] labels = {getString(R.string.acc_perm_start), getString(R.string.acc_perm_stop),
+                getString(R.string.acc_perm_restart), getString(R.string.acc_perm_settings),
+                getString(R.string.acc_perm_players), getString(R.string.acc_perm_plugins),
+                getString(R.string.acc_perm_console), getString(R.string.acc_perm_delete)};
+        final java.util.Map<String, android.widget.Switch> switches = new java.util.HashMap<>();
+
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(0, (int) (8 * d), 0, 0);
+
+        for (int i = 0; i < keys.length; i++) {
+            android.widget.Switch sw = new android.widget.Switch(this);
+            switches.put(keys[i], sw);
+            list.addView(permissionRow(labels[i], sw));
+            View sep = new View(this);
+            sep.setBackgroundColor(0x1AFFFFFF);
+            LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1);
+            slp.topMargin = (int) (8 * d);
+            slp.bottomMargin = (int) (8 * d);
+            list.addView(sep, slp);
+        }
+        sv.addView(list);
+        LinearLayout.LayoutParams svlp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        svlp.topMargin = (int) (14 * d);
+        content.addView(sv, svlp);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams al = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        al.topMargin = (int) (16 * d);
+
+        TextView cancel = new TextView(this);
+        cancel.setText(getString(R.string.praetor_action_cancel));
+        cancel.setTextColor(0xFFBCBCC6);
+        cancel.setTextSize(13f);
+        cancel.setPadding((int) (14 * d), (int) (12 * d), (int) (14 * d), (int) (12 * d));
+        cancel.setClickable(true);
+        cancel.setFocusable(true);
+        cancel.setOnClickListener(v -> sheet.dismiss());
+        actions.addView(cancel);
+
+        final com.google.android.material.button.MaterialButton save =
+                new com.google.android.material.button.MaterialButton(this);
+        save.setText(getString(R.string.acc_sheet_save));
+        save.setTextColor(0xFF1A0F00);
+        save.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFFF6B00));
+        save.setCornerRadius((int) (10 * d));
+        save.setTextSize(13f);
+        save.setAllCaps(false);
+        save.setInsetTop(0);
+        save.setInsetBottom(0);
+        actions.addView(save);
+        content.addView(actions, al);
+
+        save.setOnClickListener(v -> {
+            save.setEnabled(false);
+            save.setText(getString(R.string.pra_saving));
+            new Thread(() -> {
+                int code = -1;
+                try {
+                    org.json.JSONObject permsObj = new org.json.JSONObject();
+                    for (String key : keys) {
+                        permsObj.put(key, switches.get(key).isChecked());
+                    }
+                    org.json.JSONObject payload = new org.json.JSONObject();
+                    payload.put("permissions", permsObj);
+
+                    String appUuid = eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "");
+                    String deviceToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
+                    String body = "{\"p_admin_app_uuid\": \"" + appUuid + "\", \"p_admin_device_token\": \"" + deviceToken
+                            + "\", \"p_target_id\": \"" + rowId + "\", \"p_payload\": " + payload + "}";
+                    java.net.URL url = new java.net.URL(eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                            + "/rest/v1/rpc/rpc_admin_patch_user");
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("apikey", eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                    conn.setRequestProperty("Authorization", "Bearer " + eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                    conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setDoOutput(true);
+                    conn.getOutputStream().write(body.getBytes());
+                    code = conn.getResponseCode();
+                } catch (Exception ignored) {}
+                final int resultCode = code;
+                runOnUiThread(() -> {
+                    if (resultCode == 200 || resultCode == 204) {
+                        Toast.makeText(this, getString(R.string.pra_saved), Toast.LENGTH_SHORT).show();
+                        sheet.dismiss();
+                    } else {
+                        Toast.makeText(this, getString(R.string.pra_save_failed) + " (" + resultCode + ")",
+                                Toast.LENGTH_LONG).show();
+                        save.setEnabled(true);
+                        save.setText(getString(R.string.acc_sheet_save));
+                    }
+                });
+            }).start();
+        });
+
+        sheet.setContentView(content);
+        sheet.setCancelable(true);
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        sv.post(() -> {
+            int cap = (int) (340 * d);
+            if (list.getHeight() > cap) {
+                sv.getLayoutParams().height = cap;
+                sv.requestLayout();
+            }
+        });
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
+
+        // load the current flags
+        if (rowId == null) return;
+        new Thread(() -> {
+            try {
+                String appUuid = eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "");
+                String deviceToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
+                java.net.URL url = new java.net.URL(eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                        + "/rest/v1/rpc/rpc_admin_list_users");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("apikey", eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                conn.setRequestProperty("Authorization", "Bearer " + eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                conn.getOutputStream().write(("{\"p_admin_app_uuid\":\"" + appUuid
+                        + "\", \"p_admin_device_token\":\"" + deviceToken + "\"}").getBytes());
+                if (conn.getResponseCode() == 200) {
+                    java.util.Scanner s = new java.util.Scanner(conn.getInputStream()).useDelimiter("\\A");
+                    String resp = s.hasNext() ? s.next() : "";
+                    org.json.JSONArray arr = new org.json.JSONArray(resp);
+                    org.json.JSONObject perms = null;
+                    for (int i = 0; i < arr.length(); i++) {
+                        org.json.JSONObject row = arr.getJSONObject(i);
+                        if (rowId.equals(row.optString("id"))) {
+                            perms = row.optJSONObject("permissions");
+                            break;
+                        }
+                    }
+                    final org.json.JSONObject found = perms;
+                    if (found != null) {
+                        runOnUiThread(() -> {
+                            for (String key : keys) {
+                                switches.get(key).setChecked(found.optBoolean(key, false));
+                            }
+                        });
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void updateLegacyModeBtn(Button btn, boolean legacyOn) {
@@ -2101,8 +2424,8 @@ public class SettingsActivity extends Activity {
             if (findViewById(R.id.btn_beta_jni) != null) {
                 if (!prefs.getBoolean("beta_jni_embedded", true)) tintBtn((Button)findViewById(R.id.btn_beta_jni), btnBg, textCol);
             }
-            tintBtn((Button)findViewById(R.id.btn_delete_servers), 0xFFFFE5E5, 0xFFFF4444);
-            tintBtn((Button)findViewById(R.id.btn_revoke_tos), 0xFFFFE5E5, 0xFFFF4444);
+
+            // the danger zone rows bring their own colors now
 
             View geminiInput = findViewById(R.id.ll_gemini_input_container);
             if (geminiInput != null) geminiInput.setBackgroundColor(btnBg);

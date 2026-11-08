@@ -89,6 +89,26 @@
     <string name="logout">Abmelden</string>
     <string name="device_info">GERÄTE- &amp; APP-INFO</string>
     <string name="danger_zone_desc">Diese Aktionen können nicht rückgängig gemacht werden</string>
+    <string name="danger_delete_title">Alle Server löschen</string>
+    <string name="danger_delete_desc">Entfernt jeden Server und seine Dateien von diesem Gerät</string>
+    <string name="danger_revoke_title">AGB-Zustimmung widerrufen</string>
+    <string name="danger_revoke_desc">Du musst die Bedingungen erneut akzeptieren, bevor du hosten kannst</string>
+    <string name="legacy_sheet_title">Legacy Mode</string>
+    <string name="legacy_sheet_body">Legacy Mode startet Server über den alten Weg statt über die eingebettete JVM. Das ist langsamer und instabiler, und Dinge wie die Boot Story funktionieren dort nicht. Nutze es nur, wenn der normale Start auf deinem Gerät nicht klappt. Versionen aus dem Play Store können es nicht verwenden.</string>
+    <string name="legacy_sheet_enable">Aktivieren</string>
+    <string name="legacy_sheet_waiting">Aktivieren in %1$d</string>
+    <string name="legacy_sheet_enabled">Legacy Mode aktiviert</string>
+    <string name="acc_sheet_title">Rechte von %1$s</string>
+    <string name="acc_sheet_body">Lege fest, was dieses Konto auf deinen Servern darf.</string>
+    <string name="acc_sheet_save">Speichern</string>
+    <string name="acc_perm_start">Server starten</string>
+    <string name="acc_perm_stop">Server stoppen</string>
+    <string name="acc_perm_restart">Server neu starten</string>
+    <string name="acc_perm_settings">Einstellungen ändern</string>
+    <string name="acc_perm_players">Spieler verwalten</string>
+    <string name="acc_perm_plugins">Plugins verwalten</string>
+    <string name="acc_perm_console">Konsolenbefehle</string>
+    <string name="acc_perm_delete">Server löschen</string>
     <string name="clear_docs">Dokumente löschen</string>
     <string name="clear_app_data">App-Daten löschen</string>
 

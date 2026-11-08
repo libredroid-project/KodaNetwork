@@ -1126,38 +1126,69 @@
             <!-- danger zone -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="#2A1010"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#241C18"
                 app:cardCornerRadius="12dp" app:cardElevation="0dp">
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="vertical" android:padding="16dp">
+                    android:orientation="vertical"
+                    android:paddingStart="16dp" android:paddingEnd="16dp"
+                    android:paddingTop="14dp" android:paddingBottom="6dp">
 
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="@string/danger_zone" android:textColor="#FF4444"
+                        android:text="@string/danger_zone" android:textColor="#FF8A80"
                         android:textSize="11sp" android:fontFamily="@font/font_koda"
-                        android:letterSpacing="0.1" android:layout_marginBottom="6dp"/>
+                        android:letterSpacing="0.1"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="@string/danger_zone_desc" android:textColor="#888899"
+                        android:text="@string/danger_zone_desc" android:textColor="#8A8A9A"
                         android:textSize="12sp" android:fontFamily="@font/font_koda"
-                        android:layout_marginBottom="16dp"/>
+                        android:layout_marginTop="4dp"/>
 
-                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_delete_servers"
-                        android:layout_width="match_parent" android:layout_height="44dp"
-                        android:text="DELETE ALL SERVERS"
-                        android:textAllCaps="true" android:textSize="13sp"
-                        android:textColor="#FFFFFF"
-                        android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#FF4444" app:cornerRadius="10dp"
-                        app:rippleColor="#44FFFFFF" android:layout_marginBottom="12dp" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_revoke_tos"
-                        android:layout_width="match_parent" android:layout_height="44dp"
-                        android:text="REVOKE TOS"
-                        android:textAllCaps="true" android:textSize="13sp"
-                        android:textColor="#FFFFFF"
-                        android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#FF4444" app:cornerRadius="10dp"
-                        app:rippleColor="#44FFFFFF" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226" android:layout_marginTop="14dp"/>
+
+                    <LinearLayout android:id="@+id/btn_delete_servers"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_delete_title" android:textColor="#FF8A80"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_delete_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226"/>
+
+                    <LinearLayout android:id="@+id/btn_revoke_tos"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_revoke_title" android:textColor="#FF8A80"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_revoke_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
