@@ -75,6 +75,13 @@ public class DataRequestActivity extends AppCompatActivity {
         reload();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // a decision may have happened while the screen sat in the background
+        reload();
+    }
+
     private void reload() {
         new Thread(() -> {
             final List<DataRequests.Request> rows = DataRequests.list(this);
