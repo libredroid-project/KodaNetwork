@@ -305,7 +305,9 @@
                         android:textAllCaps="false" android:textSize="13sp"
                         android:textColor="#FFFFFF" android:fontFamily="@font/font_koda"
                         app:backgroundTint="#332A24" app:cornerRadius="10dp"
-                        app:rippleColor="#22FFFFFF" android:layout_marginBottom="8dp"/>
+                        app:rippleColor="#22FFFFFF"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        app:strokeWidth="0dp" android:layout_marginBottom="8dp"/>
 
                     <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_termux"
                         android:layout_width="match_parent" android:layout_height="44dp"
@@ -313,15 +315,37 @@
                         android:textAllCaps="false" android:textSize="13sp"
                         android:textColor="#FFFFFF" android:fontFamily="@font/font_koda"
                         app:backgroundTint="#332A24" app:cornerRadius="10dp"
-                        app:rippleColor="#22FFFFFF" android:layout_marginBottom="8dp"/>
+                        app:rippleColor="#22FFFFFF"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        app:strokeWidth="0dp" android:layout_marginBottom="8dp"/>
 
-                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_beta_jni"
-                        android:layout_width="match_parent" android:layout_height="44dp"
-                        android:text="@string/beta_jni_off"
-                        android:textAllCaps="false" android:textSize="13sp"
-                        android:textColor="#FFFFFF" android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#332A24" app:cornerRadius="10dp"
-                        app:rippleColor="#22FFFFFF" android:layout_marginBottom="16dp"/>
+                    <LinearLayout android:id="@+id/row_legacy_mode"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="8dp" android:paddingBottom="10dp"
+                        android:layout_marginBottom="6dp"
+                        android:background="@drawable/bg_row_press"
+                        android:clickable="true" android:focusable="true">
+
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/legacy_sheet_title" android:textColor="#F0F0F0"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/legacy_mode_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_legacy_mode"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:clickable="false" android:focusable="false"
+                            app:useMaterialThemeColors="false"
+                            app:thumbTint="@color/switch_thumb"
+                            app:trackTint="@color/switch_track"/>
+                    </LinearLayout>
 
                     <View android:layout_width="match_parent" android:layout_height="1dp"
                         android:background="#332A24" android:layout_marginBottom="16dp"/>
@@ -338,7 +362,9 @@
                         android:textAllCaps="false" android:textSize="13sp"
                         android:textColor="#FFFFFF" android:fontFamily="@font/font_koda"
                         app:backgroundTint="#332A24" app:cornerRadius="10dp"
-                        app:rippleColor="#22FFFFFF" android:layout_marginBottom="8dp"/>
+                        app:rippleColor="#22FFFFFF"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        app:strokeWidth="0dp" android:layout_marginBottom="8dp"/>
 
                     <com.google.android.material.button.MaterialButton android:id="@+id/btn_2fa_set_password"
                         android:layout_width="match_parent" android:layout_height="44dp"
@@ -346,7 +372,9 @@
                         android:textAllCaps="false" android:textSize="13sp"
                         android:textColor="#FFFFFF" android:fontFamily="@font/font_koda"
                         app:backgroundTint="#332A24" app:cornerRadius="10dp"
-                        app:rippleColor="#22FFFFFF" android:visibility="gone" android:layout_marginBottom="16dp"/>
+                        app:rippleColor="#22FFFFFF"
+                        android:insetTop="0dp" android:insetBottom="0dp"
+                        app:strokeWidth="0dp" android:visibility="gone" android:layout_marginBottom="16dp"/>
 
                     <View android:layout_width="match_parent" android:layout_height="1dp"
                         android:background="#332A24" android:layout_marginBottom="16dp"/>
@@ -566,7 +594,7 @@
                     <LinearLayout android:id="@+id/ll_info_header"
                         android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:orientation="horizontal" android:gravity="center_vertical"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/device_info" android:textColor="#FF6B00"
@@ -640,7 +668,7 @@
                         android:text="by libredroid" android:textColor="#888899"
                         android:textSize="12sp" android:fontFamily="@font/font_koda"/>
 
-                    <Button android:id="@+id/btn_github"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_github"
                         android:layout_width="match_parent" android:layout_height="44dp"
                         android:layout_marginTop="12dp"
                         android:text="@string/github_open_source" android:textColor="#FFFFFF"
@@ -727,100 +755,100 @@
                         android:textSize="11sp" android:fontFamily="@font/font_koda"
                         android:letterSpacing="0.1" android:layout_marginBottom="8dp"/>
 
-                    <Button android:id="@+id/btn_dev_export_logs"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_export_logs"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Export logs (Downloads)" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_clear_cache"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_clear_cache"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Clear app cache" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_reset_onboarding"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_reset_onboarding"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Reset first-run setup" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_nuke_servers"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_nuke_servers"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Delete all servers and their data" android:textColor="#FF6B6B" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_wipe_jvms"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_wipe_jvms"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Delete JVM runtimes (redownload)" android:textColor="#FF6B6B" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_hw_stats"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_hw_stats"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Show hardware and memory stats" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_strict_mode"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_strict_mode"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="StrictMode thread checks" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_force_crash"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_force_crash"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Force a test crash" android:textColor="#FF6B6B" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_dial_style"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_dial_style"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Server type dial: Top view" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_cluster_dashboard"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_cluster_dashboard"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Open cluster dashboard" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_china_sim"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_china_sim"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Simulate mainland China for 60 s" android:textColor="#FFA45C" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
-                    <Button android:id="@+id/btn_dev_nick_sync"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_dev_nick_sync"
                         android:layout_width="match_parent" android:layout_height="46dp"
                         android:layout_marginBottom="8dp"
                         android:text="Force nickname sync" android:textColor="#F0F0F0" android:textSize="12sp"
                         android:fontFamily="@font/font_koda"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="8dp"
+                        android:backgroundTint="#2E2A26" app:cornerRadius="8dp"
                         android:insetTop="0dp" android:insetBottom="0dp" android:textAllCaps="false"/>
 
                     <!-- ─── Material Design 3 ─── -->
@@ -1152,7 +1180,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -1175,7 +1203,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"

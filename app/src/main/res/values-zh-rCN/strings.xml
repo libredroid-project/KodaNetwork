@@ -1587,4 +1587,20 @@
     <string name="pm_state_online">在线</string>
     <string name="pm_state_offline">离线</string>
     <string name="sheet_countdown">%1$s (%2$d 秒)</string>
+    <string name="legacy_mode_desc">使用旧启动方式，仅在正常启动失败时使用</string>
+    <string name="java_runtime_pick_message">服务器使用哪个 Java 版本？自动会选择适合该版本的那个。</string>
+    <string name="java_runtime_current">当前：%1$s</string>
+    <string name="java_runtime_auto_desc">与服务器版本匹配</string>
+    <string name="account_change_password_title">修改密码</string>
+    <string name="account_old_password">旧密码</string>
+    <string name="account_new_password">新密码</string>
+    <string name="account_confirm_password">再次输入新密码</string>
+    <string name="account_password_updated">密码已更新</string>
+    <string name="account_password_wrong">旧密码不正确。</string>
+    <string name="account_password_short">新密码至少需要 6 个字符。</string>
+    <string name="account_password_mismatch">两次输入的新密码不一致。</string>
+    <string name="account_logout_title">退出登录</string>
+    <string name="account_logout_body">要在这台手机上退出 KodaHosting 吗？这台手机上的服务器会保留。</string>
+    <string name="account_logged_out">已退出登录</string>
+    <string name="account_sheet_title">账户</string>
 </resources>

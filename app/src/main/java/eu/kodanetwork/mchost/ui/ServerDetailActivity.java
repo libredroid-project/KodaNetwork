@@ -3898,103 +3898,111 @@ public class ServerDetailActivity extends AppCompatActivity {
         eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(root);
     }
 
-    private void showJavaRuntimePicker(TextView tvJavaRuntime) {
+    /**
+     * java runtime of this server, in the same sheet as the start-jar picker: same message,
+     * same rows, same apply with the wait, so both launcher choices look the same.
+     */
+    private void showJavaRuntimePicker(final TextView tvJavaRuntime) {
         final float d = getResources().getDisplayMetrics().density;
         final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
                 new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
         setupWindowDecor(sheet.getWindow());
+        sheet.setContentView(R.layout.sheet_praetor_jar);
+        sheet.setCancelable(true);
 
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setBackgroundResource(R.drawable.bg_koda_sheet);
-        content.setPadding((int) (24 * d), (int) (12 * d), (int) (24 * d), (int) (24 * d));
-
-        View handle = new View(this);
-        android.graphics.drawable.GradientDrawable hb = new android.graphics.drawable.GradientDrawable();
-        hb.setColor(0xFF3A3A44);
-        hb.setCornerRadius(2 * d);
-        handle.setBackground(hb);
-        LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams((int) (32 * d), (int) (4 * d));
-        hlp.gravity = Gravity.CENTER_HORIZONTAL;
-        hlp.bottomMargin = (int) (18 * d);
-        content.addView(handle, hlp);
-
-        LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.HORIZONTAL);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        TextView wm = new TextView(this);
-        wm.setText(android.text.Html.fromHtml(
-                "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
-                android.text.Html.FROM_HTML_MODE_LEGACY));
-        wm.setTextSize(11f);
-        android.graphics.Typeface sg = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.space_grotesk_regular);
-        wm.setTypeface(sg != null ? sg : android.graphics.Typeface.DEFAULT);
-        wm.setLetterSpacing(0.18f);
-        header.addView(wm);
-        content.addView(header);
-
-        TextView title = new TextView(this);
-        title.setText(getString(R.string.java_runtime_label));
-        title.setTextColor(0xFFF5F5F7);
-        title.setTextSize(21f);
-        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        title.setPadding(0, (int) (10 * d), 0, 0);
-        content.addView(title);
-
-        final int[] choices = {0, 8, 17, 21, 25};
-        for (int i = 0; i < choices.length; i++) {
-            final int choice = choices[i];
-            String label = choice == 0
-                    ? getString(R.string.java_runtime_auto, eu.kodanetwork.mchost.util.RuntimeManager.resolveAutoVersion(server))
-                    : getString(R.string.java_runtime_manual, choice);
-            boolean selected = server.getJavaRuntime() == choice;
-
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(0, (int) (12 * d), 0, (int) (12 * d));
-            row.setClickable(true);
-            row.setFocusable(true);
-            android.util.TypedValue outValue = new android.util.TypedValue();
-            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-            row.setBackgroundResource(outValue.resourceId);
-
-            TextView tv = new TextView(this);
-            tv.setText(label);
-            tv.setTextSize(15f);
-            tv.setTextColor(selected ? 0xFFFF8C38 : 0xFFF0F0F0);
-            if (selected) tv.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-            tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            row.addView(tv);
-
-            TextView check = new TextView(this);
-            check.setText(selected ? "\u2713" : "");
-            check.setTextColor(0xFFFF8C38);
-            check.setTextSize(15f);
-            row.addView(check);
-
-            row.setOnClickListener(v -> {
-                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
-                server.setJavaRuntime(choice);
-                repo.update(server);
-                updateJavaRuntimeLabel(tvJavaRuntime);
-                sheet.dismiss();
-                applyJavaRuntimeChange();
+        View root = sheet.findViewById(R.id.sheet_jar_root);
+        if (root != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+                int bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+                v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(),
+                        (int) (24 * d) + bottom);
+                return insets;
             });
-
-            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            content.addView(row, rlp);
-            if (i < choices.length - 1) {
-                View sep = new View(this);
-                sep.setBackgroundColor(0xFF2A2226);
-                content.addView(sep, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 1));
-            }
         }
 
-        sheet.setContentView(content);
-        sheet.setCancelable(true);
+        TextView wordmark = sheet.findViewById(R.id.tv_praetor_wordmark);
+        if (wordmark != null) {
+            wordmark.setText(android.text.Html.fromHtml(
+                    "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
+        // no warning triangle, the red apply and the wait carry the risk
+        View triangle = sheet.findViewById(R.id.tv_warning_triangle);
+        if (triangle != null) triangle.setVisibility(View.GONE);
+
+        ((TextView) sheet.findViewById(R.id.tv_jar_title)).setText(getString(R.string.java_runtime_label));
+        ((TextView) sheet.findViewById(R.id.tv_jar_message)).setText(getString(R.string.java_runtime_pick_message));
+        View jarWarning = sheet.findViewById(R.id.tv_jar_warning);
+        if (jarWarning != null) jarWarning.setVisibility(View.GONE);
+
+        final String[] picked = {String.valueOf(server.getJavaRuntime())};
+        String current = server.getJavaRuntime() == 0
+                ? getString(R.string.java_runtime_auto,
+                eu.kodanetwork.mchost.util.RuntimeManager.resolveAutoVersion(server))
+                : getString(R.string.java_runtime_manual, server.getJavaRuntime());
+        ((TextView) sheet.findViewById(R.id.tv_jar_current)).setText(
+                getString(R.string.java_runtime_current, current));
+
+        LinearLayout options = sheet.findViewById(R.id.layout_jar_options);
+        final java.util.List<android.view.View> rows = new java.util.ArrayList<>();
+        final java.util.List<String> values = new java.util.ArrayList<>();
+        final Runnable repaint = () -> {
+            for (int i = 0; i < rows.size(); i++) {
+                boolean selected = values.get(i).equals(picked[0]);
+                rows.get(i).setBackground(jarRowBackground(selected));
+            }
+        };
+
+        if (options != null) {
+            final int[] choices = {0, 8, 17, 21, 25};
+            for (int choice : choices) {
+                String label = choice == 0
+                        ? getString(R.string.java_runtime_auto,
+                        eu.kodanetwork.mchost.util.RuntimeManager.resolveAutoVersion(server))
+                        : getString(R.string.java_runtime_manual, choice);
+                addStartJarRow(options, rows, values, label,
+                        choice == 0 ? getString(R.string.java_runtime_auto_desc) : null,
+                        String.valueOf(choice), picked, repaint);
+            }
+            repaint.run();
+        }
+
+        final MaterialButton apply = sheet.findViewById(R.id.btn_jar_apply);
+        View cancel = sheet.findViewById(R.id.btn_jar_cancel);
+        apply.setEnabled(false);
+        apply.setText(getString(R.string.sd_start_jar_waiting, 5));
+
+        final android.os.CountDownTimer timer = new android.os.CountDownTimer(5000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                apply.setText(getString(R.string.sd_start_jar_waiting, (int) (millisUntilFinished / 1000)));
+            }
+
+            @Override
+            public void onFinish() {
+                apply.setText(R.string.sd_start_jar_apply);
+                apply.setEnabled(true);
+                eu.kodanetwork.mchost.util.KodaSheetMotion.pop(apply);
+            }
+        };
+        timer.start();
+
+        if (cancel != null) {
+            cancel.setOnClickListener(v -> {
+                timer.cancel();
+                sheet.dismiss();
+            });
+        }
+        apply.setOnClickListener(v -> {
+            timer.cancel();
+            server.setJavaRuntime(Integer.parseInt(picked[0]));
+            repo.update(server);
+            updateJavaRuntimeLabel(tvJavaRuntime);
+            sheet.dismiss();
+            applyJavaRuntimeChange();
+        });
+        sheet.setOnDismissListener(x -> timer.cancel());
+
         sheet.show();
         if (sheet.getWindow() != null) {
             sheet.getWindow().setNavigationBarColor(0xFF241C18);
@@ -4002,7 +4010,12 @@ public class ServerDetailActivity extends AppCompatActivity {
                 sheet.getWindow().setNavigationBarContrastEnforced(false);
             }
         }
-        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
+        eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300), 300);
+        android.view.View runtimeRoot = sheet.findViewById(R.id.sheet_jar_root);
+        if (runtimeRoot != null) runtimeRoot.post(() ->
+                eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(runtimeRoot));
     }
 
     private void showJavaRuntimeInfo(int choice) {

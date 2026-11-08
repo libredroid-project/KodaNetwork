@@ -1606,4 +1606,20 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="pm_state_online">Online</string>
     <string name="pm_state_offline">Offline</string>
     <string name="sheet_countdown">%1$s (%2$ds)</string>
+    <string name="legacy_mode_desc">Starts servers with the old launch path, only when the normal start fails</string>
+    <string name="java_runtime_pick_message">Which Java version should the server run with? Auto picks the right one for this version.</string>
+    <string name="java_runtime_current">Current: %1$s</string>
+    <string name="java_runtime_auto_desc">Matches the server version</string>
+    <string name="account_change_password_title">Change password</string>
+    <string name="account_old_password">Old password</string>
+    <string name="account_new_password">New password</string>
+    <string name="account_confirm_password">Confirm new password</string>
+    <string name="account_password_updated">Password updated</string>
+    <string name="account_password_wrong">Old password is incorrect.</string>
+    <string name="account_password_short">New password must be at least 6 characters.</string>
+    <string name="account_password_mismatch">The new passwords do not match.</string>
+    <string name="account_logout_title">Log out</string>
+    <string name="account_logout_body">Log out of KodaHosting on this phone? The servers on this phone stay here.</string>
+    <string name="account_logged_out">Logged out</string>
+    <string name="account_sheet_title">Account</string>
 </resources>

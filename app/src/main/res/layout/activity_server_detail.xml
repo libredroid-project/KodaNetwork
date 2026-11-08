@@ -156,7 +156,7 @@
                         <LinearLayout android:id="@+id/card_players"
                             android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical"
-                            android:background="?attr/selectableItemBackground"
+                            android:background="@drawable/bg_row_press"
                             android:clickable="true" android:focusable="true">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                                 android:text="@string/online" android:textColor="#888899"
@@ -224,7 +224,7 @@
                             android:layout_weight="1"
                             android:textColor="#FFFFFF" android:textSize="18sp"
                             android:fontFamily="@font/font_koda" android:textStyle="bold"
-                            android:background="?attr/selectableItemBackground"
+                            android:background="@drawable/bg_row_press"
                             android:clickable="true" android:focusable="true"
                             android:padding="4dp" android:layout_marginStart="-4dp"
                             android:layout_marginTop="2dp" android:layout_marginBottom="12dp"/>
@@ -250,7 +250,7 @@
                                 android:layout_weight="1"
                                 android:textColor="#FF6B00" android:textSize="15sp"
                                 android:fontFamily="@font/font_koda" android:textStyle="bold"
-                                android:background="?attr/selectableItemBackground"
+                                android:background="@drawable/bg_row_press"
                                 android:clickable="true" android:focusable="true"
                                 android:padding="4dp" android:layout_marginStart="-4dp"
                                 android:layout_marginTop="2dp" android:layout_marginBottom="12dp"/>
@@ -277,7 +277,7 @@
                                 android:layout_weight="1"
                                 android:textColor="#FFFFFF" android:textSize="18sp"
                                 android:fontFamily="@font/font_koda" android:textStyle="bold"
-                                android:background="?attr/selectableItemBackground"
+                                android:background="@drawable/bg_row_press"
                                 android:clickable="true" android:focusable="true"
                                 android:padding="4dp" android:layout_marginStart="-4dp"
                                 android:layout_marginTop="2dp"/>
@@ -298,7 +298,7 @@
                                 android:layout_weight="1"
                                 android:textColor="#FFFFFF" android:textSize="18sp"
                                 android:fontFamily="@font/font_koda" android:textStyle="bold"
-                                android:background="?attr/selectableItemBackground"
+                                android:background="@drawable/bg_row_press"
                                 android:clickable="true" android:focusable="true"
                                 android:padding="4dp" android:layout_marginStart="-4dp"
                                 android:layout_marginTop="2dp"/>
@@ -1417,7 +1417,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -1439,7 +1439,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -1461,7 +1461,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -1483,7 +1483,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -1505,7 +1505,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/tv_hibernate_title"
@@ -1527,7 +1527,7 @@
                         android:orientation="horizontal" android:gravity="center_vertical"
                         android:paddingTop="14dp" android:paddingBottom="14dp"
                         android:clickable="true" android:focusable="true"
-                        android:background="?attr/selectableItemBackground">
+                        android:background="@drawable/bg_row_press">
                         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"

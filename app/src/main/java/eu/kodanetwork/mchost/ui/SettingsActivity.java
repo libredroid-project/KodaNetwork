@@ -897,9 +897,9 @@ public class SettingsActivity extends Activity {
     }
 
     // colors for light/dark
-    private int btnBgNormal()   { return 0x00000000; } // inactive buttons are fully transparent
+    private int btnBgNormal()   { return isLight() ? 0xFFE5E7EB : 0xFF2E2A26; } // dark fill, reads as a button
     private int btnBgActive()   { return 0xFFFF6B00; } // the active button is Tactical Orange
-    private int btnTextNormal() { return isLight() ? 0xFF6B7280 : 0xFF7E7E8F; } // gray when off
+    private int btnTextNormal() { return isLight() ? 0xFF6B7280 : 0xFFE6E2DE; } // light enough to read on the fill
     private int btnTextActive() { return 0xFFFFFFFF; } // active text is white
     private int cardBg()        { return isLight() ? 0xFFFFFFFF : 0xFF16110D; }
     private int pageBg()        { return isLight() ? 0xFFF3F4F6 : 0xFF0A0807; }
@@ -922,18 +922,33 @@ public class SettingsActivity extends Activity {
         );
     }
 
+    /**
+     * paints a toggle button. the fill is a plain rounded drawable instead of MaterialButton's
+     * own shape, because that shape keeps an inset and left a lighter strip above the fill
+     * that read as a torn background.
+     */
     private void tintBtn(Button btn, int bgColor, int textColor) {
         if (btn == null) return;
+        float d = getResources().getDisplayMetrics().density;
+        if (bgColor == 0) {
+            btn.setBackground(null);
+        } else {
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setCornerRadius(10 * d);
+            bg.setColor(bgColor);
+            btn.setBackground(bg);
+        }
         if (btn instanceof com.google.android.material.button.MaterialButton) {
             com.google.android.material.button.MaterialButton mb = (com.google.android.material.button.MaterialButton) btn;
-            mb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(bgColor));
-            mb.setStrokeWidth(0); // no border, the orange fill is enough
-            mb.setStrokeColor(android.content.res.ColorStateList.valueOf(0)); // no leftover stroke
-            mb.setRippleColor(android.content.res.ColorStateList.valueOf(0x22FF6B00)); // soft orange ripple
-            mb.setElevation(bgColor == btnBgActive() ? 4 : 0); // only the active one floats, gives the pill its layer
-            mb.setCornerRadius((int)(10 * getResources().getDisplayMetrics().density));
-        } else {
-            btn.setBackgroundColor(bgColor);
+            // same colour as the drawable, so MaterialButton cannot tint it into something else
+            mb.setBackgroundTintList(bgColor == 0 ? null
+                    : android.content.res.ColorStateList.valueOf(bgColor));
+            mb.setStrokeWidth(0);
+            mb.setInsetTop(0);
+            mb.setInsetBottom(0);
+            mb.setStateListAnimator(null);
+            mb.setElevation(0f);
+            mb.setRippleColor(android.content.res.ColorStateList.valueOf(0x22FF6B00));
         }
         btn.setTextColor(textColor);
         btn.setAllCaps(false);
@@ -1373,148 +1388,145 @@ public class SettingsActivity extends Activity {
                 return;
             }
 
-            android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Translucent_NoTitleBar_Fullscreen);
-            dialog.setContentView(R.layout.dialog_praetor_account);
-            dialog.setCancelable(true);
+            final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                    this, getString(R.string.account_sheet_title), email);
 
-            TextView tvTitle = dialog.findViewById(R.id.tv_dialog_title);
-            if (tvTitle != null) {
-                String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font><font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
-                tvTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
-            }
-
-            TextView tvAccEmail = dialog.findViewById(R.id.tv_account_email);
-            if (tvAccEmail != null) tvAccEmail.setText(email);
-
-            dialog.findViewById(R.id.btn_dialog_change_password).setOnClickListener(btn -> {
-                android.app.Dialog passDialog = new android.app.Dialog(this, android.R.style.Theme_Translucent_NoTitleBar_Fullscreen);
-                passDialog.setContentView(R.layout.dialog_praetor_change_password);
-                passDialog.setCancelable(true);
-
-                TextView tvPassTitle = passDialog.findViewById(R.id.tv_dialog_title);
-                if (tvPassTitle != null) {
-                    String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A</font><font color=\"#555555\">.</font><font color=\"#AAAAAA\">E</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">T</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">O</font><font color=\"#555555\">.</font><font color=\"#FFFFFF\">R.</font>";
-                    tvPassTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
-                }
-
-                android.widget.EditText inputOld = passDialog.findViewById(R.id.et_old_password);
-                android.widget.EditText inputNew = passDialog.findViewById(R.id.et_new_password);
-                android.widget.EditText inputConfirm = passDialog.findViewById(R.id.et_new_password_confirm);
-                
-                passDialog.findViewById(R.id.btn_dialog_update_password).setOnClickListener(updateBtn -> {
-                    String oldPass = inputOld.getText().toString().trim();
-                    String newPass = inputNew.getText().toString().trim();
-                    String confirmPass = inputConfirm.getText().toString().trim();
-                    
-                    if (oldPass.isEmpty()) {
-                        Toast.makeText(this, "Please enter your old password.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (newPass.length() < 6) {
-                        Toast.makeText(this, "New password must be at least 6 characters.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (!newPass.equals(confirmPass)) {
-                        Toast.makeText(this, "New passwords do not match.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    // lock the buttons, the verify takes a moment
-                    passDialog.findViewById(R.id.btn_dialog_update_password).setEnabled(false);
-                    passDialog.findViewById(R.id.btn_dialog_cancel).setEnabled(false);
-                    ((android.widget.Button) passDialog.findViewById(R.id.btn_dialog_update_password)).setText("Verifying...");
-
-                    // the old password is checked by signing in with it
-                    eu.kodanetwork.mchost.network.supabase.SupabaseAuth.signInWithEmail(this, email, oldPass, new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
-                        @Override
-                        public void onSuccess() {
-                            runOnUiThread(() -> {
-                                ((android.widget.Button) passDialog.findViewById(R.id.btn_dialog_update_password)).setText("Updating...");
-                            });
-                            // sign-in worked, so the old password was right
-                            eu.kodanetwork.mchost.network.supabase.SupabaseAuth.updatePassword(SettingsActivity.this, newPass, new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
-                                @Override public void onSuccess() {
-                                    runOnUiThread(() -> {
-                                        Toast.makeText(SettingsActivity.this, "Password updated successfully!", Toast.LENGTH_LONG).show();
-                                        passDialog.dismiss();
-                                    });
-                                }
-                                @Override public void onError(String msg) {
-                                    runOnUiThread(() -> {
-                                        Toast.makeText(SettingsActivity.this, "Error updating password: " + msg, Toast.LENGTH_LONG).show();
-                                        passDialog.findViewById(R.id.btn_dialog_update_password).setEnabled(true);
-                                        passDialog.findViewById(R.id.btn_dialog_cancel).setEnabled(true);
-                                        ((android.widget.Button) passDialog.findViewById(R.id.btn_dialog_update_password)).setText("Update Password");
-                                    });
-                                }
-                            });
-                        }
-                        
-                        @Override
-                        public void onError(String msg) {
-                            runOnUiThread(() -> {
-                                Toast.makeText(SettingsActivity.this, "Old password is incorrect.", Toast.LENGTH_LONG).show();
-                                passDialog.findViewById(R.id.btn_dialog_update_password).setEnabled(true);
-                                passDialog.findViewById(R.id.btn_dialog_cancel).setEnabled(true);
-                                ((android.widget.Button) passDialog.findViewById(R.id.btn_dialog_update_password)).setText("Update Password");
-                            });
-                        }
-                    });
-                });
-                
-                passDialog.findViewById(R.id.btn_dialog_cancel).setOnClickListener(cancelBtn -> {
-                    passDialog.dismiss();
-                });
-                
-                passDialog.show();
-                dialog.dismiss();
+            sheet.row(getString(R.string.transfer_settings_send), null, false, x -> {
+                sheet.sheet.dismiss();
+                openTransferPicker();
             });
-
-            dialog.findViewById(R.id.btn_dialog_delete_account).setOnClickListener(btn -> {
+            sheet.divider();
+            sheet.row(getString(R.string.transfer_settings_receive), null, false, x -> {
+                sheet.sheet.dismiss();
+                startActivity(new android.content.Intent(this,
+                        eu.kodanetwork.mchost.transfer.TransferReceiverActivity.class));
+            });
+            sheet.divider();
+            sheet.row(getString(R.string.praetor_action_change_password), null, false, x -> {
+                sheet.sheet.dismiss();
+                showChangePasswordSheet(email);
+            });
+            sheet.divider();
+            sheet.row(getString(R.string.praetor_action_delete_account), null, true, x -> {
+                sheet.sheet.dismiss();
                 Intent intent = new Intent(this, eu.kodanetwork.mchost.ui.PraetorConfirmActivity.class);
                 intent.putExtra("action", "delete_account");
                 startActivity(intent);
-                dialog.dismiss();
             });
-
-            dialog.findViewById(R.id.btn_dialog_logout).setOnClickListener(btn -> {
-                // Signing out only by accident was a common complaint, so ask once more
-                new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                        .setTitle(getString(R.string.logout_confirm_title))
-                        .setMessage(getString(R.string.logout_confirm_text))
-                        .setPositiveButton(getString(R.string.logout_confirm_yes), (confirm, which) -> {
-                            eu.kodanetwork.mchost.network.supabase.SupabaseAuth.logout(this);
-                            Toast.makeText(this, "Erfolgreich abgemeldet", Toast.LENGTH_SHORT).show();
-                            dialog.dismiss();
-                            recreate();
-                        })
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show();
+            sheet.divider();
+            sheet.row(getString(R.string.praetor_action_logout), null, true, x -> {
+                sheet.sheet.dismiss();
+                confirmLogout();
             });
-
-            dialog.findViewById(R.id.btn_dialog_cancel).setOnClickListener(btn -> dialog.dismiss());
-
-            // device switch: push servers to a new phone or pull them in here
-            android.view.View btnSend = dialog.findViewById(R.id.btn_dialog_transfer_send);
-            if (btnSend != null) {
-                btnSend.setOnClickListener(btn -> {
-                    dialog.dismiss();
-                    openTransferPicker();
-                });
-            }
-            android.view.View btnReceive = dialog.findViewById(R.id.btn_dialog_transfer_receive);
-            if (btnReceive != null) {
-                btnReceive.setOnClickListener(btn -> {
-                    dialog.dismiss();
-                    startActivity(new android.content.Intent(this,
-                            eu.kodanetwork.mchost.transfer.TransferReceiverActivity.class));
-                });
-            }
-            dialog.show();
+            sheet.secondary(getString(R.string.praetor_action_cancel), x -> sheet.sheet.dismiss());
+            sheet.show();
         });
+
 
         setupSupport();
       }
+
+    /** change password of the app account, three fields in the shared sheet chrome. */
+    private void showChangePasswordSheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.account_change_password_title));
+
+        final int pwType = android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD;
+
+        final android.widget.EditText oldPass = sheet.field("",
+                getString(R.string.account_old_password), false);
+        oldPass.setInputType(pwType);
+        sheet.add(oldPass, 44);
+
+        final android.widget.EditText newPass = sheet.field("",
+                getString(R.string.account_new_password), false);
+        newPass.setInputType(pwType);
+        sheet.add(newPass, 44);
+
+        final android.widget.EditText confirmPass = sheet.field("",
+                getString(R.string.account_confirm_password), false);
+        confirmPass.setInputType(pwType);
+        sheet.add(confirmPass, 44);
+
+        final com.google.android.material.button.MaterialButton save = sheet.primary(
+                getString(R.string.praetor_action_save), null);
+        save.setOnClickListener(x -> {
+            String oldP = oldPass.getText().toString().trim();
+            String newP = newPass.getText().toString().trim();
+            String confirmP = confirmPass.getText().toString().trim();
+            if (oldP.isEmpty()) {
+                Toast.makeText(this, getString(R.string.account_password_wrong), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (newP.length() < 6) {
+                Toast.makeText(this, getString(R.string.account_password_short), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!newP.equals(confirmP)) {
+                Toast.makeText(this, getString(R.string.account_password_mismatch), Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            save.setEnabled(false);
+            // the old password is checked by signing in with it
+            eu.kodanetwork.mchost.network.supabase.SupabaseAuth.signInWithEmail(this, email, oldP,
+                    new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
+                        @Override
+                        public void onSuccess() {
+                            eu.kodanetwork.mchost.network.supabase.SupabaseAuth.updatePassword(
+                                    SettingsActivity.this, newP,
+                                    new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
+                                        @Override
+                                        public void onSuccess() {
+                                            runOnUiThread(() -> {
+                                                Toast.makeText(SettingsActivity.this,
+                                                        getString(R.string.account_password_updated),
+                                                        Toast.LENGTH_LONG).show();
+                                                sheet.sheet.dismiss();
+                                            });
+                                        }
+
+                                        @Override
+                                        public void onError(String msg) {
+                                            runOnUiThread(() -> {
+                                                save.setEnabled(true);
+                                                Toast.makeText(SettingsActivity.this, msg,
+                                                        Toast.LENGTH_LONG).show();
+                                            });
+                                        }
+                                    });
+                        }
+
+                        @Override
+                        public void onError(String msg) {
+                            runOnUiThread(() -> {
+                                save.setEnabled(true);
+                                Toast.makeText(SettingsActivity.this,
+                                        getString(R.string.account_password_wrong),
+                                        Toast.LENGTH_LONG).show();
+                            });
+                        }
+                    });
+        });
+
+        sheet.secondary(getString(R.string.praetor_action_cancel), x -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    /** logging out asks once, the servers on this phone are not touched. */
+    private void confirmLogout() {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.account_logout_title), getString(R.string.account_logout_body));
+        sheet.primary(getString(R.string.praetor_action_logout), x -> {
+            sheet.sheet.dismiss();
+            eu.kodanetwork.mchost.network.supabase.SupabaseAuth.logout(this);
+            Toast.makeText(this, getString(R.string.account_logged_out), Toast.LENGTH_SHORT).show();
+            recreate();
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), x -> sheet.sheet.dismiss());
+        sheet.show();
+    }
 
     /**
      * server picker for the outgoing device transfer: one server goes straight
@@ -1738,25 +1750,28 @@ public class SettingsActivity extends Activity {
     }
 
     private void setupBetaJni() {
-        Button btn = findViewById(R.id.btn_beta_jni);
-        if (btn == null) return;
+        final android.view.View row = findViewById(R.id.row_legacy_mode);
+        final com.google.android.material.switchmaterial.SwitchMaterial sw =
+                findViewById(R.id.switch_legacy_mode);
+        if (row == null || sw == null) return;
+
         boolean legacyOn = !prefs.getBoolean("beta_jni_embedded", true); // Default is true (Standard JNI)
-        updateLegacyModeBtn(btn, legacyOn);
-        
-        btn.setOnClickListener(v -> {
+        sw.setChecked(legacyOn);
+
+        row.setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
             boolean currentLegacy = !prefs.getBoolean("beta_jni_embedded", true);
             if (!currentLegacy) {
-                showLegacyModeSheet(btn);
+                showLegacyModeSheet(sw);
             } else {
                 prefs.edit().putBoolean("beta_jni_embedded", true).apply();
-                updateLegacyModeBtn(btn, false);
+                sw.setChecked(false);
             }
         });
     }
 
     /** legacy mode warning as a praetor sheet instead of the old full screen stages. */
-    private void showLegacyModeSheet(final Button trigger) {
+    private void showLegacyModeSheet(final com.google.android.material.switchmaterial.SwitchMaterial trigger) {
         final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
                 new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
         final float d = getResources().getDisplayMetrics().density;
@@ -1808,7 +1823,7 @@ public class SettingsActivity extends Activity {
         enable.setOnClickListener(v -> {
             timer.cancel();
             prefs.edit().putBoolean("beta_jni_embedded", false).apply();
-            updateLegacyModeBtn(trigger, true);
+            if (trigger != null) trigger.setChecked(true);
             Toast.makeText(this, getString(R.string.legacy_sheet_enabled), Toast.LENGTH_SHORT).show();
             sheet.dismiss();
         });
@@ -2070,20 +2085,14 @@ public class SettingsActivity extends Activity {
         }).start();
     }
 
-    private void updateLegacyModeBtn(Button btn, boolean legacyOn) {
-        btn.setAllCaps(false);
-        btn.setText(legacyOn ? "Legacy Mode: ON" : "Legacy Mode: OFF");
-        tintBtn(btn, legacyOn ? 0xFFFF4444 : btnBgNormal(),
-                     legacyOn ? 0xFFFFFFFF : btnTextNormal());
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 9002 && resultCode == RESULT_OK) {
             prefs.edit().putBoolean("beta_jni_embedded", false).apply();
-            Button btn = findViewById(R.id.btn_beta_jni);
-            if (btn != null) updateLegacyModeBtn(btn, true);
+            com.google.android.material.switchmaterial.SwitchMaterial sw =
+                    findViewById(R.id.switch_legacy_mode);
+            if (sw != null) sw.setChecked(true);
         }
     }
 
@@ -2417,9 +2426,10 @@ public class SettingsActivity extends Activity {
             tintBtn((Button)findViewById(R.id.btn_2fa_set_password), btnBg, textCol);
             tintBtn((Button)findViewById(R.id.btn_network_alarm), btnBg, textCol);
             tintBtn((Button)findViewById(R.id.btn_dev_termux), btnBg, textCol);
-            if (findViewById(R.id.btn_beta_jni) != null) {
-                if (!prefs.getBoolean("beta_jni_embedded", true)) tintBtn((Button)findViewById(R.id.btn_beta_jni), btnBg, textCol);
-            }
+            com.google.android.material.switchmaterial.SwitchMaterial legacySw =
+                    findViewById(R.id.switch_legacy_mode);
+            if (legacySw != null) legacySw.setTrackTintList(
+                    android.content.res.ColorStateList.valueOf(0x448A8A9A));
 
             // the danger zone rows bring their own colors now
 

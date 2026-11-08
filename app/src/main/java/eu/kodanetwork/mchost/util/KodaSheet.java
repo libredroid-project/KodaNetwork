@@ -141,9 +141,7 @@ public final class KodaSheet {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, (int) (14 * d), 0, (int) (14 * d));
-        android.util.TypedValue out = new android.util.TypedValue();
-        activity.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, out, true);
-        row.setBackgroundResource(out.resourceId);
+        row.setBackgroundResource(R.drawable.bg_row_press);
         row.setClickable(true);
         row.setFocusable(true);
 
@@ -352,6 +350,9 @@ public final class KodaSheet {
         MaterialButton b = KodaButtons.dark(activity, text);
         b.setBackground(androidx.core.content.res.ResourcesCompat.getDrawable(
                 activity.getResources(), R.drawable.bg_koda_sheet_button, activity.getTheme()));
+        // MaterialButton tints its background with the theme accent, that turned the
+        // grey outline orange, so the tint list has to go
+        b.setBackgroundTintList(null);
         b.setTextColor(0xFFF0F0F0);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (int) (56 * d));

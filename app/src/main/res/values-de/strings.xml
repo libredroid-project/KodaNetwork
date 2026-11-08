@@ -1617,4 +1617,20 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="pm_state_online">Online</string>
     <string name="pm_state_offline">Offline</string>
     <string name="sheet_countdown">%1$s (%2$ds)</string>
+    <string name="legacy_mode_desc">Startet Server über den alten Weg, nur wenn der normale Start scheitert</string>
+    <string name="java_runtime_pick_message">Mit welcher Java-Version soll der Server laufen? Auto wählt die richtige für diese Version.</string>
+    <string name="java_runtime_current">Aktuell: %1$s</string>
+    <string name="java_runtime_auto_desc">Passt zur Server-Version</string>
+    <string name="account_change_password_title">Passwort ändern</string>
+    <string name="account_old_password">Altes Passwort</string>
+    <string name="account_new_password">Neues Passwort</string>
+    <string name="account_confirm_password">Neues Passwort wiederholen</string>
+    <string name="account_password_updated">Passwort geändert</string>
+    <string name="account_password_wrong">Das alte Passwort ist falsch.</string>
+    <string name="account_password_short">Das neue Passwort braucht mindestens 6 Zeichen.</string>
+    <string name="account_password_mismatch">Die neuen Passwörter stimmen nicht überein.</string>
+    <string name="account_logout_title">Abmelden</string>
+    <string name="account_logout_body">Von KodaHosting auf diesem Handy abmelden? Die Server auf diesem Handy bleiben hier.</string>
+    <string name="account_logged_out">Abgemeldet</string>
+    <string name="account_sheet_title">Konto</string>
 </resources>
