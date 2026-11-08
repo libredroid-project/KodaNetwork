@@ -1178,64 +1178,139 @@
                         android:textSize="12sp" android:fontFamily="@font/font_koda"
                         android:layout_marginTop="4dp" android:layout_marginBottom="10dp"/>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_kill"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="@string/hard_reset" android:fontFamily="@font/font_koda"
-                        android:textSize="13sp" android:textAllCaps="false"
-                        android:textColor="#FF8A80"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"
-                        android:layout_marginBottom="8dp"/>
+<View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226" android:layout_marginTop="12dp"/>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_dl_jar"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Redownload server.jar" android:fontFamily="@font/font_koda"
-                        android:textSize="13sp" android:textAllCaps="false"
-                        android:textColor="#F0F0F0"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"
-                        android:layout_marginBottom="8dp"/>
+                    <LinearLayout android:id="@+id/btn_kill"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/hard_reset" android:textColor="#FF8A80"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_hard_reset_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_export_zip"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Export as ZIP" android:fontFamily="@font/font_koda"
-                        android:textSize="13sp" android:textAllCaps="false"
-                        android:textColor="#F0F0F0"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"
-                        android:layout_marginBottom="8dp"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226"/>
+                    <LinearLayout android:id="@+id/btn_dl_jar"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_redownload" android:textColor="#F0F0F0"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_redownload_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_transfer_device"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="@string/transfer_action_server_detail" android:fontFamily="@font/font_koda"
-                        android:textSize="13sp" android:textAllCaps="false"
-                        android:textColor="#F0F0F0"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"
-                        android:layout_marginBottom="8dp"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226"/>
+                    <LinearLayout android:id="@+id/btn_export_zip"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_export" android:textColor="#F0F0F0"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_export_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_hibernate"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="@string/hibernate" android:fontFamily="@font/font_koda"
-                        android:textSize="13sp" android:textAllCaps="false"
-                        android:textColor="#F0F0F0"
-                        app:backgroundTint="#2E2A26" app:cornerRadius="10dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"
-                        android:layout_marginBottom="8dp"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226"/>
+                    <LinearLayout android:id="@+id/btn_transfer_device"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/transfer_action_server_detail" android:textColor="#F0F0F0"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_transfer_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_del_server"
-                        android:layout_width="match_parent" android:layout_height="48dp"
-                        android:text="Delete server" android:fontFamily="@font/font_koda"
-                        android:textSize="13sp" android:textAllCaps="false"
-                        android:textColor="#FFFFFF"
-                        app:backgroundTint="#FF5449" app:cornerRadius="10dp"
-                        android:insetTop="0dp" android:insetBottom="0dp"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226"/>
+                    <LinearLayout android:id="@+id/btn_hibernate"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/tv_hibernate_title"
+                                android:text="@string/hibernate" android:textColor="#F0F0F0"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_hibernate_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#2A2226"/>
+                    <LinearLayout android:id="@+id/btn_del_server"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingTop="14dp" android:paddingBottom="14dp"
+                        android:clickable="true" android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_delete_server" android:textColor="#FF8A80"
+                                android:textSize="14sp" android:fontFamily="@font/font_koda"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="@string/danger_delete_server_desc" android:textColor="#8A8A9A"
+                                android:textSize="12sp" android:fontFamily="@font/font_koda"
+                                android:layout_marginTop="2dp"/>
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="›" android:textColor="#FF8A80" android:textSize="18sp"/>
+                    </LinearLayout>
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

@@ -22,44 +22,82 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#0A0807"
-    android:padding="16dp">
+    android:background="@drawable/bg_koda_sheet"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="24dp">
+
+    <!-- same header as the player list and the other sheets -->
+    <View
+        android:layout_width="32dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="18dp"
+        android:background="#3A3A44" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_pm_manage_wordmark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P.R.A.E.T.O.R."
+            android:textSize="11sp"
+            android:fontFamily="@font/space_grotesk_regular"
+            app:fontFamily="@font/space_grotesk_regular"
+            android:letterSpacing="0.18" />
+    </LinearLayout>
+
+    <!-- player head and name, left aligned like every other sheet title -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="10dp">
+
+        <ImageView
+            android:id="@+id/iv_pm_player_head"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginEnd="10dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_pm_player_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Player Name"
+            android:textColor="#F5F5F7"
+            android:textSize="21sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_pm_player_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="16dp"
+        android:textColor="#8A8A9A"
+        android:textSize="13sp"
+        android:fontFamily="@font/font_koda" />
 
     <!-- everything sits in a NestedScrollView, otherwise the bottom gets cut off -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-        
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
-            <!-- player head and name -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_gravity="center_horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="16dp">
-
-                <ImageView
-                    android:id="@+id/iv_pm_player_head"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginEnd="8dp"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/tv_pm_player_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Player Name"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:fontFamily="@font/font_koda" />
-            </LinearLayout>
 
             <!-- no-internet hint, stays hidden while the player data loads -->
             <TextView
@@ -69,7 +107,6 @@
                 android:text="@string/pm_offline_hint"
                 android:textColor="#FF6B00"
                 android:textSize="13sp"
-                android:gravity="center"
                 android:layout_marginBottom="12dp"
                 android:visibility="gone"/>
 
@@ -79,50 +116,46 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:weightSum="4"
-                android:layout_marginBottom="12dp">
-                
-                <Button
+                android:layout_marginBottom="8dp">
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_heal"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Neutral"
                     android:text="@string/pm_heal"
                     android:textSize="12sp"
-                    android:layout_marginEnd="4dp"
-                    android:backgroundTint="#00C853"
-                    android:textColor="#FFFFFF"/>
-                    
-                <Button
+                    android:layout_marginEnd="4dp"/>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_feed"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Neutral"
                     android:text="@string/pm_feed"
                     android:textSize="12sp"
-                    android:layout_marginEnd="4dp"
-                    android:backgroundTint="#64DD17"
-                    android:textColor="#FFFFFF"/>
-                    
-                <Button
+                    android:layout_marginEnd="4dp"/>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_starve"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Neutral"
                     android:text="@string/pm_starve"
                     android:textSize="12sp"
-                    android:layout_marginEnd="4dp"
-                    android:backgroundTint="#FFAB00"
-                    android:textColor="#FFFFFF"/>
-                    
-                <Button
+                    android:layout_marginEnd="4dp"/>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_kill"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Danger"
                     android:text="@string/pm_kill"
-                    android:textSize="12sp"
-                    android:backgroundTint="#D50000"
-                    android:textColor="#FFFFFF"/>
+                    android:textSize="12sp"/>
             </LinearLayout>
 
             <!-- actions row 2: op, kick, ban, wipe -->
@@ -131,50 +164,46 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:weightSum="4"
-                android:layout_marginBottom="12dp">
-                
-                <Button
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_op"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Neutral"
                     android:text="OP"
                     android:textSize="12sp"
-                    android:layout_marginEnd="4dp"
-                    android:backgroundTint="#00B0FF"
-                    android:textColor="#FFFFFF"/>
-                    
-                <Button
+                    android:layout_marginEnd="4dp"/>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_kick"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Neutral"
                     android:text="Kick"
                     android:textSize="12sp"
-                    android:layout_marginEnd="4dp"
-                    android:backgroundTint="#FF9100"
-                    android:textColor="#FFFFFF"/>
-                    
-                <Button
+                    android:layout_marginEnd="4dp"/>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_ban"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Danger"
                     android:text="Ban"
                     android:textSize="12sp"
-                    android:layout_marginEnd="4dp"
-                    android:backgroundTint="#AA00FF"
-                    android:textColor="#FFFFFF"/>
-                    
-                <Button
+                    android:layout_marginEnd="4dp"/>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_pm_delete"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    style="@style/KodaButton.Danger"
                     android:text="@string/pm_wipe"
-                    android:textSize="12sp"
-                    android:backgroundTint="#B71C1C"
-                    android:textColor="#FFFFFF"/>
+                    android:textSize="12sp"/>
             </LinearLayout>
 
             <!-- whitelist toggle -->
@@ -192,13 +221,15 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/pm_whitelisted"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"/>
+                    android:textColor="#F0F0F0"
+                    android:textSize="14sp"/>
                     
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switch_pm_whitelist"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    app:thumbTint="#FF6B00"
+                    app:trackTint="#663A2E27"/>
             </LinearLayout>
 
             <!-- stats header, the small lottie spinner runs while the stats load -->
@@ -214,8 +245,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/pm_stats"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
+                    android:textColor="#F0F0F0"
+                    android:textSize="14sp"
                     android:fontFamily="@font/font_koda"/>
 
                 <com.airbnb.lottie.LottieAnimationView
@@ -268,8 +299,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/pm_inventory"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
+                    android:textColor="#F0F0F0"
+                    android:textSize="14sp"
                     android:fontFamily="@font/font_koda"/>
 
                 <com.airbnb.lottie.LottieAnimationView

@@ -213,8 +213,8 @@
     <string name="praetor_message_dns_conflict">Ur join address got snatched by another serv. Pls enter a new one to keep goin\'.</string>
     <string name="change_server_name">Change Serv Name</string>
     <string name="select_version">Pick Version</string>
-    <string name="version_picker_title">SELECT VERSION</string>
-    <string name="version_picker_confirm">CONFIRM</string>
+    <string name="version_picker_title">Select version</string>
+    <string name="version_picker_confirm">Confirm</string>
     <string name="version_desc_latest">Latest version, recommended :)</string>
     <string name="version_desc_stable">Stable, tons of plugins available</string>
     <string name="version_desc_1_21_4">Latest release, full feature set :)</string>

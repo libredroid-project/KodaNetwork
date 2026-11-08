@@ -252,8 +252,8 @@
     <string name="praetor_message_dns_conflict">Your join address is already taken by another server. Please enter a new one to continue.</string>
     <string name="change_server_name">Change Server Name</string>
     <string name="select_version">Select Version</string>
-    <string name="version_picker_title">SELECT VERSION</string>
-    <string name="version_picker_confirm">CONFIRM</string>
+    <string name="version_picker_title">Select version</string>
+    <string name="version_picker_confirm">Confirm</string>
     <string name="version_desc_latest">Latest version, recommended</string>
     <string name="version_desc_stable">Stable, many plugins available</string>
     <string name="version_desc_1_21_4">Latest release, full feature set</string>
@@ -1223,7 +1223,7 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="import_screen_detected">IN THIS FOLDER</string>
     <string name="import_screen_type_label">SOFTWARE</string>
     <string name="import_screen_type_hint">Which software runs this server?</string>
-    <string name="import_screen_version_label">MINECRAFT VERSION</string>
+    <string name="import_screen_version_label">Minecraft version</string>
     <string name="import_screen_version_hint">Tap to pick from the list</string>
     <string name="import_screen_file_label">SERVER FILE</string>
     <string name="import_screen_file_hint">The file that starts the server, it beats the automatic pick</string>
@@ -1569,4 +1569,41 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="region_blocked_title">Not available in mainland China</string>
     <string name="region_blocked_body">KodaHosting is not available in mainland China.\n\nInternet services need a licence (ICP filing) to operate there. Running a game server, tunnelling it abroad and offering it to other players without the required permits is not allowed, and neither is offering this app.\n\nKodaHosting has none of these permits, so the app must not be used from mainland China. This is not a ban of your account or device.</string>
     <string name="region_blocked_close">Close</string>
+
+    <!-- network rules sheet -->
+    <string name="net_rules_title">Network rules</string>
+    <string name="net_rules_empty">No rules yet. Usage is still measured.</string>
+    <string name="net_rules_add">Add rule</string>
+    <string name="net_rules_tile_label">Where the usage tile goes</string>
+    <string name="net_rules_tile_top">Top</string>
+    <string name="net_rules_new_title">New rule</string>
+    <string name="net_rules_edit_title">Edit rule</string>
+    <string name="net_rule_data_label">How much data?</string>
+    <string name="net_rule_period_label">Per period</string>
+    <string name="net_rule_reached_label">When reached</string>
+    <string name="net_rule_custom">Custom</string>
+    <string name="net_rule_limit_gb">Limit in GB</string>
+    <string name="net_rule_days">Days</string>
+    <string name="net_rule_period_day">Day</string>
+    <string name="net_rule_period_week">Week</string>
+    <string name="net_rule_period_month">Month</string>
+    <string name="net_rule_mobile">Mobile data</string>
+    <string name="net_rule_wifi">Wi-Fi</string>
+    <string name="net_rule_warn">Warn only</string>
+    <string name="net_rule_warn_desc">Shows a warning</string>
+    <string name="net_rule_stop">Stop server</string>
+    <string name="net_rule_stop_desc">Stops the server</string>
+    <string name="net_rule_block">Block start</string>
+    <string name="net_rule_block_desc">No start until the period is over</string>
+    <string name="net_rule_save">Save</string>
+    <string name="net_rule_invalid">Invalid input</string>
+    <string name="net_rule_preview">Preview: %1$s / %2$d days</string>
+    <string name="net_rule_edit">Edit</string>
+    <string name="net_rule_pause">Pause</string>
+    <string name="net_rule_resume">Resume</string>
+    <string name="net_rule_delete">Delete</string>
+    <string name="net_rules_summary">%1$s / %2$d days \u00b7 %3$s</string>
+    <string name="pm_state_online">Online</string>
+    <string name="pm_state_offline">Offline</string>
+    <string name="sheet_countdown">%1$s (%2$ds)</string>
 </resources>

@@ -78,6 +78,16 @@
         <item name="cornerRadius">12dp</item>
     </style>
 
+    <!-- quiet button on a card or sheet: dark fill, no colour, so the orange stays special -->
+    <style name="KodaButton.Neutral" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">#2A2226</item>
+        <item name="android:textColor">#F0F0F0</item>
+        <item name="android:fontFamily">@font/font_koda</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textSize">13sp</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+
     <!-- red button, only for the destructive stuff -->
     <style name="KodaButton.Danger" parent="Widget.MaterialComponents.Button">
         <item name="backgroundTint">#1A0000</item>

@@ -270,8 +270,8 @@
     <string name="praetor_message_dns_conflict">Deine Join-Adresse ist bereits vergeben. Bitte gib eine neue an, um fortzufahren.</string>
     <string name="change_server_name">Server Name ändern</string>
     <string name="select_version">Version auswählen</string>
-    <string name="version_picker_title">VERSION WÄHLEN</string>
-    <string name="version_picker_confirm">ÜBERNEHMEN</string>
+    <string name="version_picker_title">Version wählen</string>
+    <string name="version_picker_confirm">Übernehmen</string>
     <string name="version_desc_latest">Neueste Version, empfohlen</string>
     <string name="version_desc_stable">Stabil, viele Plugins verfügbar</string>
     <string name="version_desc_1_21_4">Neuestes Release, alle Features</string>
@@ -1234,7 +1234,7 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="import_screen_detected">IN DIESEM ORDNER</string>
     <string name="import_screen_type_label">SOFTWARE</string>
     <string name="import_screen_type_hint">Welche Software läuft auf diesem Server?</string>
-    <string name="import_screen_version_label">MINECRAFT-VERSION</string>
+    <string name="import_screen_version_label">Minecraft-Version</string>
     <string name="import_screen_version_hint">Tippen und aus der Liste wählen</string>
     <string name="import_screen_file_label">SERVERDATEI</string>
     <string name="import_screen_file_hint">Die Datei, die den Server startet, sie schlägt die automatische Wahl</string>
@@ -1580,4 +1580,41 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="region_blocked_title">In Festlandchina nicht verfügbar</string>
     <string name="region_blocked_body">KodaHosting ist in Festlandchina nicht verfügbar.\n\nInternetdienste brauchen dort eine Zulassung (ICP-Registrierung). Auch das Hosten eines Spielservers, das Weiterleiten über einen Tunnel ins Ausland und das Anbieten für andere Spieler ist ohne die nötigen Genehmigungen nicht erlaubt, und diese App darf dort nicht angeboten werden.\n\nKodaHosting hat keine dieser Genehmigungen, deshalb darf die App von Festlandchina aus nicht benutzt werden. Das ist keine Sperre deines Kontos oder Geräts.</string>
     <string name="region_blocked_close">Schließen</string>
+
+    <!-- network rules sheet -->
+    <string name="net_rules_title">Netzwerk-Regeln</string>
+    <string name="net_rules_empty">Noch keine Regeln. Verbrauch wird trotzdem gemessen.</string>
+    <string name="net_rules_add">Regel hinzufügen</string>
+    <string name="net_rules_tile_label">Wo die Verbrauchskachel steht</string>
+    <string name="net_rules_tile_top">Oben</string>
+    <string name="net_rules_new_title">Neue Regel</string>
+    <string name="net_rules_edit_title">Regel bearbeiten</string>
+    <string name="net_rule_data_label">Wie viel Datenvolumen?</string>
+    <string name="net_rule_period_label">Pro Zeitraum</string>
+    <string name="net_rule_reached_label">Wenn erreicht</string>
+    <string name="net_rule_custom">Eigenes</string>
+    <string name="net_rule_limit_gb">Limit in GB</string>
+    <string name="net_rule_days">Tage</string>
+    <string name="net_rule_period_day">Tag</string>
+    <string name="net_rule_period_week">Woche</string>
+    <string name="net_rule_period_month">Monat</string>
+    <string name="net_rule_mobile">Mobile Daten</string>
+    <string name="net_rule_wifi">WLAN</string>
+    <string name="net_rule_warn">Nur warnen</string>
+    <string name="net_rule_warn_desc">Zeigt eine Warnung</string>
+    <string name="net_rule_stop">Server stoppen</string>
+    <string name="net_rule_stop_desc">Stoppt den Server</string>
+    <string name="net_rule_block">Start blockieren</string>
+    <string name="net_rule_block_desc">Kein Start bis der Zeitraum vorbei ist</string>
+    <string name="net_rule_save">Speichern</string>
+    <string name="net_rule_invalid">Ungültige Eingabe</string>
+    <string name="net_rule_preview">Vorschau: %1$s / %2$d Tage</string>
+    <string name="net_rule_edit">Bearbeiten</string>
+    <string name="net_rule_pause">Pausieren</string>
+    <string name="net_rule_resume">Fortsetzen</string>
+    <string name="net_rule_delete">Löschen</string>
+    <string name="net_rules_summary">%1$s / %2$d Tage \u00b7 %3$s</string>
+    <string name="pm_state_online">Online</string>
+    <string name="pm_state_offline">Offline</string>
+    <string name="sheet_countdown">%1$s (%2$ds)</string>
 </resources>

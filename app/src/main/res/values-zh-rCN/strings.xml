@@ -1550,4 +1550,41 @@
     <string name="region_blocked_title">中国大陆不可用</string>
     <string name="region_blocked_body">KodaHosting 在中国大陆不可用。\n\n在中国大陆运营互联网服务需要许可（ICP 备案）。未经许可托管游戏服务器、通过隧道转发到境外并提供给其他玩家同样不被允许，本应用也不能在当地提供。\n\nKodaHosting 没有这些许可，因此不得在中国大陆使用本应用。这不是对您的账号或设备的封禁。</string>
     <string name="region_blocked_close">关闭</string>
+
+    <!-- network rules sheet -->
+    <string name="net_rules_title">网络规则</string>
+    <string name="net_rules_empty">还没有规则。流量仍会被统计。</string>
+    <string name="net_rules_add">添加规则</string>
+    <string name="net_rules_tile_label">流量卡片的位置</string>
+    <string name="net_rules_tile_top">顶部</string>
+    <string name="net_rules_new_title">新规则</string>
+    <string name="net_rules_edit_title">编辑规则</string>
+    <string name="net_rule_data_label">多少流量？</string>
+    <string name="net_rule_period_label">每个周期</string>
+    <string name="net_rule_reached_label">达到时</string>
+    <string name="net_rule_custom">自定义</string>
+    <string name="net_rule_limit_gb">上限（GB）</string>
+    <string name="net_rule_days">天数</string>
+    <string name="net_rule_period_day">天</string>
+    <string name="net_rule_period_week">周</string>
+    <string name="net_rule_period_month">月</string>
+    <string name="net_rule_mobile">移动数据</string>
+    <string name="net_rule_wifi">Wi-Fi</string>
+    <string name="net_rule_warn">仅警告</string>
+    <string name="net_rule_warn_desc">显示警告</string>
+    <string name="net_rule_stop">停止服务器</string>
+    <string name="net_rule_stop_desc">停止服务器</string>
+    <string name="net_rule_block">阻止启动</string>
+    <string name="net_rule_block_desc">周期结束前无法启动</string>
+    <string name="net_rule_save">保存</string>
+    <string name="net_rule_invalid">输入无效</string>
+    <string name="net_rule_preview">预览：%1$s / %2$d 天</string>
+    <string name="net_rule_edit">编辑</string>
+    <string name="net_rule_pause">暂停</string>
+    <string name="net_rule_resume">继续</string>
+    <string name="net_rule_delete">删除</string>
+    <string name="net_rules_summary">%1$s / %2$d 天 \u00b7 %3$s</string>
+    <string name="pm_state_online">在线</string>
+    <string name="pm_state_offline">离线</string>
+    <string name="sheet_countdown">%1$s (%2$d 秒)</string>
 </resources>

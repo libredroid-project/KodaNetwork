@@ -272,8 +272,8 @@
     <string name="praetor_message_dns_conflict">Twój adres dołączania jest już zajęty przez inny serwer. Podaj nowy, aby kontynuować.</string>
     <string name="change_server_name">Zmień nazwę serwera</string>
     <string name="select_version">Wybierz wersję</string>
-    <string name="version_picker_title">WYBIERZ WERSJĘ</string>
-    <string name="version_picker_confirm">ZATWIERDŹ</string>
+    <string name="version_picker_title">Wybierz wersję</string>
+    <string name="version_picker_confirm">Zatwierdź</string>
     <string name="version_desc_latest">Najnowsza wersja, polecana</string>
     <string name="version_desc_stable">Stabilna, dostępnych wiele wtyczek</string>
     <string name="version_desc_1_21_4">Najnowsze wydanie, pełny zestaw funkcji</string>
@@ -1173,7 +1173,7 @@
     <string name="import_screen_detected">W TYM FOLDERZE</string>
     <string name="import_screen_type_label">OPROGRAMOWANIE</string>
     <string name="import_screen_type_hint">Jaki software działa na tym serwerze?</string>
-    <string name="import_screen_version_label">WERSJA MINECRAFT</string>
+    <string name="import_screen_version_label">Wersja Minecraft</string>
     <string name="import_screen_version_hint">Dotknij i wybierz z listy</string>
     <string name="import_screen_file_label">PLIK SERWERA</string>
     <string name="import_screen_file_hint">Plik, który uruchamia serwer, ma pierwszeństwo przed wyborem automatycznym</string>
@@ -1519,4 +1519,41 @@
     <string name="region_blocked_title">Niedostępne w Chinach kontynentalnych</string>
     <string name="region_blocked_body">KodaHosting nie jest dostępny w Chinach kontynentalnych.\n\nUsługi internetowe wymagają tam licencji (rejestracja ICP). Hostowanie serwera gry, tunelowanie go za granicę i udostępnianie innym graczom bez wymaganych pozwoleń jest niedozwolone, podobnie jak oferowanie tej aplikacji.\n\nKodaHosting nie ma takich pozwoleń, dlatego aplikacji nie wolno używać z Chin kontynentalnych. To nie jest blokada Twojego konta ani urządzenia.</string>
     <string name="region_blocked_close">Zamknij</string>
+
+    <!-- network rules sheet -->
+    <string name="net_rules_title">Reguły sieci</string>
+    <string name="net_rules_empty">Brak reguł. Zużycie i tak jest mierzone.</string>
+    <string name="net_rules_add">Dodaj regułę</string>
+    <string name="net_rules_tile_label">Gdzie pokazać kafelek zużycia</string>
+    <string name="net_rules_tile_top">Góra</string>
+    <string name="net_rules_new_title">Nowa reguła</string>
+    <string name="net_rules_edit_title">Edytuj regułę</string>
+    <string name="net_rule_data_label">Ile danych?</string>
+    <string name="net_rule_period_label">Na okres</string>
+    <string name="net_rule_reached_label">Po osiągnięciu</string>
+    <string name="net_rule_custom">Własne</string>
+    <string name="net_rule_limit_gb">Limit w GB</string>
+    <string name="net_rule_days">Dni</string>
+    <string name="net_rule_period_day">Dzień</string>
+    <string name="net_rule_period_week">Tydzień</string>
+    <string name="net_rule_period_month">Miesiąc</string>
+    <string name="net_rule_mobile">Dane mobilne</string>
+    <string name="net_rule_wifi">Wi-Fi</string>
+    <string name="net_rule_warn">Tylko ostrzeż</string>
+    <string name="net_rule_warn_desc">Pokazuje ostrzeżenie</string>
+    <string name="net_rule_stop">Zatrzymaj serwer</string>
+    <string name="net_rule_stop_desc">Zatrzymuje serwer</string>
+    <string name="net_rule_block">Blokuj start</string>
+    <string name="net_rule_block_desc">Brak startu do końca okresu</string>
+    <string name="net_rule_save">Zapisz</string>
+    <string name="net_rule_invalid">Nieprawidłowe dane</string>
+    <string name="net_rule_preview">Podgląd: %1$s / %2$d dni</string>
+    <string name="net_rule_edit">Edytuj</string>
+    <string name="net_rule_pause">Wstrzymaj</string>
+    <string name="net_rule_resume">Wznów</string>
+    <string name="net_rule_delete">Usuń</string>
+    <string name="net_rules_summary">%1$s / %2$d dni \u00b7 %3$s</string>
+    <string name="pm_state_online">Online</string>
+    <string name="pm_state_offline">Offline</string>
+    <string name="sheet_countdown">%1$s (%2$ds)</string>
 </resources>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<!--
+  the version scroller as a sheet: same chrome as the player list and the trash sheet,
+  so the wheel looks like it belongs to the app and not like a separate picker.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_koda_sheet"
+    android:paddingBottom="24dp">
+
+    <View
+        android:layout_width="32dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="18dp"
+        android:background="#3A3A44" />
+
+    <TextView
+        android:id="@+id/tv_vw_wordmark"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:text="P.R.A.E.T.O.R."
+        android:textSize="11sp"
+        android:fontFamily="@font/space_grotesk_regular"
+        app:fontFamily="@font/space_grotesk_regular"
+        android:letterSpacing="0.18" />
+
+    <TextView
+        android:id="@+id/tv_vw_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="10dp"
+        android:text="@string/version_picker_title"
+        android:textColor="#F5F5F7"
+        android:textSize="21sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/font_koda"
+        app:fontFamily="@font/font_koda" />
+
+    <FrameLayout
+        android:id="@+id/vw_wheel_frame"
+        android:layout_width="match_parent"
+        android:layout_height="208dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="10dp"
+        android:clipChildren="false"
+        android:clipToPadding="false" />
+
+    <TextView
+        android:id="@+id/tv_vw_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="8dp"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.2"
+        android:textColor="#8A8A9A"
+        android:textSize="12.5sp"
+        android:fontFamily="@font/font_koda"
+        app:fontFamily="@font/font_koda" />
+
+</LinearLayout>

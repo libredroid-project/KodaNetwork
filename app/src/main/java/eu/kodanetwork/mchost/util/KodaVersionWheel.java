@@ -41,9 +41,9 @@ import eu.kodanetwork.mchost.R;
 /**
  * the version scroller from the server setup, as a reusable component.
  *
- * a snap wheel with a drag handle, a title, the centred version in koda orange, a
- * description line below and a confirm button. the setup wizard and the version switch
- * on an existing server both use this, so both look and feel the same.
+ * a snap wheel inside the normal P.R.A.E.T.O.R. sheet chrome: handle, wordmark, title, the
+ * centred version in koda orange, a description line and a confirm button. the setup wizard
+ * and the version switch on an existing server both use this, so both look and feel the same.
  */
 public final class KodaVersionWheel {
 
@@ -62,51 +62,39 @@ public final class KodaVersionWheel {
 
         final float density = activity.getResources().getDisplayMetrics().density;
         final int itemHeight = (int) (56 * density);
+        // must match the fixed height of vw_wheel_frame in sheet_version_wheel.xml
         final int wheelHeight = (int) (208 * density);
 
         final BottomSheetDialog sheet = new BottomSheetDialog(activity, R.style.KodaBottomSheetDialog);
-        LinearLayout container = new LinearLayout(activity);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(0, 0, 0, 48); // px on purpose, same as the picker in the setup
+        View content = activity.getLayoutInflater().inflate(R.layout.sheet_version_wheel, null);
+        final FrameLayout wheelFrame = content.findViewById(R.id.vw_wheel_frame);
 
-        // the little drag handle on the rounded top of the sheet
-        View handle = new View(activity);
-        android.graphics.drawable.GradientDrawable handleBg = new android.graphics.drawable.GradientDrawable();
-        handleBg.setColor(0xFF3A3A48);
-        handleBg.setCornerRadius(2 * density);
-        handle.setBackground(handleBg);
-        LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams(
-                (int) (32 * density), (int) (4 * density));
-        handleLp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
-        handleLp.topMargin = (int) (14 * density);
-        container.addView(handle, handleLp);
+        // wordmark in the shared colours, the title stays plain
+        TextView wordmark = content.findViewById(R.id.tv_vw_wordmark);
+        String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font>"
+                + "<font color=\"#FFFFFF\">O.R.</font>";
+        wordmark.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
 
-        TextView tvTitle = new TextView(activity);
+        TextView tvTitle = content.findViewById(R.id.tv_vw_title);
         tvTitle.setText(title != null ? title : activity.getString(R.string.version_picker_title));
-        tvTitle.setTextColor(0xFFFF6B00);
-        tvTitle.setTextSize(13);
-        tvTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        tvTitle.setLetterSpacing(0.12f);
-        tvTitle.setGravity(android.view.Gravity.CENTER);
-        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        titleLp.topMargin = (int) (18 * density);
-        container.addView(tvTitle, titleLp);
+
+        int initialIdx = 0;
+        if (initialVersion != null) {
+            int idx = versions.indexOf(initialVersion);
+            if (idx >= 0) initialIdx = idx;
+        }
+        final int startIdx = initialIdx;
 
         // the wheel itself: a snapping list with fades at both edges
-        FrameLayout wheelFrame = new FrameLayout(activity);
-        wheelFrame.setClipChildren(false);
-        LinearLayout.LayoutParams wfLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, wheelHeight);
-        wfLp.topMargin = (int) (16 * density);
-        container.addView(wheelFrame, wfLp);
-
         final RecyclerView recyclerView = new RecyclerView(activity);
         final LinearLayoutManager layoutManager = new LinearLayoutManager(activity);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        recyclerView.setItemAnimator(null);
         recyclerView.setClipChildren(false);
+        recyclerView.setClipToPadding(false);
         new LinearSnapHelper().attachToRecyclerView(recyclerView);
+
         recyclerView.addItemDecoration(new RecyclerView.ItemDecoration() {
             @Override
             public void getItemOffsets(android.graphics.Rect outRect, View view, RecyclerView parent,
@@ -118,13 +106,6 @@ public final class KodaVersionWheel {
                 if (pos == versions.size() - 1) outRect.bottom = spacer;
             }
         });
-
-        int initialIdx = 0;
-        if (initialVersion != null) {
-            int idx = versions.indexOf(initialVersion);
-            if (idx >= 0) initialIdx = idx;
-        }
-        final int startIdx = initialIdx;
 
         WheelAdapter adapter = new WheelAdapter(versions, itemHeight, recyclerView::smoothScrollToPosition);
         recyclerView.setAdapter(adapter);
@@ -142,15 +123,8 @@ public final class KodaVersionWheel {
         wheelFrame.addView(fadeBottom, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, (int) (32 * density), android.view.Gravity.BOTTOM));
 
-        final TextView tvDesc = new TextView(activity);
-        tvDesc.setTextColor(0x99F0F0F0);
-        tvDesc.setTextSize(12);
-        tvDesc.setGravity(android.view.Gravity.CENTER);
+        final TextView tvDesc = content.findViewById(R.id.tv_vw_desc);
         tvDesc.setText(describe(descriptions, versions.get(initialIdx), activity));
-        LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        descLp.topMargin = (int) (4 * density);
-        container.addView(tvDesc, descLp);
 
         final int[] currentPos = {initialIdx};
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -180,21 +154,21 @@ public final class KodaVersionWheel {
             applyWheelTransform(recyclerView, itemHeight);
         });
 
-        sheet.setContentView(container);
+        sheet.setContentView(content);
 
+        LinearLayout root = (LinearLayout) content;
         MaterialButton btnConfirm = KodaButtons.primary(activity,
                 activity.getString(R.string.version_picker_confirm));
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (int) (56 * density));
-        // side margins in px, exactly like the picker in the setup (dp made the button
-        // much narrower than the one in the create-server flow)
-        btnLp.setMargins(48, (int) (20 * density), 48, (int) (24 * density));
+        int side = (int) (24 * density);
+        btnLp.setMargins(side, (int) (20 * density), side, 0);
         btnConfirm.setOnClickListener(v -> {
             String picked = versions.get(currentPos[0]);
             sheet.dismiss();
             if (callback != null) callback.picked(picked);
         });
-        container.addView(btnConfirm, btnLp);
+        root.addView(btnConfirm, btnLp);
 
         sheet.setOnShowListener(d -> {
             BottomSheetDialog bsd = (BottomSheetDialog) d;
@@ -205,7 +179,8 @@ public final class KodaVersionWheel {
         });
         SheetFix.apply(sheet);
         sheet.show();
-        HapticUtil.applyHapticsToView(container, activity);
+        HapticUtil.applyHapticsToView(content, activity);
+        KodaSheetMotion.reveal(content);
     }
 
     private static String describe(Map<String, String> descriptions, String version, Activity activity) {

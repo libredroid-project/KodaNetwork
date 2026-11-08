@@ -970,9 +970,22 @@ public class ServerDetailActivity extends AppCompatActivity {
         android.view.Window w = sheet.getWindow();
         setupWindowDecor(w);
         
-        // header
+        // header: wordmark, the name as the title and the state one size smaller
+        TextView pmWordmark = view.findViewById(R.id.tv_pm_manage_wordmark);
+        if (pmWordmark != null) {
+            pmWordmark.setText(android.text.Html.fromHtml(
+                    "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>",
+                    android.text.Html.FROM_HTML_MODE_LEGACY));
+        }
         TextView tvName = view.findViewById(R.id.tv_pm_player_name);
-        tvName.setText(getString(isOnline ? R.string.pm_header_online : R.string.pm_header_offline, player));
+        tvName.setText(player);
+        TextView tvState = view.findViewById(R.id.tv_pm_player_state);
+        if (tvState != null) {
+            tvState.setText(getString(isOnline ? R.string.pm_state_online : R.string.pm_state_offline));
+            tvState.setTextColor(isOnline ? 0xFF00E676 : 0xFF8A8A9A);
+        }
+        android.widget.ImageView head = view.findViewById(R.id.iv_pm_player_head);
+        if (head != null) loadPlayerHeadImage(player, head, !isOnline);
         
         // buttons
         android.widget.Button btnHeal = view.findViewById(R.id.btn_pm_heal);
@@ -1024,33 +1037,19 @@ public class ServerDetailActivity extends AppCompatActivity {
                 android.widget.Toast.makeText(this, getString(R.string.pm_pardoned_toast, player), android.widget.Toast.LENGTH_SHORT).show();
                 bannedState[0] = false;
                 btnBan.setText(getString(R.string.pm_ban));
-                btnBan.setBackgroundColor(0xFFAA00FF);
+                btnBan.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF1A0000));
+                btnBan.setTextColor(0xFFFF3344);
                 return;
             }
-            android.app.Dialog banDialog = new android.app.Dialog(this);
-            banDialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-            banDialog.setContentView(R.layout.dialog_praetor_delete);
-        eu.kodanetwork.mchost.util.DialogLandFix.apply(banDialog);
-            if (banDialog.getWindow() != null) {
-                banDialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-                banDialog.getWindow().setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT);
-            }
-            TextView banDialogTitle = banDialog.findViewById(R.id.tv_dialog_title);
-            if (banDialogTitle != null) {
-                String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font><font color=\"#FFFFFF\">O.R.</font>";
-                banDialogTitle.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
-            }
-            ((TextView) banDialog.findViewById(R.id.tv_delete_title)).setText(getString(R.string.pm_ban_title));
-            ((TextView) banDialog.findViewById(R.id.tv_delete_body)).setText(getString(R.string.pm_ban_desc, player));
-            android.widget.Button btnBanConfirm = banDialog.findViewById(R.id.btn_dialog_delete);
-            btnBanConfirm.setText(getString(R.string.pm_ban_confirm));
-            btnBanConfirm.setOnClickListener(x -> {
+            final eu.kodanetwork.mchost.util.KodaSheet banSheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                    this, getString(R.string.pm_ban_title), getString(R.string.pm_ban_desc, player));
+            banSheet.primaryWithCountdown(getString(R.string.pm_ban_confirm), 5, x -> {
+                banSheet.sheet.dismiss();
                 sendCmd("ban " + player + " Banned via KodaNetwork");
                 android.widget.Toast.makeText(this, getString(R.string.pm_banned_toast, player), android.widget.Toast.LENGTH_SHORT).show();
-                banDialog.dismiss();
             });
-            banDialog.findViewById(R.id.btn_dialog_cancel).setOnClickListener(x -> banDialog.dismiss());
-            banDialog.show();
+            banSheet.secondary(getString(android.R.string.cancel), x -> banSheet.sheet.dismiss());
+            banSheet.show();
         });
 
         // op state comes from ops.json, so the button reflects reality and also
@@ -1065,27 +1064,27 @@ public class ServerDetailActivity extends AppCompatActivity {
         });
 
         btnDelete.setOnClickListener(v -> {
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle("Wipe Player Data")
-                .setMessage("Are you sure? This will kick the player and delete their inventory and stats.")
-                .setPositiveButton("Wipe", (d, w2) -> {
-                    sendCmd("kick " + player + " Your data is being wiped.");
-                    new Thread(() -> {
-                        try { Thread.sleep(1000); } catch(Exception ignored){}
-                        String uuid = eu.kodanetwork.mchost.util.PlayerStatsParser.getUuidFromName(new java.io.File(server.getServerDir()), player);
-                        if (uuid != null) {
-                            java.io.File serverDir = new java.io.File(server.getServerDir());
-                            eu.kodanetwork.mchost.util.PlayerStatsParser.getPlayerDataFile(serverDir, uuid).delete();
-                            eu.kodanetwork.mchost.util.PlayerStatsParser.getStatsFile(serverDir, uuid).delete();
-                            runOnUiThread(() -> {
-                                android.widget.Toast.makeText(this, "Wiped " + player, android.widget.Toast.LENGTH_SHORT).show();
-                                sheet.dismiss();
-                            });
-                        }
-                    }).start();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+            final eu.kodanetwork.mchost.util.KodaSheet wipeSheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                    this, getString(R.string.pm_wipe_title), getString(R.string.pm_wipe_desc));
+            wipeSheet.primary(getString(R.string.pm_wipe), x -> {
+                wipeSheet.sheet.dismiss();
+                sendCmd("kick " + player + " Your data is being wiped.");
+                new Thread(() -> {
+                    try { Thread.sleep(1000); } catch (Exception ignored) {}
+                    String uuid = eu.kodanetwork.mchost.util.PlayerStatsParser.getUuidFromName(new java.io.File(server.getServerDir()), player);
+                    if (uuid != null) {
+                        java.io.File serverDir = new java.io.File(server.getServerDir());
+                        eu.kodanetwork.mchost.util.PlayerStatsParser.getPlayerDataFile(serverDir, uuid).delete();
+                        eu.kodanetwork.mchost.util.PlayerStatsParser.getStatsFile(serverDir, uuid).delete();
+                        runOnUiThread(() -> {
+                            android.widget.Toast.makeText(this, "Wiped " + player, android.widget.Toast.LENGTH_SHORT).show();
+                            sheet.dismiss();
+                        });
+                    }
+                }).start();
+            });
+            wipeSheet.secondary(getString(android.R.string.cancel), x -> wipeSheet.sheet.dismiss());
+            wipeSheet.show();
         });
         
         // stats & live updates: the loop keeps running (and retrying) while the
@@ -1187,7 +1186,9 @@ public class ServerDetailActivity extends AppCompatActivity {
                     if (nowBanned != bannedState[0]) {
                         bannedState[0] = nowBanned;
                         btnBan.setText(getString(nowBanned ? R.string.pm_pardon : R.string.pm_ban));
-                        btnBan.setBackgroundColor(nowBanned ? 0xFF00A854 : 0xFFAA00FF);
+                        btnBan.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                                nowBanned ? 0xFF2A2226 : 0xFF1A0000));
+                        btnBan.setTextColor(nowBanned ? 0xFFF0F0F0 : 0xFFFF3344);
                     }
 
                     // inventory: rebuild the grid whenever it is incomplete, a
@@ -5544,70 +5545,33 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void showCreateInviteSheet() {
-        float d = getResources().getDisplayMetrics().density;
-        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
-                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        setupWindowDecor(sheet.getWindow());
-
-        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
-        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
-        root.setOrientation(android.widget.LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1D1714);
-        int pad = (int) (20 * d);
-        root.setPadding(pad, pad, pad, pad);
-        scroller.addView(root);
-
-        android.widget.TextView title = new android.widget.TextView(this);
-        title.setText(getString(R.string.share_sheet_title));
-        title.setTextColor(0xFFF0F0F0);
-        title.setTextSize(18);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(title);
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.share_sheet_title));
 
         final int[] hours = {168};
-        android.widget.TextView validityLabel = new android.widget.TextView(this);
-        validityLabel.setText(getString(R.string.share_validity_label));
-        validityLabel.setTextColor(0xFF8A8A9A);
-        validityLabel.setTextSize(11);
-        validityLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
-        root.addView(validityLabel);
+        sheet.label(getString(R.string.share_validity_label));
         android.widget.FrameLayout validityPill = makePillSwitch(
                 new String[]{getString(R.string.share_hours_24), getString(R.string.share_days_7),
                         getString(R.string.share_days_30), getString(R.string.share_unlimited)},
                 1, sel -> hours[0] = new int[]{24, 168, 720, 0}[sel]);
-        root.addView(validityPill);
+        sheet.add(validityPill, 44);
 
         final int[] maxUses = {0};
-        android.widget.TextView usesLabel = new android.widget.TextView(this);
-        usesLabel.setText(getString(R.string.share_uses_label));
-        usesLabel.setTextColor(0xFF8A8A9A);
-        usesLabel.setTextSize(11);
-        usesLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
-        root.addView(usesLabel);
+        sheet.label(getString(R.string.share_uses_label));
         android.widget.FrameLayout usesPill = makePillSwitch(
                 new String[]{getString(R.string.share_unlimited), getString(R.string.share_once)},
                 0, sel -> maxUses[0] = sel == 0 ? 0 : 1);
-        root.addView(usesPill);
+        sheet.add(usesPill, 44);
 
         final boolean[] withControl = {false};
-        android.widget.TextView permLabel = new android.widget.TextView(this);
-        permLabel.setText(getString(R.string.share_perm_label));
-        permLabel.setTextColor(0xFF8A8A9A);
-        permLabel.setTextSize(11);
-        permLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
-        root.addView(permLabel);
+        sheet.label(getString(R.string.share_perm_label));
         android.widget.FrameLayout permPill = makePillSwitch(
                 new String[]{getString(R.string.share_perm_join), getString(R.string.share_perm_control)},
                 0, sel -> withControl[0] = sel == 1);
-        root.addView(permPill);
+        sheet.add(permPill, 44);
 
-        final com.google.android.material.button.MaterialButton create =
-                eu.kodanetwork.mchost.util.KodaButtons.primary(this, getString(R.string.share_create_button));
-        android.widget.LinearLayout.LayoutParams createLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (48 * d));
-        createLp.topMargin = (int) (22 * d);
-        root.addView(create, createLp);
-
+        final com.google.android.material.button.MaterialButton create = sheet.primary(
+                getString(R.string.share_create_button), null);
         create.setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 50);
             create.setEnabled(false);
@@ -5620,7 +5584,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                     final String url = INVITE_BASE_URL + token;
                     runOnUiThread(() -> {
                         copyToClipboard(getString(R.string.share_copied_label), url);
-                        sheet.dismiss();
+                        sheet.sheet.dismiss();
                         loadInvites();
                     });
                 } catch (Exception e) {
@@ -5633,7 +5597,6 @@ public class ServerDetailActivity extends AppCompatActivity {
             }, "KodaInviteCreate").start();
         });
 
-        sheet.setContentView(scroller);
         sheet.show();
     }
 
@@ -5814,14 +5777,16 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
-    /** simple yes/no dialog, the app has no shared helper for this. */
+    /** simple yes/no question in the shared sheet chrome. */
     private void confirmDialog(String title, String message, Runnable onConfirm) {
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> onConfirm.run())
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, title, message);
+        sheet.primary(getString(android.R.string.ok), v -> {
+            sheet.sheet.dismiss();
+            onConfirm.run();
+        });
+        sheet.secondary(getString(android.R.string.cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
     }
 
     private String scheduleTypeLabel(String type) {
@@ -5833,51 +5798,19 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     /**
-     * create or edit one job, in a bottom sheet with the same pill switches as the network rules.
+     * create or edit one job, in the shared sheet chrome with pill switches for type and time.
      */
     private void showScheduleEditor(final eu.kodanetwork.mchost.util.ScheduleStore.Job existing) {
         final eu.kodanetwork.mchost.util.ScheduleStore.Job job = existing != null
                 ? existing : new eu.kodanetwork.mchost.util.ScheduleStore.Job();
-        float d = getResources().getDisplayMetrics().density;
-        boolean de = getResources().getConfiguration().getLocales().get(0).getLanguage().equals("de");
 
-        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
-                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        setupWindowDecor(sheet.getWindow());
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, existing != null ? getString(R.string.schedule_edit) : getString(R.string.schedule_new));
 
-        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
-        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
-        root.setOrientation(android.widget.LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1D1714);
-        int pad = (int) (20 * d);
-        root.setPadding(pad, pad, pad, pad);
-        scroller.addView(root);
-
-        android.widget.TextView title = new android.widget.TextView(this);
-        title.setText(existing != null ? getString(R.string.schedule_edit) : getString(R.string.schedule_new));
-        title.setTextColor(0xFFF0F0F0);
-        title.setTextSize(18);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(title);
-
-        android.widget.TextView whatLabel = new android.widget.TextView(this);
-        whatLabel.setText(getString(R.string.schedule_what));
-        whatLabel.setTextColor(0xFF8A8A9A);
-        whatLabel.setTextSize(11);
-        whatLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
-        root.addView(whatLabel);
+        sheet.label(getString(R.string.schedule_what));
 
         // the value field (announcement text or command)
-        final android.widget.EditText etValue = new android.widget.EditText(this);
-        etValue.setText(job.value);
-        etValue.setTextColor(0xFFFFFFFF);
-        etValue.setHintTextColor(0xFF666677);
-        etValue.setTextSize(13);
-        etValue.setBackgroundColor(0xFF1B1613);
-        etValue.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
-        final android.widget.LinearLayout.LayoutParams valueLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
-        valueLp.topMargin = (int) (12 * d);
+        final android.widget.EditText etValue = sheet.field(job.value, getString(R.string.schedule_announce_hint), false);
 
         final String[] chosenType = {job.type};
         final String[] typeKeys = {"restart", "stop", "save", "announce", "command"};
@@ -5895,40 +5828,18 @@ public class ServerDetailActivity extends AppCompatActivity {
             etValue.setHint("command".equals(chosenType[0])
                     ? R.string.schedule_command_hint : R.string.schedule_announce_hint);
         });
-        root.addView(typePill, new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
+        sheet.add(typePill, 44);
 
         boolean needsValue = "announce".equals(job.type) || "command".equals(job.type);
         etValue.setVisibility(needsValue ? android.view.View.VISIBLE : android.view.View.GONE);
         etValue.setHint("command".equals(job.type) ? R.string.schedule_command_hint : R.string.schedule_announce_hint);
-        root.addView(etValue, valueLp);
+        sheet.add(etValue, 44);
 
-        // when does it run
-        android.widget.TextView whenLabel = new android.widget.TextView(this);
-        whenLabel.setText(getString(R.string.schedule_when));
-        whenLabel.setTextColor(0xFF8A8A9A);
-        whenLabel.setTextSize(11);
-        whenLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
-        root.addView(whenLabel);
+        sheet.label(getString(R.string.schedule_when));
 
-        final android.widget.EditText etInterval = new android.widget.EditText(this);
-        etInterval.setText(String.valueOf(job.intervalMinutes));
-        etInterval.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        etInterval.setTextColor(0xFFFFFFFF);
-        etInterval.setTextSize(13);
-        etInterval.setBackgroundColor(0xFF1B1613);
-        etInterval.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
-
-        final android.widget.EditText etTime = new android.widget.EditText(this);
-        etTime.setText(job.time);
-        etTime.setInputType(android.text.InputType.TYPE_CLASS_DATETIME);
-        etTime.setTextColor(0xFFFFFFFF);
-        etTime.setTextSize(13);
-        etTime.setBackgroundColor(0xFF1B1613);
-        etTime.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
-
-        final android.widget.LinearLayout.LayoutParams fieldLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
+        final android.widget.EditText etInterval = sheet.field(
+                String.valueOf(job.intervalMinutes), getString(R.string.schedule_interval), true);
+        final android.widget.EditText etTime = sheet.field(job.time, "HH:MM", false);
 
         android.widget.FrameLayout modePill = makePillSwitch(
                 new String[]{getString(R.string.schedule_mode_interval), getString(R.string.schedule_mode_daily)},
@@ -5938,48 +5849,18 @@ public class ServerDetailActivity extends AppCompatActivity {
                     etTime.setVisibility(daily ? android.view.View.VISIBLE : android.view.View.GONE);
                     etInterval.setVisibility(daily ? android.view.View.GONE : android.view.View.VISIBLE);
                 });
-        root.addView(modePill, new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
+        sheet.add(modePill, 44);
 
         boolean daily = "daily".equals(job.mode);
         etTime.setVisibility(daily ? android.view.View.VISIBLE : android.view.View.GONE);
         etInterval.setVisibility(daily ? android.view.View.GONE : android.view.View.VISIBLE);
-        android.widget.LinearLayout.LayoutParams fieldMargin = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
-        fieldMargin.topMargin = (int) (10 * d);
-        root.addView(etInterval, fieldMargin);
-        android.widget.LinearLayout.LayoutParams timeMargin = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d));
-        timeMargin.topMargin = (int) (10 * d);
-        root.addView(etTime, timeMargin);
+        sheet.add(etInterval, 44);
+        sheet.add(etTime, 44);
 
-        // only when the server is empty
-        android.widget.LinearLayout emptyRow = new android.widget.LinearLayout(this);
-        emptyRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        emptyRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        emptyRow.setPadding(0, (int) (14 * d), 0, 0);
-        android.widget.TextView emptyLabel = new android.widget.TextView(this);
-        emptyLabel.setText(getString(R.string.schedule_only_empty));
-        emptyLabel.setTextColor(0xFFE8E2D6);
-        emptyLabel.setTextSize(13);
-        emptyLabel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
-                0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         com.google.android.material.switchmaterial.SwitchMaterial emptySwitch =
-                new com.google.android.material.switchmaterial.SwitchMaterial(this);
-        emptySwitch.setChecked(job.onlyWhenEmpty);
-        emptySwitch.setUseMaterialThemeColors(false);
-        emptySwitch.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFFFF6B00));
-        emptySwitch.setTrackTintList(android.content.res.ColorStateList.valueOf(0xFF3A2E27));
-        emptyRow.addView(emptyLabel);
-        emptyRow.addView(emptySwitch);
-        root.addView(emptyRow);
+                sheet.toggle(getString(R.string.schedule_only_empty), job.onlyWhenEmpty);
 
-        com.google.android.material.button.MaterialButton saveButton =
-                eu.kodanetwork.mchost.util.KodaButtons.primary(this, getString(R.string.schedule_save));
-        android.widget.LinearLayout.LayoutParams saveLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (52 * d));
-        saveLp.topMargin = (int) (20 * d);
-        saveButton.setOnClickListener(v -> {
+        sheet.primary(getString(R.string.schedule_save), v -> {
             job.type = chosenType[0];
             job.value = etValue.getText().toString().trim();
             String time = etTime.getText().toString().trim();
@@ -5991,30 +5872,21 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
             job.onlyWhenEmpty = emptySwitch.isChecked();
             eu.kodanetwork.mchost.util.ScheduleStore.upsert(this, server.getId(), job, server);
-            sheet.dismiss();
+            sheet.sheet.dismiss();
             renderScheduleList();
             toast(getString(R.string.schedule_saved));
         });
-        root.addView(saveButton, saveLp);
 
         if (existing != null) {
-            com.google.android.material.button.MaterialButton deleteButton =
-                    eu.kodanetwork.mchost.util.KodaButtons.make(this, getString(R.string.extras_backup_delete),
-                            0xFF2A1010, 0xFFFF8A80);
-            android.widget.LinearLayout.LayoutParams deleteLp = new android.widget.LinearLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (48 * d));
-            deleteLp.topMargin = (int) (10 * d);
-            deleteButton.setOnClickListener(v -> {
-                sheet.dismiss();
+            sheet.row(getString(R.string.schedule_delete_title), null, true, v -> {
+                sheet.sheet.dismiss();
                 confirmDialog(getString(R.string.schedule_delete_title), getString(R.string.schedule_delete_text), () -> {
                     eu.kodanetwork.mchost.util.ScheduleStore.remove(this, server.getId(), job.id, server);
                     renderScheduleList();
                 });
             });
-            root.addView(deleteButton, deleteLp);
         }
 
-        sheet.setContentView(scroller);
         sheet.show();
     }
 
@@ -6469,37 +6341,15 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     /**
-     * backups as a bottom sheet in the same style as the network rules: pill switches for the
-     * schedule and the number of copies, one row per stored backup.
+     * backups in the shared sheet chrome: the schedule and the number of copies as pill
+     * switches, one row per stored backup and the orange action at the bottom.
      */
     private void showBackupsDialog() {
         float d = getResources().getDisplayMetrics().density;
-        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
-                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        setupWindowDecor(sheet.getWindow());
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.extras_backups));
 
-        android.widget.ScrollView scroller = new android.widget.ScrollView(this);
-        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
-        root.setOrientation(android.widget.LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1D1714);
-        int pad = (int) (20 * d);
-        root.setPadding(pad, pad, pad, pad);
-        scroller.addView(root);
-
-        android.widget.TextView title = new android.widget.TextView(this);
-        title.setText(getString(R.string.extras_backups));
-        title.setTextColor(0xFFF0F0F0);
-        title.setTextSize(18);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(title);
-
-        android.widget.TextView whenLabel = new android.widget.TextView(this);
-        whenLabel.setText(getString(R.string.extras_backup_mode));
-        whenLabel.setTextColor(0xFF8A8A9A);
-        whenLabel.setTextSize(11);
-        whenLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
-        root.addView(whenLabel);
-
+        sheet.label(getString(R.string.extras_backup_mode));
         String[] modeValues = {"off", "daily", "on_stop"};
         int modeIndex = "daily".equals(server.getBackupMode()) ? 1 : ("on_stop".equals(server.getBackupMode()) ? 2 : 0);
         android.widget.FrameLayout modePill = makePillSwitch(
@@ -6509,16 +6359,9 @@ public class ServerDetailActivity extends AppCompatActivity {
                     eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
                     updateBackupsSummary();
                 });
-        root.addView(modePill, new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
+        sheet.add(modePill, 44);
 
-        android.widget.TextView keepLabel = new android.widget.TextView(this);
-        keepLabel.setText(getString(R.string.extras_backup_keep_label));
-        keepLabel.setTextColor(0xFF8A8A9A);
-        keepLabel.setTextSize(11);
-        keepLabel.setPadding(0, (int) (18 * d), 0, (int) (6 * d));
-        root.addView(keepLabel);
-
+        sheet.label(getString(R.string.extras_backup_keep_label));
         int[] keepValues = {1, 2, 3, 5, 10};
         int keepIndex = 2;
         for (int i = 0; i < keepValues.length; i++) {
@@ -6530,63 +6373,54 @@ public class ServerDetailActivity extends AppCompatActivity {
                     eu.kodanetwork.mchost.model.ServerRepo.get(this).update(server);
                     updateBackupsSummary();
                 });
-        root.addView(keepPill, new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * d)));
+        sheet.add(keepPill, 44);
 
         java.util.List<eu.kodanetwork.mchost.util.BackupManager.Backup> backups =
                 eu.kodanetwork.mchost.util.BackupManager.list(this, server.getId());
-        android.widget.TextView countLabel = new android.widget.TextView(this);
-        countLabel.setText(backups.isEmpty()
+        sheet.label(backups.isEmpty()
                 ? getString(R.string.extras_backup_none)
                 : getString(R.string.extras_backup_list, backups.size(),
                 eu.kodanetwork.mchost.util.BackupManager.humanSize(
                         eu.kodanetwork.mchost.util.BackupManager.totalSize(this, server.getId()))));
-        countLabel.setTextColor(0xFFE8E2D6);
-        countLabel.setTextSize(13);
-        countLabel.setPadding(0, (int) (20 * d), 0, (int) (6 * d));
-        root.addView(countLabel);
 
-        for (eu.kodanetwork.mchost.util.BackupManager.Backup backup : backups) {
-            android.widget.TextView row = new android.widget.TextView(this);
-            row.setText("\u2022 " + eu.kodanetwork.mchost.util.BackupManager.humanDate(backup.time) + "  \u00b7  "
-                    + eu.kodanetwork.mchost.util.BackupManager.humanSize(backup.size));
-            row.setTextColor(0xFFE8E2D6);
-            row.setTextSize(13);
-            row.setPadding(0, (int) (12 * d), 0, (int) (12 * d));
+        for (int i = 0; i < backups.size(); i++) {
+            final eu.kodanetwork.mchost.util.BackupManager.Backup backup = backups.get(i);
             final java.io.File file = backup.file;
-            row.setOnClickListener(v -> showBackupActions(file));
-            root.addView(row);
+            if (i > 0) sheet.divider();
+            sheet.row(eu.kodanetwork.mchost.util.BackupManager.humanDate(backup.time),
+                    eu.kodanetwork.mchost.util.BackupManager.humanSize(backup.size), false,
+                    v -> showBackupActions(sheet.sheet, file));
         }
 
-        com.google.android.material.button.MaterialButton backupNow =
-                eu.kodanetwork.mchost.util.KodaButtons.primary(this, getString(R.string.extras_backup_now));
-        android.widget.LinearLayout.LayoutParams buttonLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (52 * d));
-        buttonLp.topMargin = (int) (20 * d);
-        backupNow.setOnClickListener(v -> {
-            sheet.dismiss();
+        sheet.primary(getString(R.string.extras_backup_now), v -> {
+            sheet.sheet.dismiss();
             createBackupNow();
         });
-        root.addView(backupNow, buttonLp);
-
-        sheet.setContentView(scroller);
         sheet.show();
     }
 
-    /** open, restore or delete one stored backup. */
-    private void showBackupActions(java.io.File file) {
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(eu.kodanetwork.mchost.util.BackupManager.humanDate(file.lastModified()))
-                .setMessage(getString(R.string.extras_backup_hint))
-                .setPositiveButton(getString(R.string.extras_backup_restore), (dialog, which) -> confirmRestore(file))
-                .setNeutralButton(getString(R.string.extras_backup_delete), (dialog, which) -> {
-                    eu.kodanetwork.mchost.util.BackupManager.delete(this, server.getId(), file.getName());
-                    eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
-                    updateBackupsSummary();
-                    showBackupsDialog();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+    /** restore or delete one stored backup, in the same sheet chrome. */
+    private void showBackupActions(final com.google.android.material.bottomsheet.BottomSheetDialog parent,
+                                   final java.io.File file) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, eu.kodanetwork.mchost.util.BackupManager.humanDate(file.lastModified()),
+                getString(R.string.extras_backup_hint));
+
+        sheet.row(getString(R.string.extras_backup_restore), null, false, v -> {
+            sheet.sheet.dismiss();
+            if (parent != null && parent.isShowing()) parent.dismiss();
+            confirmRestore(file);
+        });
+        sheet.divider();
+        sheet.row(getString(R.string.extras_backup_delete), null, true, v -> {
+            sheet.sheet.dismiss();
+            if (parent != null && parent.isShowing()) parent.dismiss();
+            eu.kodanetwork.mchost.util.BackupManager.delete(this, server.getId(), file.getName());
+            eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
+            updateBackupsSummary();
+            showBackupsDialog();
+        });
+        sheet.show();
     }
 
     private void createBackupNow() {
@@ -6609,30 +6443,32 @@ public class ServerDetailActivity extends AppCompatActivity {
         }, "KodaBackup").start();
     }
 
-    private void confirmRestore(java.io.File file) {
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.extras_backup_restore)
-                .setMessage(getString(R.string.extras_backup_restore_warning,
-                        eu.kodanetwork.mchost.util.BackupManager.humanDate(file.lastModified())))
-                .setPositiveButton(R.string.extras_backup_restore, (dialog, which) -> {
-                    boolean running = server.state == eu.kodanetwork.mchost.model.ServerInstance.State.ONLINE
-                            || server.state == eu.kodanetwork.mchost.model.ServerInstance.State.STARTING;
-                    if (running) {
-                        toast(getString(R.string.extras_backup_stop_first));
-                        return;
-                    }
-                    toast(getString(R.string.extras_backup_restoring));
-                    new Thread(() -> {
-                        boolean ok = eu.kodanetwork.mchost.util.BackupManager.restore(this, server, file);
-                        eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
-                        runOnUiThread(() -> {
-                            toast(getString(ok ? R.string.extras_backup_restored : R.string.extras_backup_failed));
-                            updateBackupsSummary();
-                        });
-                    }, "KodaBackupRestore").start();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+    private void confirmRestore(final java.io.File file) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.extras_backup_restore),
+                getString(R.string.extras_backup_restore_warning,
+                        eu.kodanetwork.mchost.util.BackupManager.humanDate(file.lastModified())));
+
+        sheet.primary(getString(R.string.extras_backup_restore), v -> {
+            sheet.sheet.dismiss();
+            boolean running = server.state == eu.kodanetwork.mchost.model.ServerInstance.State.ONLINE
+                    || server.state == eu.kodanetwork.mchost.model.ServerInstance.State.STARTING;
+            if (running) {
+                toast(getString(R.string.extras_backup_stop_first));
+                return;
+            }
+            toast(getString(R.string.extras_backup_restoring));
+            new Thread(() -> {
+                boolean ok = eu.kodanetwork.mchost.util.BackupManager.restore(this, server, file);
+                eu.kodanetwork.mchost.util.BackupManager.writeDashboardIndex(this, server);
+                runOnUiThread(() -> {
+                    toast(getString(ok ? R.string.extras_backup_restored : R.string.extras_backup_failed));
+                    updateBackupsSummary();
+                });
+            }, "KodaBackupRestore").start();
+        });
+        sheet.secondary(getString(android.R.string.cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
     }
 
     private void toast(String message) {
@@ -8864,67 +8700,67 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     /** bottom sheet: list, edit and delete the network budget rules of this server. */
+    /** network rules in the shared sheet chrome: the tile position and one row per rule. */
     private void showNetworkRulesSheet() {
-        boolean de = getResources().getConfiguration().getLocales().get(0).getLanguage().equals("de");
-        float d = getResources().getDisplayMetrics().density;
-        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
-                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        setupWindowDecor(sheet.getWindow());
-        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
-        root.setOrientation(android.widget.LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1D1714);
-        int pad = (int)(20*d); root.setPadding(pad, pad, pad, pad);
-
-        TextView title = new TextView(this);
-        title.setText(de ? "Netzwerk-Regeln" : "Network rules");
-        title.setTextColor(0xFFF0F0F0); title.setTextSize(18); title.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(title);
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.net_rules_title));
 
         // where the tile goes: sliding pill (Top | Dashboard), like on the join-address wall
+        sheet.label(getString(R.string.net_rules_tile_label));
         int selPos = "dash".equals(eu.kodanetwork.mchost.App.getPrefs(this).getString("net_usage_pos", "top")) ? 1 : 0;
         android.widget.FrameLayout pillPos = makePillSwitch(
-                new String[]{de ? "Oben" : "Top", "Dashboard"}, selPos, sel -> {
+                new String[]{getString(R.string.net_rules_tile_top), "Dashboard"}, selPos, sel -> {
                     eu.kodanetwork.mchost.App.getPrefs(this).edit()
                             .putString("net_usage_pos", sel == 1 ? "dash" : "top").apply();
                     relocateNetUsageTile();
                 });
-        android.widget.LinearLayout.LayoutParams posLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int)(44 * d));
-        posLp.topMargin = (int)(10*d);
-        root.addView(pillPos, posLp);
+        sheet.add(pillPos, 44);
 
-        Runnable[] refresh = new Runnable[1];
-        refresh[0] = () -> { sheet.dismiss(); showNetworkRulesSheet(); };
+        final Runnable refresh = () -> {
+            if (sheet.sheet.isShowing()) sheet.sheet.dismiss();
+            showNetworkRulesSheet();
+        };
 
         java.util.List<eu.kodanetwork.mchost.util.NetworkPolicy.Rule> rules =
                 eu.kodanetwork.mchost.util.NetworkPolicy.getRules(this, server.getId());
         if (rules.isEmpty()) {
-            TextView none = new TextView(this);
-            none.setText(de ? "Noch keine Regeln. Verbrauch wird trotzdem gemessen." : "No rules yet. Usage is still measured.");
-            none.setTextColor(0xFF8A8A9A); none.setTextSize(12);
-            none.setPadding(0,(int)(12*d),0,(int)(12*d));
-            root.addView(none);
+            sheet.text(getString(R.string.net_rules_empty), 0xFF8A8A9A);
         }
-        for (eu.kodanetwork.mchost.util.NetworkPolicy.Rule r : rules) {
-            TextView row = new TextView(this);
-            String types = (r.mobile?"Mobile ":"") + (r.wifi?"WLAN":"");
-            row.setText((r.paused ? "⏸ " : "• ") + eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(r.limitBytes) + " / " + r.periodDays + "d · " + types.trim() + " → " + r.action);
-            row.setTextColor(r.paused ? 0xFF8A8A9A : 0xFFE8E2D6); row.setTextSize(13);
-            row.setPadding((int)(8*d),(int)(14*d),(int)(8*d),(int)(14*d));
-            row.setOnClickListener(v -> showRuleActions(r, refresh[0]));
-            root.addView(row);
+        for (int i = 0; i < rules.size(); i++) {
+            final eu.kodanetwork.mchost.util.NetworkPolicy.Rule rule = rules.get(i);
+            if (i > 0) sheet.divider();
+            String title = getString(R.string.net_rules_summary,
+                    eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(rule.limitBytes),
+                    rule.periodDays, netTypes(rule));
+            String desc = netActionLabel(rule.action)
+                    + (rule.paused ? " \u00b7 " + getString(R.string.schedule_paused) : "");
+            sheet.row(title, desc, false, v -> showRuleActions(rule, refresh));
         }
-        com.google.android.material.button.MaterialButton add = eu.kodanetwork.mchost.util.KodaButtons.primary(this,
-                de ? "Regel hinzufügen" : "Add rule");
-        add.setOnClickListener(v -> editNetworkRule(null, refresh[0]));
-        android.widget.LinearLayout.LayoutParams addLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-        addLp.topMargin = (int)(16*d);
-        root.addView(add, addLp);
 
-        sheet.setContentView(root);
-        styleSheetFullscreen(sheet);
+        sheet.primary(getString(R.string.net_rules_add), v -> {
+            sheet.sheet.dismiss();
+            editNetworkRule(null, refresh);
+        });
         sheet.show();
+    }
+
+    /** the connection types a rule applies to, joined for display. */
+    private String netTypes(eu.kodanetwork.mchost.util.NetworkPolicy.Rule rule) {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        if (rule.mobile) parts.add(getString(R.string.net_rule_mobile));
+        if (rule.wifi) parts.add(getString(R.string.net_rule_wifi));
+        return java.util.Arrays.toString(parts.toArray()).replaceAll("[\\[\\]]", "");
+    }
+
+    /** readable name of the action a rule runs when the limit is reached. */
+    private String netActionLabel(String action) {
+        if (eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_STOP.equals(action)) {
+            return getString(R.string.net_rule_stop);
+        }
+        if (eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_BLOCK.equals(action)) {
+            return getString(R.string.net_rule_block);
+        }
+        return getString(R.string.net_rule_warn);
     }
 
     /** fullscreen slide-up sheet (the Modrinth-search pattern) with the app-warm background. */
@@ -8933,7 +8769,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         // the gray line at the bottom is the dialog WINDOW background showing through
         if (sheet.getWindow() != null) {
             sheet.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-            sheet.getWindow().setNavigationBarColor(0xFF1D1714);
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
         }
         sheet.getBehavior().setPeekHeight((int)(screenH * 0.9f));
         sheet.getBehavior().setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
@@ -8947,153 +8783,148 @@ public class ServerDetailActivity extends AppCompatActivity {
         }
     }
 
-    /** tap on a rule: fullscreen menu with edit / pause / delete. */
-    private void showRuleActions(eu.kodanetwork.mchost.util.NetworkPolicy.Rule r, Runnable done) {
-        boolean de = getResources().getConfiguration().getLocales().get(0).getLanguage().equals("de");
-        float d = getResources().getDisplayMetrics().density;
-        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
-                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        setupWindowDecor(sheet.getWindow());
-        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
-        root.setOrientation(android.widget.LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1D1714);
-        int pad = (int)(20*d); root.setPadding(pad, pad, pad, pad);
+    /** tap on a rule: edit, pause or delete, all as rows in the shared chrome. */
+    private void showRuleActions(final eu.kodanetwork.mchost.util.NetworkPolicy.Rule r, final Runnable done) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.net_rules_summary,
+                        eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(r.limitBytes),
+                        r.periodDays, netTypes(r)));
 
-        TextView t = new TextView(this);
-        t.setText(eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(r.limitBytes) + " / " + r.periodDays + "d · " + ((r.mobile?"Mobile ":"")+(r.wifi?"WLAN":"")).trim() + (r.paused ? " · ⏸" : ""));
-        t.setTextColor(0xFFF0F0F0); t.setTextSize(18); t.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(t);
-
-        com.google.android.material.button.MaterialButton bEdit = eu.kodanetwork.mchost.util.KodaButtons.primary(this, de ? "Bearbeiten" : "Edit");
-        bEdit.setOnClickListener(v -> { sheet.dismiss(); editNetworkRule(r, done); });
-        com.google.android.material.button.MaterialButton bPause = eu.kodanetwork.mchost.util.KodaButtons.dark(this, r.paused ? (de?"Fortsetzen":"Resume") : (de?"Anhalten":"Pause"));
-        bPause.setOnClickListener(v -> {
-            java.util.List<eu.kodanetwork.mchost.util.NetworkPolicy.Rule> rules =
-                    eu.kodanetwork.mchost.util.NetworkPolicy.getRules(this, server.getId());
-            for (eu.kodanetwork.mchost.util.NetworkPolicy.Rule x : rules) if (x.id.equals(r.id)) x.paused = !x.paused;
-            eu.kodanetwork.mchost.util.NetworkPolicy.saveRules(this, server.getId(), rules);
-            sheet.dismiss(); done.run();
+        sheet.row(getString(R.string.net_rule_edit), null, false, v -> {
+            sheet.sheet.dismiss();
+            editNetworkRule(r, done);
         });
-        com.google.android.material.button.MaterialButton bDel = eu.kodanetwork.mchost.util.KodaButtons.dark(this, de ? "Löschen" : "Delete");
-        bDel.setOnClickListener(v -> {
+        sheet.divider();
+        sheet.row(r.paused ? getString(R.string.net_rule_resume) : getString(R.string.net_rule_pause),
+                null, false, v -> {
+                    java.util.List<eu.kodanetwork.mchost.util.NetworkPolicy.Rule> rules =
+                            eu.kodanetwork.mchost.util.NetworkPolicy.getRules(this, server.getId());
+                    for (eu.kodanetwork.mchost.util.NetworkPolicy.Rule x : rules) {
+                        if (x.id.equals(r.id)) x.paused = !x.paused;
+                    }
+                    eu.kodanetwork.mchost.util.NetworkPolicy.saveRules(this, server.getId(), rules);
+                    sheet.sheet.dismiss();
+                    done.run();
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.net_rule_delete), null, true, v -> {
             java.util.List<eu.kodanetwork.mchost.util.NetworkPolicy.Rule> rules =
                     eu.kodanetwork.mchost.util.NetworkPolicy.getRules(this, server.getId());
             rules.removeIf(x -> x.id.equals(r.id));
             eu.kodanetwork.mchost.util.NetworkPolicy.saveRules(this, server.getId(), rules);
-            sheet.dismiss(); done.run();
+            sheet.sheet.dismiss();
+            done.run();
         });
-        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = (int)(12*d);
-        root.addView(bEdit, lp); root.addView(bPause, lp); root.addView(bDel, lp);
-
-        sheet.setContentView(root);
-        styleSheetFullscreen(sheet);
         sheet.show();
     }
 
-    /** create or edit one rule with simple chip options (fullscreen sheet). */
-    private void editNetworkRule(eu.kodanetwork.mchost.util.NetworkPolicy.Rule existing, Runnable done) {
-        boolean de = getResources().getConfiguration().getLocales().get(0).getLanguage().equals("de");
-        float d = getResources().getDisplayMetrics().density;
-        eu.kodanetwork.mchost.util.NetworkPolicy.Rule r = existing != null ? existing : new eu.kodanetwork.mchost.util.NetworkPolicy.Rule();
-        if (r.id == null) { r.id = java.util.UUID.randomUUID().toString(); r.periodDays = 7; r.mobile = true; r.wifi = true; r.action = eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_WARN; }
+    /** create or edit one rule, in the shared sheet chrome with pills for the values. */
+    private void editNetworkRule(final eu.kodanetwork.mchost.util.NetworkPolicy.Rule existing, final Runnable done) {
+        final eu.kodanetwork.mchost.util.NetworkPolicy.Rule r = existing != null
+                ? existing : new eu.kodanetwork.mchost.util.NetworkPolicy.Rule();
+        if (r.id == null) {
+            r.id = java.util.UUID.randomUUID().toString();
+            r.periodDays = 7;
+            r.mobile = true;
+            r.wifi = true;
+            r.action = eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_WARN;
+        }
 
-        com.google.android.material.bottomsheet.BottomSheetDialog sheet =
-                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
-        setupWindowDecor(sheet.getWindow());
-        android.widget.LinearLayout root = new android.widget.LinearLayout(this);
-        root.setOrientation(android.widget.LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF1D1714);
-        int pad = (int)(20*d); root.setPadding(pad, pad, pad, pad);
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(existing == null ? R.string.net_rules_new_title : R.string.net_rules_edit_title));
 
-        TextView t = new TextView(this);
-        t.setText(existing == null ? (de?"Neue Regel":"New rule") : (de?"Regel bearbeiten":"Edit rule"));
-        t.setTextColor(0xFFF0F0F0); t.setTextSize(20); t.setTypeface(null, android.graphics.Typeface.BOLD);
-        root.addView(t);
-        final TextView preview = new TextView(this);
-        preview.setTextColor(0xFFB7AE9F); preview.setTextSize(12);
-        preview.setPadding(0, (int)(4*d), 0, (int)(8*d));
-        java.util.function.BiConsumer<Long, Integer> upd = (lim, per) -> preview.setText(
-            (de ? "Vorschau: " : "Preview: ") + eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(lim == null ? r.limitBytes : lim)
-            + " / " + (per == null ? r.periodDays : per) + "d · " + ((r.mobile?"Mobile ":"")+(r.wifi?"WLAN":"")).trim());
-        upd.accept(null, null);
-        root.addView(preview);
+        final TextView preview = sheet.text(getString(R.string.net_rule_preview,
+                eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(r.limitBytes), r.periodDays), 0xFF8A8A9A);
 
-        final long[] limits = {500L*1048576, 1073741824L, 5L*1073741824, 20L*1073741824, -1};
-        final String[] limitNames = {"500 MB","1 GB","5 GB","20 GB", de?"Eigenes":"Custom"};
+        sheet.label(getString(R.string.net_rule_data_label));
+        final long[] limits = {500L * 1048576, 1073741824L, 5L * 1073741824, 20L * 1073741824, -1};
+        final String[] limitNames = {"500 MB", "1 GB", "5 GB", "20 GB", getString(R.string.net_rule_custom)};
         final int[] pickedLimit = {1};
-        for (int i = 0; i < limits.length - 1; i++) if (limits[i] == r.limitBytes) pickedLimit[0] = i;
+        for (int i = 0; i < limits.length - 1; i++) {
+            if (limits[i] == r.limitBytes) pickedLimit[0] = i;
+        }
 
-        final EditText etCustom = new EditText(this);
-        etCustom.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        etCustom.setHint(de ? "Limit in GB" : "Limit in GB");
+        final android.widget.EditText etCustom = sheet.field("",
+                getString(R.string.net_rule_limit_gb), false);
+        etCustom.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         etCustom.setVisibility(android.view.View.GONE);
-
-        java.util.function.BiConsumer<Integer, TextView[]> paint = (sel, views) -> {
-            for (int i = 0; i < views.length; i++) {
-                views[i].setTextColor(sel == i ? 0xFFFF6B00 : 0xFFE8E2D6);
-                views[i].setTypeface(null, sel == i ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-            }
-        };
 
         android.widget.FrameLayout pillLimit = makePillSwitch(limitNames, pickedLimit[0], sel -> {
             pickedLimit[0] = sel;
             etCustom.setVisibility(sel == limits.length - 1 ? android.view.View.VISIBLE : android.view.View.GONE);
+            preview.setText(getString(R.string.net_rule_preview,
+                    eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(
+                            sel == limits.length - 1 ? r.limitBytes : limits[sel]),
+                    r.periodDays));
         });
-        root.addView(netLabel(de ? "Wie viel Datenvolumen?" : "How much data?", d));
-        root.addView(pillLimit); root.addView(etCustom);
+        sheet.add(pillLimit, 44);
+        sheet.add(etCustom, 44);
 
+        final com.google.android.material.switchmaterial.SwitchMaterial swMobile =
+                sheet.toggle(getString(R.string.net_rule_mobile), r.mobile);
+        final com.google.android.material.switchmaterial.SwitchMaterial swWifi =
+                sheet.toggle(getString(R.string.net_rule_wifi), r.wifi);
+
+        sheet.label(getString(R.string.net_rule_period_label));
         final int[] periods = {1, 7, 30, -1};
-        final String[] periodNames = {de?"Tag":"Day", de?"Woche":"Week", de?"Monat":"Month", de?"Eigenes":"Custom"};
+        final String[] periodNames = {getString(R.string.net_rule_period_day),
+                getString(R.string.net_rule_period_week), getString(R.string.net_rule_period_month),
+                getString(R.string.net_rule_custom)};
         int pickedPeriod = r.periodDays == 1 ? 0 : (r.periodDays == 30 ? 2 : 1);
         if (pickedPeriod == 1 && r.periodDays != 7) pickedPeriod = 3;
         final int[] selPeriod = {pickedPeriod};
-        final EditText etDays = new EditText(this);
+        final android.widget.EditText etDays = sheet.field(
+                r.periodDays == 7 || pickedPeriod != 3 ? "" : String.valueOf(r.periodDays),
+                getString(R.string.net_rule_days), true);
+        etDays.setVisibility(periods[pickedPeriod] == -1 ? android.view.View.VISIBLE : android.view.View.GONE);
         android.widget.FrameLayout pillPeriod = makePillSwitch(periodNames, selPeriod[0], sel -> {
             selPeriod[0] = sel;
             etDays.setVisibility(periods[sel] == -1 ? android.view.View.VISIBLE : android.view.View.GONE);
+            preview.setText(getString(R.string.net_rule_preview,
+                    eu.kodanetwork.mchost.util.NetworkPolicy.humanBytes(
+                            pickedLimit[0] == limits.length - 1 ? r.limitBytes : limits[pickedLimit[0]]),
+                    periods[sel] == -1 ? r.periodDays : periods[sel]));
         });
-        etDays.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        etDays.setHint(de ? "Tage" : "Days");
-        etDays.setText(r.periodDays == 7 || pickedPeriod != 3 ? "" : String.valueOf(r.periodDays));
-        etDays.setVisibility(pickedPeriod == 3 ? android.view.View.VISIBLE : android.view.View.GONE);
-        etDays.setVisibility(periods[selPeriod[0]] == -1 ? android.view.View.VISIBLE : android.view.View.GONE);
-        root.addView(netLabel(de ? "Pro Zeitraum" : "Per period", d));
-        root.addView(pillPeriod); root.addView(etDays);
+        sheet.add(pillPeriod, 44);
+        sheet.add(etDays, 44);
 
-        final android.widget.CheckBox cbMobile = new android.widget.CheckBox(this);
-        cbMobile.setText("Mobile Data"); cbMobile.setChecked(r.mobile); root.addView(cbMobile);
-        final android.widget.CheckBox cbWifi = new android.widget.CheckBox(this);
-        cbWifi.setText("WLAN"); cbWifi.setChecked(r.wifi); root.addView(cbWifi);
-
-        final String[] actions = {eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_WARN, eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_STOP, eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_BLOCK};
-        final String[] actionNames = {de?"Nur warnen":"Warn only", de?"Server stoppen":"Stop server", de?"Start blockieren":"Block start"};
-        final String[] actionDesc = {de?"Zeigt eine Warnung":"Shows a warning", de?"Stoppt den Server":"Stops the server", de?"Kein Start bis frei":"No start until free"};
-        int actIdx = java.util.Arrays.asList(actions).indexOf(r.action); if (actIdx < 0) actIdx = 0;
+        sheet.label(getString(R.string.net_rule_reached_label));
+        final String[] actions = {eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_WARN,
+                eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_STOP,
+                eu.kodanetwork.mchost.util.NetworkPolicy.ACTION_BLOCK};
+        final String[] actionNames = {getString(R.string.net_rule_warn),
+                getString(R.string.net_rule_stop), getString(R.string.net_rule_block)};
+        final String[] actionDesc = {getString(R.string.net_rule_warn_desc),
+                getString(R.string.net_rule_stop_desc), getString(R.string.net_rule_block_desc)};
+        int actIdx = java.util.Arrays.asList(actions).indexOf(r.action);
+        if (actIdx < 0) actIdx = 0;
         final int[] selAct = {actIdx};
-        android.widget.LinearLayout rowAct = new android.widget.LinearLayout(this);
-        TextView[] actViews = new TextView[3];
-        for (int i = 0; i < 3; i++) {
-            final int fi = i;
-            TextView chip = new TextView(this);
-            chip.setText(actionNames[i] + "\n" + actionDesc[i]); chip.setTextSize(12);
-            chip.setPadding((int)(10*d), (int)(8*d), (int)(10*d), (int)(8*d));
-            chip.setOnClickListener(v -> { selAct[0] = fi; paint.accept(fi, actViews); });
-            actViews[i] = chip; rowAct.addView(chip);
-        }
-        paint.accept(selAct[0], actViews);
-        root.addView(netLabel(de ? "Wenn erreicht" : "When reached", d));
-        root.addView(rowAct);
+        final TextView actDesc = new TextView(this);
+        actDesc.setText(actionDesc[actIdx]);
+        actDesc.setTextColor(0xFF8A8A9A);
+        actDesc.setTextSize(12.5f);
+        actDesc.setPadding(0, (int) (8 * getResources().getDisplayMetrics().density), 0, 0);
+        android.widget.FrameLayout pillAct = makePillSwitch(actionNames, selAct[0], sel -> {
+            selAct[0] = sel;
+            actDesc.setText(actionDesc[sel]);
+        });
+        sheet.add(pillAct, 44);
+        sheet.add(actDesc);
 
-        com.google.android.material.button.MaterialButton save = eu.kodanetwork.mchost.util.KodaButtons.primary(this, de ? "Speichern" : "Save");
-        save.setOnClickListener(v -> {
+        sheet.primary(getString(R.string.net_rule_save), v -> {
             try {
-                if (pickedLimit[0] == limits.length-1) {
-                    r.limitBytes = (long)(Float.parseFloat(etCustom.getText().toString()) * 1073741824f);
-                } else r.limitBytes = limits[pickedLimit[0]];
-                r.periodDays = periods[selPeriod[0]] == -1 ? Math.max(1, Integer.parseInt(etDays.getText().toString().isEmpty() ? "7" : etDays.getText().toString())) : periods[selPeriod[0]];
-                r.mobile = cbMobile.isChecked(); r.wifi = cbWifi.isChecked();
+                if (pickedLimit[0] == limits.length - 1) {
+                    r.limitBytes = (long) (Float.parseFloat(etCustom.getText().toString()) * 1073741824f);
+                } else {
+                    r.limitBytes = limits[pickedLimit[0]];
+                }
+                r.periodDays = periods[selPeriod[0]] == -1
+                        ? Math.max(1, Integer.parseInt(etDays.getText().toString().isEmpty()
+                        ? "7" : etDays.getText().toString()))
+                        : periods[selPeriod[0]];
+                r.mobile = swMobile.isChecked();
+                r.wifi = swWifi.isChecked();
                 r.action = actions[selAct[0]];
                 java.util.List<eu.kodanetwork.mchost.util.NetworkPolicy.Rule> rules =
                         eu.kodanetwork.mchost.util.NetworkPolicy.getRules(this, server.getId());
@@ -9101,20 +8932,12 @@ public class ServerDetailActivity extends AppCompatActivity {
                 rules.add(r);
                 eu.kodanetwork.mchost.util.NetworkPolicy.saveRules(this, server.getId(), rules);
                 eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 50);
-                sheet.dismiss(); done.run();
+                sheet.sheet.dismiss();
+                if (done != null) done.run();
             } catch (Exception e) {
-                android.widget.Toast.makeText(this, de ? "Ungültige Eingabe" : "Invalid input", android.widget.Toast.LENGTH_SHORT).show();
+                toast(getString(R.string.net_rule_invalid));
             }
         });
-        android.widget.LinearLayout.LayoutParams saveLp = new android.widget.LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
-        saveLp.topMargin = (int)(20*d);
-        root.addView(save, saveLp);
-
-        android.widget.ScrollView sc = new android.widget.ScrollView(this);
-        sc.setFillViewport(true); sc.addView(root);
-        sheet.setContentView(sc);
-        styleSheetFullscreen(sheet);
         sheet.show();
     }
 
