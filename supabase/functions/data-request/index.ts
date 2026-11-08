@@ -102,58 +102,191 @@ async function notify(
   });
 }
 
+/** every query returns [] instead of failing, some tables only exist on the live project. */
+async function safeList(query: PromiseLike<{ data: unknown; error: unknown }>): Promise<any[]> {
+  try {
+    const { data, error } = await query;
+    return error ? [] : ((data as any[]) ?? []);
+  } catch {
+    return [];
+  }
+}
+
+async function safeRow(query: PromiseLike<{ data: unknown; error: unknown }>): Promise<any | null> {
+  try {
+    const { data, error } = await query;
+    return error ? null : ((data as any) ?? null);
+  } catch {
+    return null;
+  }
+}
+
 /** everything KodaHosting stores for this device and account, grouped per area. */
 async function collect(admin: Admin, request: any) {
   const appUuid = request.app_uuid;
   const authId = request.auth_id;
+  const mail = await accountEmail(admin, authId);
 
-  const byApp = (table: string) => admin.from(table).select("*").eq("app_uuid", appUuid);
+  const users = await safeList(
+    admin.from("koda_users").select("*").eq("app_uuid", appUuid),
+  );
+  const hwids = [...new Set(users.map((u: any) => u.hwid_full).filter(Boolean))];
+  const codes = [...new Set(users.map((u: any) => u.code).filter(Boolean))];
 
-  const [{ data: users }, { data: servers }, { data: tickets }, { data: requests }, { data: invites }, { data: reads }, { data: mutes }] =
-    await Promise.all([
-      byApp("koda_users"),
-      // tombstoned rows (deleted_...) are leftovers, they do not belong in a review
-      admin.from("koda_servers").select("*").eq("owner_app_uuid", appUuid).not("host", "like", "deleted_%"),
-      admin.from("support_tickets").select("*").eq("reporter_uuid", appUuid),
-      byApp("data_requests"),
-      admin.from("server_invites").select("*").eq("created_by_app_uuid", appUuid),
-      byApp("app_notification_reads"),
-      byApp("app_notification_mutes"),
-    ]);
+  const servers = await safeList(
+    // tombstoned rows (deleted_...) are leftovers, they do not belong in a review
+    admin.from("koda_servers").select("*")
+      .eq("owner_app_uuid", appUuid)
+      .not("host", "like", "deleted_%"),
+  );
+  const hosts = servers.map((s: any) => s.host).filter(Boolean);
 
-  const ticketIds = (tickets ?? []).map((t: any) => t.id);
-  const { data: messages } = ticketIds.length
-    ? await admin.from("support_ticket_messages").select("*").in("ticket_id", ticketIds).limit(5000)
-    : { data: [] };
+  const tickets = await safeList(
+    admin.from("support_tickets").select("*").eq("reporter_uuid", appUuid),
+  );
+  const ticketIds = tickets.map((t: any) => t.id);
 
-  const { data: profile } = authId
-    ? await admin.from("account_profiles").select("*").eq("auth_id", authId).maybeSingle()
-    : { data: null };
+  const messages = ticketIds.length
+    ? await safeList(
+      admin.from("support_ticket_messages").select("*").in("ticket_id", ticketIds).limit(5000),
+    )
+    : [];
 
-  const { data: extensions } = authId
-    ? await admin.from("extensions").select("*").eq("owner_auth_id", authId)
-    : { data: [] };
+  const bugs = await safeList(
+    admin.from("support_bugs").select("*").eq("reporter_uuid", appUuid),
+  );
+  const reports = await safeList(
+    admin.from("support_reports").select("*").eq("reporter_uuid", appUuid),
+  );
+
+  const requests = await safeList(
+    admin.from("data_requests").select("*").eq("app_uuid", appUuid),
+  );
+
+  const invites = await safeList(
+    admin.from("server_invites").select("*").eq("created_by_app_uuid", appUuid),
+  );
+
+  const guests = authId
+    ? await safeList(admin.from("server_guests").select("*").eq("auth_id", authId))
+    : [];
+
+  const transfersFromDevice = await safeList(
+    admin.from("server_transfers").select("*").eq("from_app_uuid", appUuid),
+  );
+  const transfersByAuth = authId
+    ? await safeList(admin.from("server_transfers").select("*").eq("auth_id", authId))
+    : [];
+  const transfers = [...transfersFromDevice];
+  for (const transfer of transfersByAuth) {
+    if (!transfers.some((t: any) => t.code === transfer.code)) transfers.push(transfer);
+  }
+
+  const profile = authId
+    ? await safeRow(admin.from("account_profiles").select("*").eq("auth_id", authId).maybeSingle())
+    : null;
+
+  const extensions = authId
+    ? await safeList(admin.from("extensions").select("*").eq("owner_auth_id", authId))
+    : [];
+  const extensionIds = extensions.map((e: any) => e.id);
+  const extensionVersions = extensionIds.length
+    ? await safeList(admin.from("extension_versions").select("*").in("extension_id", extensionIds))
+    : [];
+
+  const reads = await safeList(
+    admin.from("app_notification_reads").select("*").eq("app_uuid", appUuid),
+  );
+  const mutes = await safeList(
+    admin.from("app_notification_mutes").select("*").eq("app_uuid", appUuid),
+  );
+  const notifications = await safeList(
+    admin.from("app_notifications").select("*").eq("target_app_uuid", appUuid).limit(200),
+  );
+
+  const hwidBans = hwids.length
+    ? await safeList(admin.from("banned_hwids").select("*").in("hwid", hwids))
+    : [];
+  const highRisk = hwids.length
+    ? await safeList(admin.from("high_risk_hwids").select("*").in("hwid", hwids))
+    : [];
+
+  const ports = hosts.length
+    ? await safeList(admin.from("koda_ports").select("*").in("host", hosts))
+    : [];
+
+  const otpCodes = mail
+    ? await safeList(admin.from("koda_otp_codes").select("*").eq("email", mail).limit(100))
+    : [];
+  const passwordResets = mail
+    ? await safeList(admin.from("password_reset_requests").select("*").eq("email", mail).limit(100))
+    : [];
 
   return {
     appUuid,
     authId,
-    users: users ?? [],
-    servers: servers ?? [],
-    tickets: tickets ?? [],
-    messages: messages ?? [],
-    requests: requests ?? [],
-    invites: invites ?? [],
-    reads: reads ?? [],
-    mutes: mutes ?? [],
+    mail,
+    users,
+    servers,
+    tickets,
+    messages,
+    bugs,
+    reports,
+    requests,
+    invites,
+    guests,
+    transfers,
     profile,
-    extensions: extensions ?? [],
+    extensions,
+    extensionVersions,
+    reads,
+    mutes,
+    notifications,
+    hwidBans,
+    highRisk,
+    ports,
+    otpCodes,
+    passwordResets,
+    codes,
+    hwids,
   };
 }
 
-/** a compact review for the admin, not the whole dump. */
+/** all sections as plain JSON, so the admin app and the panel can render everything. */
+function sectionsOf(data: any) {
+  return {
+    accounts: data.users,
+    servers: data.servers,
+    support_tickets: data.tickets,
+    support_messages: data.messages,
+    support_bugs: data.bugs,
+    support_reports: data.reports,
+    data_requests: data.requests,
+    server_invites: data.invites,
+    server_guests: data.guests,
+    server_transfers: data.transfers,
+    account_profile: data.profile,
+    extensions: data.extensions,
+    extension_versions: data.extensionVersions,
+    notification_reads: data.reads,
+    notification_settings: data.mutes,
+    notifications: data.notifications,
+    hwid_bans: data.hwidBans,
+    high_risk_hwids: data.highRisk,
+    ports: data.ports,
+    otp_codes: data.otpCodes,
+    password_reset_requests: data.passwordResets,
+  };
+}
+
+/** the full review: every section, so the admin sees everything that will be sent. */
 async function preview(admin: Admin, request: any, cors: Record<string, string>) {
   const data = await collect(admin, request);
-  const mail = await accountEmail(admin, request.auth_id);
+  const sections = sectionsOf(data);
+  const counts: Record<string, number> = {};
+  for (const [key, value] of Object.entries(sections)) {
+    counts[key] = Array.isArray(value) ? value.length : (value ? 1 : 0);
+  }
 
   return json({
     ok: true,
@@ -170,40 +303,116 @@ async function preview(admin: Admin, request: any, cors: Record<string, string>)
       app_uuid: data.appUuid,
       auth_id: data.authId,
       has_account: !!data.authId,
-      email_set: !!mail,
-      email_hint: mail ? mail.replace(/^(.)(.*)(@.*)$/, (_m, a, b, c) => a + "*".repeat(Math.min(6, b.length)) + c) : null,
+      email_set: !!data.mail,
+      email_hint: data.mail
+        ? data.mail.replace(/^(.)(.*)(@.*)$/, (_m, a, b, c) => a + "*".repeat(Math.min(6, b.length)) + c)
+        : null,
       profile: data.profile,
     },
-    counts: {
-      accounts: data.users.length,
-      servers: data.servers.length,
-      tickets: data.tickets.length,
-      messages: data.messages.length,
-      invites: data.invites.length,
-      data_requests: data.requests.length,
-      notification_reads: data.reads.length,
-      extensions: data.extensions.length,
-    },
-    accounts: data.users.map((u: any) => ({
-      code: u.code,
-      mc_username: u.mc_username,
-      created_at: u.created_at,
-      is_banned: u.is_banned,
-    })),
-    servers: data.servers.map((s: any) => ({
-      host: s.host,
-      server_version: s.server_version,
-      created_at: s.created_at,
-      last_online: s.last_online,
-      ram_mb: s.ram_mb,
-    })),
-    tickets: data.tickets.map((t: any) => ({
-      title: t.title,
-      ticket_type: t.ticket_type,
-      status: t.status,
-      created_at: t.created_at,
-    })),
+    counts,
+    sections,
   }, 200, cors);
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function cell(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "–";
+  if (typeof value === "object") return escapeHtml(JSON.stringify(value));
+  return escapeHtml(value);
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  account_profile: "Profil",
+  accounts: "Konten und Geräte",
+  servers: "Server",
+  support_tickets: "Support-Tickets",
+  support_messages: "Ticket-Nachrichten",
+  support_bugs: "Bug-Meldungen",
+  support_reports: "Server-Meldungen",
+  data_requests: "Datenanträge",
+  server_invites: "Einladungen",
+  server_guests: "Gastzugänge",
+  server_transfers: "Gerätetransfers",
+  extensions: "Extensions",
+  extension_versions: "Extension-Versionen",
+  notifications: "Benachrichtigungen",
+  notification_reads: "Gelesene Benachrichtigungen",
+  notification_settings: "Benachrichtigungs-Einstellungen",
+  hwid_bans: "HWID-Sperren",
+  high_risk_hwids: "Risiko-Einträge",
+  ports: "Ports",
+  otp_codes: "OTP-Vorgänge",
+  password_reset_requests: "Passwort-Reset-Vorgänge",
+};
+
+function humanTable(title: string, rows: any[]): string {
+  if (!rows.length) return `<h2>${escapeHtml(title)}</h2><p class="empty">Keine Einträge.</p>`;
+  const keys = [...new Set(rows.flatMap((row) => Object.keys(row ?? {})))];
+  const head = keys.map((key) => `<th>${escapeHtml(key)}</th>`).join("");
+  const body = rows
+    .map((row) => `<tr>${keys.map((key) => `<td>${cell(row?.[key])}</td>`).join("")}</tr>`)
+    .join("");
+  return `<h2>${escapeHtml(title)}</h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+/** the human readable version of the export, same content as the json files. */
+function renderHumanHtml(doc: any): string {
+  const sections = doc.sections ?? {};
+  const parts: string[] = [];
+  const seen = new Set<string>();
+
+  if (sections.account_profile) {
+    parts.push(humanTable(SECTION_LABELS.account_profile, [sections.account_profile]));
+    seen.add("account_profile");
+  }
+  for (const [key, label] of Object.entries(SECTION_LABELS)) {
+    if (seen.has(key)) continue;
+    const value = sections[key];
+    if (value === null || value === undefined) continue;
+    if (Array.isArray(value)) {
+      if (value.length === 0) continue;
+      parts.push(humanTable(label, value));
+    } else {
+      parts.push(humanTable(label, [value]));
+    }
+  }
+
+  return `<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<title>KodaHosting Datenexport</title>
+<style>
+  body{margin:0;background:#141010;color:#D8D5D2;font-family:-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:36px 24px}
+  .brand{letter-spacing:3px;font-size:12px;margin-bottom:24px}
+  .brand .a{color:#555}.brand .b{color:#AAA}.brand .c{color:#fff}
+  h1{color:#F5F5F7;font-size:24px;margin:0 0 6px}
+  .meta{color:#8A8A9A;font-size:13px;margin-bottom:26px}
+  h2{color:#F5F5F7;font-size:16px;margin:30px 0 10px;border-bottom:1px solid #2A2226;padding-bottom:6px}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}
+  th{text-align:left;color:#8A8A9A;font-weight:600;padding:6px 8px;border-bottom:1px solid #2A2226;white-space:nowrap}
+  td{padding:6px 8px;border-bottom:1px solid #1F1917;vertical-align:top;word-break:break-word}
+  tr:nth-child(even) td{background:#1B1614}
+  .empty{color:#666;font-size:12px}
+  footer{color:#555;font-size:11px;margin-top:30px}
+</style></head>
+<body><div class="wrap">
+  <div class="brand"><span class="a">P.R.</span><span class="b">A.E.T.</span><span class="c">O.R.</span></div>
+  <h1>Datenexport</h1>
+  <div class="meta">
+    Erstellt ${escapeHtml(doc.generated_at)} · Antrag ${escapeHtml(doc.request_id)}<br>
+    Gerät ${escapeHtml(doc.app_uuid)} · Konto ${escapeHtml(doc.auth_id ?? "nicht verknüpft")}<br>
+    E-Mail ${escapeHtml(doc.account?.email ?? "nicht registriert")}
+  </div>
+  ${parts.join("\n")}
+  <footer>Diese Datei enthält dieselben Daten wie die JSON-Dateien im Archiv. KodaHosting, host.kodanetwork.eu</footer>
+</div></body></html>`;
 }
 
 async function buildExport(admin: Admin, request: any, cors: Record<string, string>) {
@@ -211,39 +420,77 @@ async function buildExport(admin: Admin, request: any, cors: Record<string, stri
   if (!["PENDING", "READY"].includes(request.status)) return json({ error: "wrong_status" }, 409, cors);
 
   const data = await collect(admin, request);
+  const sections = sectionsOf(data);
+
   const doc = {
-    format: "koda-export/1",
+    format: "koda-export/2",
     generated_at: new Date().toISOString(),
     request_id: request.id,
     requested_at: request.requested_at,
     app_uuid: data.appUuid,
     auth_id: data.authId,
-    profile: data.profile,
-    devices_and_accounts: data.users,
-    servers: data.servers,
-    support_tickets: data.tickets,
-    support_messages: data.messages,
-    data_requests: data.requests,
-    server_invites: data.invites,
-    extensions: data.extensions,
-    notification_reads: data.reads,
-    notification_settings: data.mutes,
-    note: "This archive contains every personal record KodaHosting stores about this device and account.",
+    account: {
+      email: data.mail,
+      profile: data.profile,
+      app_uuids: [data.appUuid],
+      account_codes: data.codes,
+      hwid_hashes: data.hwids,
+    },
+    sections,
+    note: "This archive contains every personal record KodaHosting stores about this device and account. export.html is the same content for humans, the .json files are for machines.",
   };
 
   const pretty = (value: unknown) => strToU8(JSON.stringify(value, null, 2));
   const files: Record<string, Uint8Array> = {
     "README.txt": strToU8(
-      "KodaHosting Datenexport\n\n" +
-      "export.json enthaelt alles in einer Datei. Die anderen Dateien sind dieselben Daten,\n" +
-      "nach Bereichen getrennt, damit man sie leichter lesen kann.\n",
+      "KodaHosting Datenexport\n" +
+      "=====================\n\n" +
+      "export.html   - dieselben Daten zum Lesen im Browser\n" +
+      "export.json   - alles in einer Datei (maschinenlesbar)\n\n" +
+      "account.json        Konto, Geraete, Profil, Extensions\n" +
+      "servers.json        alle Server\n" +
+      "support.json        Tickets, Nachrichten, Bug- und Servermeldungen\n" +
+      "requests.json       alle Datenantraege\n" +
+      "notifications.json  Benachrichtigungen, Lesestaende, Einstellungen\n" +
+      "network.json        Einladungen, Gastzugaenge, Transfers, Ports\n" +
+      "moderation.json     HWID-Sperren und Risikoeintraege\n" +
+      "security.json       OTP- und Passwort-Reset-Vorgaenge\n",
     ),
     "export.json": pretty(doc),
-    "account.json": pretty({ profile: data.profile, devices_and_accounts: data.users }),
-    "servers.json": pretty(data.servers),
-    "support.json": pretty({ tickets: data.tickets, messages: data.messages }),
-    "requests.json": pretty(data.requests),
-    "notifications.json": pretty({ reads: data.reads, settings: data.mutes }),
+    "account.json": pretty({
+      account: { email: data.mail, profile: data.profile },
+      accounts: sections.accounts,
+      extensions: sections.extensions,
+      extension_versions: sections.extension_versions,
+    }),
+    "servers.json": pretty(sections.servers),
+    "support.json": pretty({
+      tickets: sections.support_tickets,
+      messages: sections.support_messages,
+      bugs: sections.support_bugs,
+      reports: sections.support_reports,
+    }),
+    "requests.json": pretty(sections.data_requests),
+    "notifications.json": pretty({
+      notifications: sections.notifications,
+      reads: sections.notification_reads,
+      settings: sections.notification_settings,
+    }),
+    "network.json": pretty({
+      invites: sections.server_invites,
+      guests: sections.server_guests,
+      transfers: sections.server_transfers,
+      ports: sections.ports,
+    }),
+    "moderation.json": pretty({
+      hwid_bans: sections.hwid_bans,
+      high_risk_hwids: sections.high_risk_hwids,
+    }),
+    "security.json": pretty({
+      otp_codes: sections.otp_codes,
+      password_reset_requests: sections.password_reset_requests,
+    }),
+    "export.html": strToU8(renderHumanHtml(doc)),
   };
 
   const zipped = zipSync(files, { level: 6 });
@@ -261,7 +508,13 @@ async function buildExport(admin: Admin, request: any, cors: Record<string, stri
     .update({ status: "READY", export_path: path, export_expires_at: expiresAt })
     .eq("id", request.id);
 
-  return json({ ok: true, export_path: path, size: zipped.length, expires_at: expiresAt }, 200, cors);
+  return json({
+    ok: true,
+    export_path: path,
+    size: zipped.length,
+    expires_at: expiresAt,
+    sections: Object.fromEntries(Object.entries(sections).map(([k, v]) => [k, Array.isArray(v) ? v.length : (v ? 1 : 0)])),
+  }, 200, cors);
 }
 
 async function decide(admin: Admin, body: any, cors: Record<string, string>) {
