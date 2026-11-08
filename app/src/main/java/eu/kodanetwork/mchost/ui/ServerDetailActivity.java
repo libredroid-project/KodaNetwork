@@ -244,6 +244,13 @@ public class ServerDetailActivity extends AppCompatActivity {
         eu.kodanetwork.mchost.util.AppleSkinHelper.apply(this);
         
         eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
+        // the theme turns every label into monospace; the settings style danger zone
+        // keeps the normal Koda font, like the app settings screen
+        android.view.View controlsCard = findViewById(R.id.card_settings_controls);
+        if (controlsCard instanceof android.view.ViewGroup) {
+            android.graphics.Typeface koda = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda);
+            applyKodaFont((android.view.ViewGroup) controlsCard, koda);
+        }
 
         // set the light mode background early, before anything renders
         if (eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this)) {
@@ -2681,6 +2688,20 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private long lastScrollTime = 0;
+
+    /** walks a view tree and gives every plain text the Koda font back. */
+    private void applyKodaFont(android.view.ViewGroup group, android.graphics.Typeface face) {
+        if (face == null) return;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            android.view.View child = group.getChildAt(i);
+            if (child instanceof android.view.ViewGroup) {
+                applyKodaFont((android.view.ViewGroup) child, face);
+            } else if (child instanceof android.widget.TextView
+                    && !(child instanceof android.widget.Button)) {
+                ((android.widget.TextView) child).setTypeface(face);
+            }
+        }
+    }
 
     /** maps the real startup lines to the short boot story on the loading screen. */
     private void feedBootStep(String line) {
