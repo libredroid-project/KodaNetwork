@@ -1665,4 +1665,6 @@
     <string name="notif_open">打开</string>
     <string name="notif_delete_one">删除通知</string>
     <string name="data_request_status_ready">审核中</string>
+    <string name="data_request_already_open">你已经有一个同类型的未完成申请。</string>
+    <string name="data_request_slow_down">申请太频繁，请稍后再试。</string>
 </resources>

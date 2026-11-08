@@ -1446,9 +1446,11 @@ public class SettingsActivity extends Activity {
     private void createDataRequest(final String kind) {
         eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 50);
         new Thread(() -> {
-            String id = eu.kodanetwork.mchost.util.DataRequests.create(this, kind, "");
+            eu.kodanetwork.mchost.util.DataRequests.CreateResult result =
+                    eu.kodanetwork.mchost.util.DataRequests.create(this, kind, "");
             runOnUiThread(() -> Toast.makeText(this,
-                    id != null ? R.string.data_request_created : R.string.data_request_failed,
+                    result.ok ? R.string.data_request_created
+                            : eu.kodanetwork.mchost.util.DataRequests.errorMessage(result.error),
                     Toast.LENGTH_LONG).show());
         }, "KodaDataRequest").start();
     }

@@ -1634,4 +1634,6 @@ Jeśli chcesz usunąć także swoje dane, użyj "Poproś o pełne usunięcie dan
     <string name="notif_open">Otwórz</string>
     <string name="notif_delete_one">Usuń powiadomienie</string>
     <string name="data_request_status_ready">W przeglądzie</string>
+    <string name="data_request_already_open">Masz już otwarty wniosek tego rodzaju.</string>
+    <string name="data_request_slow_down">Zbyt wiele wniosków, spróbuj później.</string>
 </resources>

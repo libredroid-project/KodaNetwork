@@ -205,13 +205,14 @@ public class DataRequestActivity extends AppCompatActivity {
     private void createRequest(final String kind) {
         HapticUtil.forceVibrate(this, 60);
         new Thread(() -> {
-            String id = DataRequests.create(this, kind, "");
+            DataRequests.CreateResult result = DataRequests.create(this, kind, "");
             runOnUiThread(() -> {
-                if (id != null) {
+                if (result.ok) {
                     Toast.makeText(this, R.string.data_request_created, Toast.LENGTH_LONG).show();
                     reload();
                 } else {
-                    Toast.makeText(this, R.string.data_request_failed, Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, DataRequests.errorMessage(result.error),
+                            Toast.LENGTH_LONG).show();
                 }
             });
         }, "KodaDataCreate").start();

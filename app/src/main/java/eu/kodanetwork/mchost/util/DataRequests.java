@@ -102,9 +102,22 @@ public final class DataRequests {
         return out;
     }
 
-    public static String create(Context context, String kind, String note) {
+    /** result of a create call: the id, or the reason the server refused. */
+    public static final class CreateResult {
+        public final boolean ok;
+        public final String id;
+        public final String error;
+
+        private CreateResult(boolean ok, String id, String error) {
+            this.ok = ok;
+            this.id = id;
+            this.error = error;
+        }
+    }
+
+    public static CreateResult create(Context context, String kind, String note) {
         String uuid = appUuid(context);
-        if (uuid == null) return null;
+        if (uuid == null) return new CreateResult(false, null, "Not logged in");
         try {
             JSONObject body = new JSONObject();
             body.put("p_app_uuid", uuid);
@@ -112,12 +125,35 @@ public final class DataRequests {
             body.put("p_kind", kind);
             body.put("p_note", note == null ? "" : note);
             String raw = SupportApi.makeSupabaseRequest(
-                    "rest/v1/rpc/rpc_create_data_request", "POST", body.toString(), null);
-            String clean = raw.replace("\"", "").trim();
-            return clean.isEmpty() || "null".equals(clean) ? null : clean;
+                    "rest/v1/rpc/rpc_create_data_request", "POST", body.toString(), null).trim();
+
+            // success is the uuid as a json string. anything else is the postgrest error,
+            // which used to be mistaken for an id (the toast said "sent" and nothing happened).
+            if (raw.startsWith("\"") && raw.endsWith("\"") && raw.length() > 2) {
+                String id = raw.substring(1, raw.length() - 1);
+                if (id.matches("[0-9a-fA-F-]{36}")) return new CreateResult(true, id, null);
+            }
+            String message = raw;
+            try {
+                message = new JSONObject(raw).optString("message", raw);
+            } catch (Exception ignored) {
+            }
+            return new CreateResult(false, null, message);
         } catch (Exception e) {
-            return null;
+            return new CreateResult(false, null, e.getMessage());
         }
+    }
+
+    /** maps the server refusal to something the user can act on. */
+    public static int errorMessage(String error) {
+        String lower = error == null ? "" : error.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("already open")) {
+            return eu.kodanetwork.mchost.R.string.data_request_already_open;
+        }
+        if (lower.contains("slow down")) {
+            return eu.kodanetwork.mchost.R.string.data_request_slow_down;
+        }
+        return eu.kodanetwork.mchost.R.string.data_request_failed;
     }
 
     public static boolean cancel(Context context, String id) {

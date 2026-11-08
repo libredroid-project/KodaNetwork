@@ -1695,4 +1695,6 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="notif_open">Öffnen</string>
     <string name="notif_delete_one">Benachrichtigung löschen</string>
     <string name="data_request_status_ready">In Prüfung</string>
+    <string name="data_request_already_open">Es ist bereits ein offener Antrag dieser Art vorhanden.</string>
+    <string name="data_request_slow_down">Zu viele Anträge, versuch es später nochmal.</string>
 </resources>
