@@ -4716,13 +4716,12 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     /** the small red triangle blinks twice and then stays visible. */
+    /**
+     * risk is carried by the red button, the countdown and the double vibration. the
+     * small triangle is gone from the destructive sheets on purpose.
+     */
     private void blinkWarning(android.view.View triangle) {
-        if (triangle == null) return;
-        android.animation.ObjectAnimator blink = android.animation.ObjectAnimator.ofFloat(
-                triangle, "alpha", 1f, 0f, 1f, 0f, 1f);
-        blink.setDuration(900);
-        blink.setStartDelay(250);
-        blink.start();
+        if (triangle != null) triangle.setVisibility(android.view.View.GONE);
     }
 
     /** runs the hibernation with the full screen progress overlay. */

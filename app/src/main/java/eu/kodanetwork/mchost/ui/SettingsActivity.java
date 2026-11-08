@@ -1212,54 +1212,55 @@ public class SettingsActivity extends Activity {
                 boolean isMain = obj.optBoolean("is_main", false);
                 
                 // one row per account
+                final float accD = getResources().getDisplayMetrics().density;
                 LinearLayout accLayout = new LinearLayout(this);
                 accLayout.setOrientation(LinearLayout.HORIZONTAL);
                 accLayout.setTag("dynamic_account");
                 accLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-                lp.setMargins(0, 0, 0, 24);
+                lp.setMargins(0, 0, 0, (int) (12 * accD));
                 accLayout.setLayoutParams(lp);
                 
                 // the mc head, now straight from mojang: the old services served the
                 // default steve for real accounts like SDI_0
                 android.widget.ImageView ivHead = new android.widget.ImageView(this);
-                ivHead.setLayoutParams(new LinearLayout.LayoutParams(96, 96));
-                eu.kodanetwork.mchost.util.MinecraftHeadLoader.load(mcName, 96, bmp -> {
+                int headSize = (int) (44 * accD);
+                ivHead.setLayoutParams(new LinearLayout.LayoutParams(headSize, headSize));
+                eu.kodanetwork.mchost.util.MinecraftHeadLoader.load(mcName, headSize, bmp -> {
                     if (bmp != null) ivHead.setImageBitmap(bmp);
                 });
                 accLayout.addView(ivHead);
                 
-                // name and role
+                // name and role, tapping them opens the same permissions sheet as Manage
                 LinearLayout textLayout = new LinearLayout(this);
                 textLayout.setOrientation(LinearLayout.VERTICAL);
                 LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(0, -2, 1.0f);
-                tLp.setMargins(16, 0, 0, 0);
+                tLp.setMargins((int) (12 * accD), 0, 0, 0);
                 textLayout.setLayoutParams(tLp);
+                textLayout.setClickable(true);
+                textLayout.setOnClickListener(v -> {
+                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 60);
+                    showAccountPermissionsSheet(rowId, mcName);
+                });
                 
                 TextView tvName = new TextView(this);
                 tvName.setText(mcName);
-                tvName.setTextColor(0xFF00E676);
-                tvName.setTextSize(16);
-                if (eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this)) {
-                    tvName.setTextColor(0xFF008000);
-                }
+                tvName.setTextColor(0xFFF5F5F7);
+                tvName.setTextSize(15);
                 textLayout.addView(tvName);
                 
                 TextView tvRole = new TextView(this);
                 tvRole.setText(isMain ? "Main Account" : "Secondary Account");
-                tvRole.setTextColor(0xFFAAAAAA);
+                tvRole.setTextColor(0xFF8A8A9A);
                 tvRole.setTextSize(12);
-                if (eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this)) {
-                    tvRole.setTextColor(0xFF555555);
-                }
                 textLayout.addView(tvRole);
                 
                 accLayout.addView(textLayout);
                 
                 Button btnManage = new Button(this);
                 btnManage.setText("Manage");
-                btnManage.setTextSize(10);
-                btnManage.setTextColor(0xFF00E676);
+                btnManage.setTextSize(12);
+                btnManage.setTextColor(0xFFFF8C38);
                 btnManage.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                 btnManage.setOnClickListener(v -> {
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
@@ -1270,8 +1271,8 @@ public class SettingsActivity extends Activity {
                 // unlink button
                 Button btnUnlink = new Button(this);
                 btnUnlink.setText("Unlink");
-                btnUnlink.setTextSize(10);
-                btnUnlink.setTextColor(0xFFFF4444);
+                btnUnlink.setTextSize(12);
+                btnUnlink.setTextColor(0xFFFF8A80);
                 btnUnlink.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                 btnUnlink.setOnClickListener(v -> {
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
@@ -1855,11 +1856,6 @@ public class SettingsActivity extends Activity {
         wm.setLetterSpacing(0.18f);
         header.addView(wm);
         header.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
-        TextView tri = new TextView(this);
-        tri.setText("\u26A0");
-        tri.setTextColor(0xFFFF5449);
-        tri.setTextSize(15f);
-        header.addView(tri);
         content.addView(header);
 
         TextView t = new TextView(this);
@@ -2024,13 +2020,6 @@ public class SettingsActivity extends Activity {
                 sheet.getWindow().setNavigationBarContrastEnforced(false);
             }
         }
-        sv.post(() -> {
-            int cap = (int) (340 * d);
-            if (list.getHeight() > cap) {
-                sv.getLayoutParams().height = cap;
-                sv.requestLayout();
-            }
-        });
         eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
 
         // load the current flags
@@ -2642,74 +2631,73 @@ public class SettingsActivity extends Activity {
         
         btnSelector.setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
-            com.google.android.material.bottomsheet.BottomSheetDialog sheet = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
-            
-            LinearLayout container = new LinearLayout(this);
-            container.setOrientation(LinearLayout.VERTICAL);
-            container.setBackgroundColor(isLight() ? 0xFFFFFFFF : 0xFF0E0E14);
-            container.setPadding(0, 0, 0, 48);
-
-            TextView tvTitle = new TextView(this);
-            tvTitle.setText(getString(R.string.select_language));
-            tvTitle.setTextColor(0xFFFF6B00);
-            tvTitle.setTextSize(13);
-            android.graphics.Typeface kodaBold = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda);
-            tvTitle.setTypeface(kodaBold != null ? kodaBold : android.graphics.Typeface.DEFAULT_BOLD);
-            tvTitle.setLetterSpacing(0.12f);
-            tvTitle.setPadding(48, 40, 48, 24);
-            container.addView(tvTitle);
-
-            View div = new View(this);
-            div.setBackgroundColor(isLight() ? 0xFFE5E7EB : 0xFF222230);
-            div.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
-            container.addView(div);
-
-            for (int i = 0; i < codes.length; i++) {
-                final int pos = i;
-                TextView tv = new TextView(this);
-                tv.setText(displayLangs[i]);
-                tv.setTextSize(16);
-                tv.setPadding(48, 40, 48, 40);
-                
-                boolean isSelected = codes[i].equals(prefs.getString("language", "system"));
-                if (isSelected) {
-                    tv.setTextColor(0xFFFF6B00);
-                    android.graphics.Typeface kodaBoldSel = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda);
-                    tv.setTypeface(kodaBoldSel != null ? kodaBoldSel : android.graphics.Typeface.DEFAULT_BOLD);
-                } else {
-                    tv.setTextColor(isLight() ? 0xFF111827 : 0xFFFFFFFF);
-                }
-                
-                android.util.TypedValue outValue = new android.util.TypedValue();
-                getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-                tv.setBackgroundResource(outValue.resourceId);
-                tv.setClickable(true);
-                
-                tv.setOnClickListener(item -> {
-                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
-                    prefs.edit().putString("language", codes[pos]).apply();
-                    eu.kodanetwork.mchost.App.applyLanguage(SettingsActivity.this, codes[pos]);
-                    btnSelector.setText(displayLangs[pos]);
-                    sheet.dismiss();
-                    Toast.makeText(SettingsActivity.this, "Language updated.", Toast.LENGTH_SHORT).show();
-                    recreate();
-                });
-                container.addView(tv);
-            }
-
-            android.widget.ScrollView sv = new android.widget.ScrollView(this);
-            sv.addView(container);
-            sheet.setContentView(sv);
-            
-            android.view.Window w = sheet.getWindow();
-            if (w != null) {
-                int navColor = isLight() ? 0xFFFFFFFF : 0xFF0D0D14;
-                w.setNavigationBarColor(navColor);
-                w.setStatusBarColor(navColor);
-            }
-            eu.kodanetwork.mchost.util.SheetFix.apply(sheet);
-            sheet.show();
+            showLanguageSheet(btnSelector, displayLangs, codes);
         });
+    }
+
+    /** language picker as a praetor sheet, one row per language with a check mark. */
+    private void showLanguageSheet(final TextView selector, final String[] displayLangs, final String[] codes) {
+        final float d = getResources().getDisplayMetrics().density;
+        final com.google.android.material.bottomsheet.BottomSheetDialog sheet =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.KodaBottomSheetDialog);
+        LinearLayout content = kodaSheet(getString(R.string.select_language), null);
+
+        for (int i = 0; i < codes.length; i++) {
+            final int pos = i;
+            boolean selected = codes[i].equals(prefs.getString("language", "system"));
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setPadding(0, (int) (12 * d), 0, (int) (12 * d));
+            row.setClickable(true);
+            row.setFocusable(true);
+            android.util.TypedValue outValue = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+            row.setBackgroundResource(outValue.resourceId);
+
+            TextView label = new TextView(this);
+            label.setText(displayLangs[i]);
+            label.setTextSize(15f);
+            label.setTextColor(selected ? 0xFFFF8C38 : 0xFFF0F0F0);
+            if (selected) label.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+            label.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(label);
+
+            TextView check = new TextView(this);
+            check.setText(selected ? "\u2713" : "");
+            check.setTextColor(0xFFFF8C38);
+            check.setTextSize(15f);
+            row.addView(check);
+
+            row.setOnClickListener(v -> {
+                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+                prefs.edit().putString("language", codes[pos]).apply();
+                eu.kodanetwork.mchost.App.applyLanguage(SettingsActivity.this, codes[pos]);
+                selector.setText(displayLangs[pos]);
+                sheet.dismiss();
+                recreate();
+            });
+            content.addView(row);
+
+            if (i < codes.length - 1) {
+                View sep = new View(this);
+                sep.setBackgroundColor(0xFF2A2226);
+                content.addView(sep, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 1));
+            }
+        }
+
+        sheet.setContentView(content);
+        sheet.setCancelable(true);
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
     }
 
     private void updateLanguageUI() {

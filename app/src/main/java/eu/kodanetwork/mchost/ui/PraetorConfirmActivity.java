@@ -167,13 +167,7 @@ public class PraetorConfirmActivity extends Activity {
         eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(
                 sheet.findViewById(R.id.sheet_account_confirm_root));
         android.view.View triangle = sheet.findViewById(R.id.tv_warning_triangle);
-        if (triangle != null) {
-            android.animation.ObjectAnimator blink = android.animation.ObjectAnimator.ofFloat(
-                    triangle, "alpha", 1f, 0f, 1f, 0f, 1f);
-            blink.setDuration(900);
-            blink.setStartDelay(250);
-            blink.start();
-        }
+        if (triangle != null) triangle.setVisibility(android.view.View.GONE);
     }
 
     /** the network line only shows up when the connection is actually missing. */
