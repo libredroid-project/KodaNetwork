@@ -167,6 +167,7 @@ BEGIN
       INTO v_result
       FROM (
         SELECT n.id,
+               n.created_at,
                n.created_at AS sort_at,
                n.kind,
                n.title,

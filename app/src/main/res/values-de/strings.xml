@@ -1692,4 +1692,6 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="notif_yesterday">Gestern</string>
     <string name="account_deleted">Konto gelöscht.</string>
     <string name="account_delete_failed">Konto konnte nicht gelöscht werden: %1$s</string>
+    <string name="notif_open">Öffnen</string>
+    <string name="notif_delete_one">Benachrichtigung löschen</string>
 </resources>

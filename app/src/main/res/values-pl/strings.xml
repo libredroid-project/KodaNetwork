@@ -1631,4 +1631,6 @@ Jeśli chcesz usunąć także swoje dane, użyj "Poproś o pełne usunięcie dan
     <string name="notif_yesterday">Wczoraj</string>
     <string name="account_deleted">Konto usunięte.</string>
     <string name="account_delete_failed">Nie udało się usunąć konta: %1$s</string>
+    <string name="notif_open">Otwórz</string>
+    <string name="notif_delete_one">Usuń powiadomienie</string>
 </resources>

@@ -164,7 +164,9 @@ public final class NotificationCenter {
             java.text.SimpleDateFormat fmt =
                     new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US);
             fmt.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-            String clean = iso.length() > 19 ? iso.substring(0, 19) : iso;
+            // postgrest can send a space instead of the T, both are valid here
+            String clean = iso.replace(' ', 'T');
+            if (clean.length() > 19) clean = clean.substring(0, 19);
             java.util.Date date = fmt.parse(clean);
             return date == null ? 0 : date.getTime();
         } catch (Exception e) {

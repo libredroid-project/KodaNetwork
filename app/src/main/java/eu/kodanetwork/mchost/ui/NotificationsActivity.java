@@ -55,8 +55,9 @@ public class NotificationsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        ThemeHelper.apply(this);
+        eu.kodanetwork.mchost.util.Material3ThemeHelper.applyTheme(this);
         super.onCreate(savedInstanceState);
+        ThemeHelper.apply(this);
         setContentView(R.layout.activity_notifications);
 
         list = findViewById(R.id.layout_list);
@@ -81,6 +82,94 @@ public class NotificationsActivity extends AppCompatActivity {
         buildFilters();
         render();
         reload();
+        styleScreen();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // the theme pass runs again on resume, so the font/color fix has to run after it
+        styleScreen();
+        // something new may have arrived while the screen sat in the background
+        reload();
+    }
+
+    /**
+     * ThemeHelper forces its own typeface on the views it sees when it runs, and rows
+     * that are inflated later keep font_koda. resetting the whole screen after every
+     * theme pass keeps the header, the empty state and the rows identical.
+     */
+    private void styleScreen() {
+        applyKodaFont(findViewById(android.R.id.content));
+        // the shared title id gets the accent caps style from the theme, this screen
+        // wants the normal white header like the ticket list
+        TextView title = findViewById(R.id.tv_title);
+        if (title != null) {
+            title.setTextColor(0xFFFFFFFF);
+            title.setLetterSpacing(0f);
+            title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 18);
+            title.setTag(R.id.tag_themed, "STYLED");
+        }
+    }
+
+    /** a tap opens the full text first, the link is one more tap away. */
+    private void openDetail(final NotificationCenter.Item item) {
+        HapticUtil.forceVibrate(this, 30);
+        NotificationCenter.markRead(this, item.id);
+
+        final KodaSheet sheet = KodaSheet.create(this, item.title);
+        String meta = NotificationCenter.kindLabel(this, item.kind);
+        String when = fullDate(item.createdAt);
+        if (!when.isEmpty()) meta = meta + " \u00b7 " + when;
+        sheet.label(meta);
+        sheet.text(item.body == null ? "" : item.body, 0xFFBCBCC6);
+
+        boolean hasAction = item.action != null && !item.action.trim().isEmpty();
+        if (hasAction) {
+            sheet.primary(getString(R.string.notif_open), v -> {
+                sheet.sheet.dismiss();
+                NotificationCenter.openAction(this, item.action);
+                reload();
+            });
+        }
+        sheet.row(getString(R.string.notif_delete_one), null, true, v -> {
+            sheet.sheet.dismiss();
+            NotificationCenter.delete(this, item.id);
+            Toast.makeText(this, R.string.notif_deleted, Toast.LENGTH_SHORT).show();
+            reload();
+        });
+        if (!hasAction) {
+            sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        }
+        sheet.show();
+        render();
+    }
+
+    private String fullDate(long timestamp) {
+        if (timestamp <= 0) return "";
+        return new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault())
+                .format(new java.util.Date(timestamp));
+    }
+
+    /** same font everywhere on this screen, no matter when a row was inflated. */
+    private void applyKodaFont(View view) {
+        if (view == null) return;
+        android.graphics.Typeface koda =
+                androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda);
+        if (koda == null) return;
+        if (view instanceof TextView) {
+            TextView tv = (TextView) view;
+            tv.setTypeface(koda, tv.getTypeface() == null
+                    ? android.graphics.Typeface.NORMAL : tv.getTypeface().getStyle());
+            // mark it so the delayed theme pass does not put monospace back on it
+            tv.setTag(R.id.tag_themed, "STYLED");
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                applyKodaFont(group.getChildAt(i));
+            }
+        }
     }
 
     private void reload() {
@@ -145,6 +234,8 @@ public class NotificationsActivity extends AppCompatActivity {
             shown++;
         }
         empty.setVisibility(shown == 0 ? View.VISIBLE : View.GONE);
+        // rows are inflated after the theme pass, so the font fix runs again here
+        applyKodaFont(list);
     }
 
     private long dayOf(long timestamp) {
@@ -215,12 +306,7 @@ public class NotificationsActivity extends AppCompatActivity {
                     android.graphics.Typeface.BOLD);
         }
 
-        view.setOnClickListener(v -> {
-            HapticUtil.forceVibrate(this, 30);
-            NotificationCenter.markRead(this, item.id);
-            NotificationCenter.openAction(this, item.action);
-            reload();
-        });
+        view.setOnClickListener(v -> openDetail(item));
 
         View del = view.findViewById(R.id.btn_delete_notif);
         if (del != null) {

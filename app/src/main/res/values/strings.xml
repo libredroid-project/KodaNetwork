@@ -1681,4 +1681,6 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="notif_yesterday">Yesterday</string>
     <string name="account_deleted">Account deleted.</string>
     <string name="account_delete_failed">Could not delete the account: %1$s</string>
+    <string name="notif_open">Open</string>
+    <string name="notif_delete_one">Delete notification</string>
 </resources>
