@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS public.data_requests (
     auth_id uuid NULL,
     kind text NOT NULL CHECK (kind IN ('EXPORT', 'DELETE')),
     status text NOT NULL DEFAULT 'PENDING'
-        CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'FULFILLED', 'CANCELLED')),
+        CHECK (status IN ('PENDING', 'READY', 'APPROVED', 'REJECTED', 'FULFILLED', 'CANCELLED')),
     note text NULL,
     admin_note text NULL,
     requested_at timestamptz NOT NULL DEFAULT now(),
@@ -495,20 +495,31 @@ BEGIN
         RAISE EXCEPTION 'Request not found or already decided';
     END IF;
 
-    INSERT INTO public.app_notifications
-        (kind, title, body, action, target_app_uuid, severity, created_by, i18n_key, i18n_args)
-    VALUES
-        ('DATA',
-         CASE WHEN p_status = 'APPROVED' THEN 'Data request approved' ELSE 'Data request rejected' END,
-         CASE WHEN p_status = 'APPROVED'
-              THEN 'Your request was approved, we are on it.'
-              ELSE COALESCE(NULLIF(TRIM(p_admin_note), ''), 'Your request was rejected.') END,
-         'data_request:' || p_request_id,
-         v_req.app_uuid,
-         'IMPORTANT',
-         'admin',
-         CASE WHEN p_status = 'APPROVED' THEN 'data_request_approved' ELSE 'data_request_rejected' END,
-         jsonb_build_object('kind', v_req.kind));
+    -- exports get their notification when the zip goes out, deletions are announced here
+    IF v_req.kind = 'DELETE' THEN
+        INSERT INTO public.app_notifications
+            (kind, title, body, action, target_app_uuid, severity, created_by, i18n_key, i18n_args)
+        VALUES
+            ('DATA',
+             CASE WHEN p_status = 'APPROVED' THEN 'Data request approved' ELSE 'Data request rejected' END,
+             CASE WHEN p_status = 'APPROVED'
+                  THEN 'Your request was approved, we are on it.'
+                  ELSE COALESCE(NULLIF(TRIM(p_admin_note), ''), 'Your request was rejected.') END,
+             'data_request:' || p_request_id,
+             v_req.app_uuid,
+             'IMPORTANT',
+             'admin',
+             CASE WHEN p_status = 'APPROVED' THEN 'data_request_approved' ELSE 'data_request_rejected' END,
+             jsonb_build_object('kind', v_req.kind));
+    ELSIF p_status = 'REJECTED' THEN
+        INSERT INTO public.app_notifications
+            (kind, title, body, action, target_app_uuid, severity, created_by, i18n_key, i18n_args)
+        VALUES
+            ('DATA', 'Data request rejected',
+             COALESCE(NULLIF(TRIM(p_admin_note), ''), 'Your request was rejected.'),
+             'data_request:' || p_request_id, v_req.app_uuid, 'IMPORTANT', 'admin',
+             'data_request_rejected', jsonb_build_object('kind', v_req.kind));
+    END IF;
 
     RETURN true;
 END;

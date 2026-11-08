@@ -1664,4 +1664,5 @@
     <string name="account_delete_failed">无法删除账户：%1$s</string>
     <string name="notif_open">打开</string>
     <string name="notif_delete_one">删除通知</string>
+    <string name="data_request_status_ready">审核中</string>
 </resources>

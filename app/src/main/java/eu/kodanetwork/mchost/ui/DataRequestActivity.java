@@ -245,10 +245,10 @@ public class DataRequestActivity extends AppCompatActivity {
 
     private void saveToDownloads(byte[] data, String requestId) {
         try {
-            String name = "kodahosting-export-" + requestId + ".json";
+            String name = "kodahosting-export-" + requestId + ".zip";
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
             if (Build.VERSION.SDK_INT >= 29) {
                 values.put(MediaStore.MediaColumns.RELATIVE_PATH,
                         android.os.Environment.DIRECTORY_DOWNLOADS);

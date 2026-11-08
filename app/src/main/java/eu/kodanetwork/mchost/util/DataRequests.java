@@ -223,6 +223,8 @@ public final class DataRequests {
                 return context.getString(eu.kodanetwork.mchost.R.string.data_request_status_pending);
             case "APPROVED":
                 return context.getString(eu.kodanetwork.mchost.R.string.data_request_status_approved);
+            case "READY":
+                return context.getString(eu.kodanetwork.mchost.R.string.data_request_status_ready);
             case "REJECTED":
                 return context.getString(eu.kodanetwork.mchost.R.string.data_request_status_rejected);
             case "FULFILLED":
@@ -238,6 +240,8 @@ public final class DataRequests {
         switch (status == null ? "" : status.toUpperCase(java.util.Locale.ROOT)) {
             case "APPROVED":
                 return 0xFF00E676;
+            case "READY":
+                return 0xFF64B5F6;
             case "REJECTED":
                 return 0xFFFF8A80;
             case "FULFILLED":

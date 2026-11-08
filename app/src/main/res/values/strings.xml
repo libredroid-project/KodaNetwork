@@ -1683,4 +1683,5 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="account_delete_failed">Could not delete the account: %1$s</string>
     <string name="notif_open">Open</string>
     <string name="notif_delete_one">Delete notification</string>
+    <string name="data_request_status_ready">Under review</string>
 </resources>
