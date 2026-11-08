@@ -36,6 +36,8 @@ public class SupportSelectionDialog extends Dialog {
     public interface SupportDialogListener {
         void onReportBugClicked();
         void onReportServerClicked();
+        void onQuestionClicked();
+        void onIdeaClicked();
         void onMyTicketsClicked();
     }
 
@@ -90,6 +92,18 @@ public class SupportSelectionDialog extends Dialog {
             if (!requireLogin()) return;
             dismiss();
             if (listener != null) listener.onReportServerClicked();
+        });
+
+        findViewById(R.id.btn_question).setOnClickListener(v -> {
+            if (!requireLogin()) return;
+            dismiss();
+            if (listener != null) listener.onQuestionClicked();
+        });
+
+        findViewById(R.id.btn_idea).setOnClickListener(v -> {
+            if (!requireLogin()) return;
+            dismiss();
+            if (listener != null) listener.onIdeaClicked();
         });
 
         findViewById(R.id.btn_my_tickets).setOnClickListener(v -> {

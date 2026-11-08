@@ -219,7 +219,42 @@ public class PraetorConfirmActivity extends Activity {
         }.start();
     }
 
+    /** removes the login only, servers and files are kept on purpose. */
+    private void deleteAccountOnly() {
+        btnConfirm.setEnabled(false);
+        eu.kodanetwork.mchost.network.supabase.SupabaseAuth.deleteUser(this,
+                new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
+                    @Override
+                    public void onSuccess() {
+                        runOnUiThread(() -> {
+                            eu.kodanetwork.mchost.network.supabase.SupabaseAuth.logout(PraetorConfirmActivity.this);
+                            Toast.makeText(PraetorConfirmActivity.this,
+                                    R.string.account_deleted, Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(PraetorConfirmActivity.this, MainActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                        });
+                    }
+
+                    @Override
+                    public void onError(String msg) {
+                        runOnUiThread(() -> {
+                            btnConfirm.setEnabled(true);
+                            Toast.makeText(PraetorConfirmActivity.this,
+                                    getString(R.string.account_delete_failed, msg), Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
+    }
+
     private void executeDestructiveAction() {
+        // the account alone: no server is touched, they stay on the phone
+        if ("delete_account".equals(action)) {
+            deleteAccountOnly();
+            return;
+        }
+
         ServerRepo repo = ServerRepo.get(this);
         List<ServerInstance> allServers = repo.all();
         
@@ -282,28 +317,6 @@ public class PraetorConfirmActivity extends Activity {
             }
 
             runOnUiThread(() -> {
-                if ("delete_account".equals(action)) {
-                    eu.kodanetwork.mchost.network.supabase.SupabaseAuth.deleteUser(PraetorConfirmActivity.this, new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
-                        @Override public void onSuccess() {
-                            runOnUiThread(() -> {
-                                eu.kodanetwork.mchost.network.supabase.SupabaseAuth.logout(PraetorConfirmActivity.this);
-                                Toast.makeText(PraetorConfirmActivity.this, "Account deleted.", Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(PraetorConfirmActivity.this, MainActivity.class);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                startActivity(intent);
-                                finish();
-                            });
-                        }
-                        @Override public void onError(String msg) {
-                            runOnUiThread(() -> {
-                                Toast.makeText(PraetorConfirmActivity.this, "Error: " + msg, Toast.LENGTH_LONG).show();
-                                finish();
-                            });
-                        }
-                    });
-                    return;
-                }
-
                 Toast.makeText(PraetorConfirmActivity.this, "All servers deleted.", Toast.LENGTH_SHORT).show();
 
                 if ("revoke_tos".equals(action)) {

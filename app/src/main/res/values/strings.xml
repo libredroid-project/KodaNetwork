@@ -379,7 +379,9 @@
     <string name="cdns_use_existing">Use existing: %1$s</string>
     <string name="cdns_open_app">Open %1$s App</string>
     <string name="cdns_open_settings">%1$s Settings</string>
-    <string name="praetor_delete_account_explanation">You are about to permanently delete your KodaHosting account. This action cannot be undone.\n\n• All your servers, worlds, and plugin data will be irrevocably deleted.\n• KodaHosting support cannot restore deleted accounts.\n• Any subdomains registered under your account will be released to the public pool.\n• Your personal data will be purged in compliance with GDPR guidelines.</string>
+    <string name="praetor_delete_account_explanation">This removes only your KodaHosting account and the login on this device. Your servers, worlds and files stay on the phone and keep running.
+
+If you want your data deleted as well, use "Request full data deletion" in the account sheet.</string>
 
 
     <string name="dev_options">DEVELOPER OPTIONS</string>
@@ -1622,4 +1624,61 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="account_logout_body">Log out of KodaHosting on this phone? The servers on this phone stay here.</string>
     <string name="account_logged_out">Logged out</string>
     <string name="account_sheet_title">Account</string>
+    <string name="idea">Idea</string>
+    <string name="chat_type_question">Question</string>
+    <string name="chat_type_idea">Idea</string>
+    <string name="ticket_subject_question">What is your question?</string>
+    <string name="ticket_subject_idea">What should we add?</string>
+    <string name="notif_title">Notifications</string>
+    <string name="notif_empty">Nothing here yet. New messages from the team show up here.</string>
+    <string name="notif_mark_all">Mark all as read</string>
+    <string name="notif_clear_all">Delete all</string>
+    <string name="notif_filter_all">All</string>
+    <string name="notif_settings_title">Notification settings</string>
+    <string name="notif_settings_desc">Choose what should reach this device. The inbox keeps everything.</string>
+    <string name="notif_mute">Mute</string>
+    <string name="notif_email">Also by e-mail</string>
+    <string name="notif_kind_system">System</string>
+    <string name="notif_kind_support">Support</string>
+    <string name="notif_kind_release">Updates</string>
+    <string name="notif_kind_security">Security</string>
+    <string name="notif_kind_account">Account</string>
+    <string name="notif_kind_data">Data</string>
+    <string name="notif_data_approved_title">Data request approved</string>
+    <string name="notif_data_approved_body">Your request was approved. We are on it and will notify you when it is done.</string>
+    <string name="notif_data_rejected_title">Data request rejected</string>
+    <string name="notif_data_rejected_body">Your request was rejected. Open the request to see the reason.</string>
+    <string name="notif_export_ready_title">Your data export is ready</string>
+    <string name="notif_export_ready_body">Open the request in the app to download it, the link works for seven days.</string>
+    <string name="notif_new_channel">Notifications</string>
+    <string name="notif_deleted">Notification deleted</string>
+    <string name="notif_settings_saved">Saved</string>
+    <string name="data_requests_title">My requests</string>
+    <string name="data_request_export">Request my data</string>
+    <string name="data_request_export_desc">Get a copy of everything KodaHosting stores about you.</string>
+    <string name="data_request_delete">Request full data deletion</string>
+    <string name="data_request_delete_desc">Deletes account and data, legally required records stay until their deadline.</string>
+    <string name="data_request_kind_export">Data export</string>
+    <string name="data_request_kind_delete">Full data deletion</string>
+    <string name="data_request_status_pending">Pending</string>
+    <string name="data_request_status_approved">Approved</string>
+    <string name="data_request_status_rejected">Rejected</string>
+    <string name="data_request_status_fulfilled">Done</string>
+    <string name="data_request_status_cancelled">Withdrawn</string>
+    <string name="data_request_cancel">Withdraw</string>
+    <string name="data_request_download">Download export</string>
+    <string name="data_request_downloading">Downloading…</string>
+    <string name="data_request_saved">Saved to Downloads</string>
+    <string name="data_request_download_failed">Download failed</string>
+    <string name="data_request_created">Request sent, you will get a notification.</string>
+    <string name="data_request_failed">Request could not be sent.</string>
+    <string name="data_request_note_hint">Anything we should know? (optional)</string>
+    <string name="data_request_delete_confirm_title">Request full data deletion?</string>
+    <string name="data_request_delete_confirm_body">An admin has to approve this first. Then your account and all data are deleted. Only records we must keep by law (billing, contract) stay in a separate table until their deadline.</string>
+    <string name="data_request_empty">No requests yet.</string>
+    <string name="account_delete_only">This removes only your KodaHosting account and the login on this device. Your servers and files stay on the phone.</string>
+    <string name="notif_today">Today</string>
+    <string name="notif_yesterday">Yesterday</string>
+    <string name="account_deleted">Account deleted.</string>
+    <string name="account_delete_failed">Could not delete the account: %1$s</string>
 </resources>

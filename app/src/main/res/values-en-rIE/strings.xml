@@ -306,7 +306,9 @@
     <string name="cdns_use_existing">Use existing: %1$s</string>
     <string name="cdns_open_app">Open %1$s App</string>
     <string name="cdns_open_settings">%1$s Tweaks</string>
-    <string name="praetor_delete_account_explanation">Ur about to permanently yeet ur KodaHosting account. No take-backs.\n\n• All ur servs, worlds &amp; plugin data = gone for good.\n• KodaHosting support can\'t restore deleted accounts, sry.\n• Any subdomains under ur account go back to the public pool.\n• Ur personal data gets purged, GDPR-compliant.</string>
+    <string name="praetor_delete_account_explanation">This removes only your KodaHosting account and the login on this device. Your servers, worlds and files stay on the phone and keep running.
+
+If you want your data deleted as well, use "Request full data deletion" in the account sheet.</string>
 
 
     <string name="dev_options">DEVELOPER OPTIONS</string>

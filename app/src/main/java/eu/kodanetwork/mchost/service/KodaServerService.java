@@ -3557,6 +3557,8 @@ public class KodaServerService extends Service {
         String appUuid = prefs.getString("app_uuid", "");
         String deviceToken = prefs.getString("device_token", "");
         if (appUuid.isEmpty() || deviceToken.isEmpty()) return;
+        // the in app inbox rides on the same 30 second tick, no push service involved
+        notificationInboxTick(prefs);
         try {
             org.json.JSONObject listBody = new org.json.JSONObject();
             listBody.put("p_reporter_uuid", appUuid);
@@ -3594,6 +3596,90 @@ public class KodaServerService extends Service {
             }
         } catch (Exception e) {
             eu.kodanetwork.mchost.util.AppLogger.log("KodaTickets", "ticket check failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * polls the notification inbox, updates the badge and posts one local notification
+     * per new entry (except for muted categories). the first pass only remembers the
+     * newest id, so a fresh install does not fire a burst of old messages.
+     */
+    private void notificationInboxTick(android.content.SharedPreferences prefs) {
+        try {
+            java.util.List<eu.kodanetwork.mchost.util.NotificationCenter.Item> items =
+                    eu.kodanetwork.mchost.util.NotificationCenter.refresh(this);
+            if (items == null || items.isEmpty()) return;
+
+            String lastSeen = eu.kodanetwork.mchost.util.NotificationCenter.lastSeenId(this);
+            String newestId = items.get(0).id;
+            if (lastSeen.isEmpty()) {
+                eu.kodanetwork.mchost.util.NotificationCenter.rememberLastId(this, newestId);
+                return;
+            }
+            if (newestId.equals(lastSeen)) return;
+
+            java.util.Set<String> muted = eu.kodanetwork.mchost.util.NotificationCenter.mutedKinds(this);
+            java.util.List<eu.kodanetwork.mchost.util.NotificationCenter.Item> fresh =
+                    new java.util.ArrayList<>();
+            for (eu.kodanetwork.mchost.util.NotificationCenter.Item item : items) {
+                if (item.id == null || item.id.equals(lastSeen)) break;
+                if (!item.read) fresh.add(item);
+            }
+
+            // newest first, at most three at once so a broadcast cannot flood the shade
+            int posted = 0;
+            for (int i = fresh.size() - 1; i >= 0 && posted < 3; i--) {
+                eu.kodanetwork.mchost.util.NotificationCenter.Item item = fresh.get(i);
+                if (muted.contains(item.kind.toUpperCase(java.util.Locale.ROOT))) continue;
+                notifyInbox(item);
+                posted++;
+            }
+            eu.kodanetwork.mchost.util.NotificationCenter.rememberLastId(this, newestId);
+        } catch (Exception e) {
+            eu.kodanetwork.mchost.util.AppLogger.log("KodaNotifications",
+                    "inbox check failed: " + e.getMessage());
+        }
+    }
+
+    /** one local notification, the tap opens the inbox (the row then follows its deep link). */
+    private void notifyInbox(eu.kodanetwork.mchost.util.NotificationCenter.Item item) {
+        try {
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm == null) return;
+            String channel = item.isImportant() ? "koda_notifications_important" : "koda_notifications";
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(new android.app.NotificationChannel(
+                        "koda_notifications", getString(R.string.notif_new_channel),
+                        android.app.NotificationManager.IMPORTANCE_DEFAULT));
+                android.app.NotificationChannel important = new android.app.NotificationChannel(
+                        "koda_notifications_important", getString(R.string.notif_new_channel),
+                        android.app.NotificationManager.IMPORTANCE_HIGH);
+                important.enableVibration(true);
+                nm.createNotificationChannel(important);
+            }
+
+            android.content.Intent open = new android.content.Intent(
+                    this, eu.kodanetwork.mchost.ui.NotificationsActivity.class);
+            open.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            android.app.PendingIntent pi = android.app.PendingIntent.getActivity(this,
+                    item.id.hashCode(), open,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+
+            android.app.Notification.Builder builder = new android.app.Notification.Builder(this, channel)
+                    .setContentTitle(item.title)
+                    .setContentText(item.body)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setAutoCancel(true)
+                    .setContentIntent(pi)
+                    .setStyle(new android.app.Notification.BigTextStyle().bigText(item.body));
+            if (item.isImportant()) {
+                builder.setPriority(android.app.Notification.PRIORITY_HIGH);
+            }
+            nm.notify(item.id.hashCode(), builder.build());
+        } catch (Exception e) {
+            eu.kodanetwork.mchost.util.AppLogger.log("KodaNotifications",
+                    "notify failed: " + e.getMessage());
         }
     }
 

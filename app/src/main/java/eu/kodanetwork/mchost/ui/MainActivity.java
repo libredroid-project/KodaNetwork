@@ -390,12 +390,34 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         @Override
+                        public void onQuestionClicked() {
+                            Intent intent = new Intent(MainActivity.this, CreateSupportTicketActivity.class);
+                            intent.putExtra("TICKET_TYPE", "QUESTION");
+                            startActivity(intent);
+                        }
+
+                        @Override
+                        public void onIdeaClicked() {
+                            Intent intent = new Intent(MainActivity.this, CreateSupportTicketActivity.class);
+                            intent.putExtra("TICKET_TYPE", "IDEA");
+                            startActivity(intent);
+                        }
+
+                        @Override
                         public void onMyTicketsClicked() {
                             // open the ticket list
                             startActivity(new Intent(MainActivity.this, SupportTicketListActivity.class));
                         }
                     });
                     dialog.show();
+                });
+            }
+
+            View btnNotifications = findViewById(R.id.btn_notifications);
+            if (btnNotifications != null) {
+                btnNotifications.setOnClickListener(v -> {
+                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 40);
+                    startActivity(new Intent(this, NotificationsActivity.class));
                 });
             }
 
@@ -711,6 +733,25 @@ public class MainActivity extends AppCompatActivity {
         refresh();
         checkAppStatus();
         checkOfflineHibernations();
+        refreshNotificationBadge();
+    }
+
+    /** unread dot on the bell, updated from the cached count and refreshed in background. */
+    private void refreshNotificationBadge() {
+        android.view.View badge = findViewById(R.id.view_notif_badge);
+        if (badge == null) return;
+        badge.setVisibility(eu.kodanetwork.mchost.util.NotificationCenter.unreadCount(this) > 0
+                ? android.view.View.VISIBLE : android.view.View.GONE);
+        new Thread(() -> {
+            eu.kodanetwork.mchost.util.NotificationCenter.refresh(this);
+            runOnUiThread(() -> {
+                android.view.View b = findViewById(R.id.view_notif_badge);
+                if (b != null) {
+                    b.setVisibility(eu.kodanetwork.mchost.util.NotificationCenter.unreadCount(this) > 0
+                            ? android.view.View.VISIBLE : android.view.View.GONE);
+                }
+            });
+        }, "KodaNotifBadge").start();
     }
 
     private void checkAppStatus() {

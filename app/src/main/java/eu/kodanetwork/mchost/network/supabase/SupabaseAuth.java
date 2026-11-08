@@ -286,25 +286,50 @@ public class SupabaseAuth {
         }).start();
     }
 
+    /**
+     * removes the account (the auth user), not the device or its servers. the edge
+     * function verifies the device token and deletes the auth user with the service
+     * role, so this only reports success when it really happened.
+     */
     public static void deleteUser(Context ctx, AuthCallback cb) {
         new Thread(() -> {
+            HttpURLConnection conn = null;
             try {
-                String token = eu.kodanetwork.mchost.App.getPrefs(ctx).getString("koda_session_token", "");
-                if (token.isEmpty()) { cb.onError("Not logged in"); return; }
-                
-                URL url = new URL(eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl() + "/rest/v1/rpc/delete_user");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                String appUuid = eu.kodanetwork.mchost.App.getPrefs(ctx).getString("app_uuid", "");
+                String deviceToken = eu.kodanetwork.mchost.App.getPrefs(ctx).getString("device_token", "");
+                if (appUuid.isEmpty() || deviceToken.isEmpty()) {
+                    cb.onError("No device identity");
+                    return;
+                }
+
+                URL url = new URL(eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                        + "/functions/v1/delete-account");
+                if (!"https".equals(url.getProtocol())) {
+                    cb.onError("Insecure endpoint");
+                    return;
+                }
+                conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setRequestProperty("apikey", eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
-                conn.setRequestProperty("Authorization", "Bearer " + token);
-                
+                conn.setRequestProperty("Authorization",
+                        "Bearer " + eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(25000);
+                String body = "{\"app_uuid\":\"" + appUuid + "\",\"device_token\":\"" + deviceToken + "\"}";
+                conn.getOutputStream().write(body.getBytes("UTF-8"));
+
                 int code = conn.getResponseCode();
-                // a 404 is fine when the RPC does not exist, the local logout has to happen anyway
-                // so this always reports success
-                cb.onSuccess();
+                if (code >= 200 && code < 300) {
+                    cb.onSuccess();
+                } else {
+                    cb.onError("HTTP " + code);
+                }
             } catch (Exception e) {
-                cb.onSuccess(); // log them out locally either way
+                cb.onError(e.getMessage() == null ? "delete failed" : e.getMessage());
+            } finally {
+                if (conn != null) conn.disconnect();
             }
         }).start();
     }

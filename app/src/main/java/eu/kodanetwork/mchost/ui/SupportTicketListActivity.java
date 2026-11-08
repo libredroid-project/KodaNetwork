@@ -118,6 +118,10 @@ public class SupportTicketListActivity extends AppCompatActivity {
                 return getString(R.string.chat_type_personal);
             case "SUPPORT":
                 return getString(R.string.chat_type_support);
+            case "QUESTION":
+                return getString(R.string.chat_type_question);
+            case "IDEA":
+                return getString(R.string.chat_type_idea);
             default:
                 return rawType == null ? "" : rawType;
         }

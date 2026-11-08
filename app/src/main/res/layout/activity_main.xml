@@ -91,6 +91,27 @@
             android:contentDescription="@string/support"
             android:background="?attr/selectableItemBackgroundBorderless"/>
 
+        <!-- notifications: the badge shows whether something is new -->
+        <FrameLayout android:id="@+id/btn_notifications"
+            android:layout_width="36dp" android:layout_height="36dp"
+            android:clickable="true" android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageButton
+                android:layout_width="36dp" android:layout_height="36dp"
+                android:padding="8dp" android:scaleType="fitCenter"
+                android:src="@drawable/ic_lucide_bell" app:tint="#8A8A9A"
+                android:background="@null" android:clickable="false" android:focusable="false"
+                android:contentDescription="@string/notif_title"/>
+
+            <View android:id="@+id/view_notif_badge"
+                android:layout_width="9dp" android:layout_height="9dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="6dp" android:layout_marginEnd="5dp"
+                android:background="@drawable/bg_notif_badge"
+                android:visibility="gone"/>
+        </FrameLayout>
+
         <ImageButton android:id="@+id/btn_settings"
             android:layout_width="36dp" android:layout_height="36dp"
             android:padding="8dp"

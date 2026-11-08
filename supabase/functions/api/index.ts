@@ -1601,6 +1601,49 @@ async function dnsBootstrap(req: Request, body: any, cors: Record<string, string
 // router
 // ---------------------------------------------------------------------------
 
+/**
+ * Device-token download for a finished data export. the app never gets storage
+ * credentials, only a short signed url for its own request. everything that could
+ * point at another device is rejected.
+ */
+async function deviceDataExport(admin: Admin, body: any, cors: Record<string, string>) {
+  const appUuid = String(body.app_uuid ?? "").trim();
+  const token = String(body.device_token ?? "").trim();
+  const requestId = String(body.request_id ?? "").trim();
+  if (!appUuid || !token || !requestId) return fail("missing_parameters", 400, cors);
+
+  const retry = await rateTake(admin, `export:${appUuid}`, 20);
+  if (retry > 0) return tooMany(retry, cors);
+
+  const { data: rows } = await admin
+    .from("koda_users")
+    .select("device_token")
+    .eq("app_uuid", appUuid)
+    .eq("device_token", token)
+    .limit(1);
+  if (!Array.isArray(rows) || rows.length === 0) return fail("unauthorized", 401, cors);
+
+  const { data: row } = await admin
+    .from("data_requests")
+    .select("id,app_uuid,kind,status,export_path,export_expires_at")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!row || row.app_uuid !== appUuid || row.kind !== "EXPORT") return fail("not_found", 404, cors);
+  if (row.status !== "FULFILLED" || !row.export_path) return fail("not_ready", 409, cors);
+  if (!row.export_expires_at || new Date(row.export_expires_at).getTime() < Date.now()) {
+    return fail("expired", 410, cors);
+  }
+
+  const path = String(row.export_path);
+  if (!path.startsWith(appUuid + "/")) return fail("not_found", 404, cors);
+
+  const ttl = Math.max(60, Math.floor((new Date(row.export_expires_at).getTime() - Date.now()) / 1000));
+  const { data: signed } = await admin.storage.from("data_exports").createSignedUrl(path, ttl);
+  if (!signed?.signedUrl) return fail("sign_failed", 500, cors);
+
+  return json({ ok: true, url: signed.signedUrl, expires_at: row.export_expires_at }, 200, cors);
+}
+
 Deno.serve(async (req) => {
   const cors = corsFor(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -1672,6 +1715,11 @@ Deno.serve(async (req) => {
     }
     if (seg.length === 4 && seg[1] === "extensions" && seg[3] === "download" && req.method === "GET") {
       return await downloadExtension(admin, seg[2], url, cors);
+    }
+
+    // --- device token (app) ---
+    if (seg.length === 3 && seg[1] === "device" && seg[2] === "data-export" && req.method === "POST") {
+      return await deviceDataExport(admin, await jsonBody(req), cors);
     }
 
     // --- JWT ---

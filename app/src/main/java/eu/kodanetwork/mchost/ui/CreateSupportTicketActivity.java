@@ -50,15 +50,28 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
 
         TextView tvTitle = findViewById(R.id.tv_title);
         EditText etReference = findViewById(R.id.et_reference);
+        // questions and ideas have no "reference", the message alone is the ticket.
         // "PERSONAL" comes from the crisis support screen: a private message, no diagnostics
+        final boolean wantsReference = !("QUESTION".equals(ticketType) || "IDEA".equals(ticketType)
+                || "PERSONAL".equals(ticketType));
         if ("PERSONAL".equals(ticketType)) {
             // already set above, must not fall through to the bug default
         } else if (ticketType.equals("SERVER_REPORT")) {
             tvTitle.setText("Report Server");
             etReference.setHint("Name of the server");
+        } else if (ticketType.equals("QUESTION")) {
+            tvTitle.setText(R.string.chat_type_question);
+            etReference.setHint(R.string.ticket_subject_question);
+        } else if (ticketType.equals("IDEA")) {
+            tvTitle.setText(R.string.chat_type_idea);
+            etReference.setHint(R.string.ticket_subject_idea);
         } else {
             tvTitle.setText("Report Bug");
             etReference.setHint("Short Summary of the bug");
+        }
+        if (!wantsReference) {
+            // no separate subject: the first line of the message becomes the title
+            etReference.setVisibility(android.view.View.GONE);
         }
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
@@ -67,9 +80,12 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
             String reference = etReference.getText().toString().trim();
             String message = ((EditText) findViewById(R.id.et_message)).getText().toString().trim();
 
-            if (reference.isEmpty() || message.isEmpty()) {
+            if (message.isEmpty() || (wantsReference && reference.isEmpty())) {
                 Toast.makeText(this, "Please fill out all fields", Toast.LENGTH_SHORT).show();
                 return;
+            }
+            if (!wantsReference) {
+                reference = message.length() > 120 ? message.substring(0, 120) : message;
             }
 
             createTicket(reference, message);

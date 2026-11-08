@@ -309,6 +309,14 @@
         <activity android:name=".ui.SupportTicketListActivity"
             android:exported="false"
             />
+
+        <activity android:name=".ui.NotificationsActivity"
+            android:exported="false"
+            />
+
+        <activity android:name=".ui.DataRequestActivity"
+            android:exported="false"
+            />
             
         <activity android:name=".ui.SupportChatActivity"
             android:exported="false"

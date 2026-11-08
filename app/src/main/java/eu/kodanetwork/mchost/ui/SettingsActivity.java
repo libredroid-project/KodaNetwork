@@ -1407,6 +1407,23 @@ public class SettingsActivity extends Activity {
                 showChangePasswordSheet(email);
             });
             sheet.divider();
+            sheet.row(getString(R.string.data_request_export),
+                    getString(R.string.data_request_export_desc), false, x -> {
+                        sheet.sheet.dismiss();
+                        createDataRequest(eu.kodanetwork.mchost.util.DataRequests.EXPORT);
+                    });
+            sheet.divider();
+            sheet.row(getString(R.string.data_request_delete),
+                    getString(R.string.data_request_delete_desc), true, x -> {
+                        sheet.sheet.dismiss();
+                        confirmDataDeleteRequest();
+                    });
+            sheet.divider();
+            sheet.row(getString(R.string.data_requests_title), null, false, x -> {
+                sheet.sheet.dismiss();
+                startActivity(new Intent(this, eu.kodanetwork.mchost.ui.DataRequestActivity.class));
+            });
+            sheet.divider();
             sheet.row(getString(R.string.praetor_action_delete_account), null, true, x -> {
                 sheet.sheet.dismiss();
                 Intent intent = new Intent(this, eu.kodanetwork.mchost.ui.PraetorConfirmActivity.class);
@@ -1425,6 +1442,30 @@ public class SettingsActivity extends Activity {
 
         setupSupport();
       }
+
+    private void createDataRequest(final String kind) {
+        eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 50);
+        new Thread(() -> {
+            String id = eu.kodanetwork.mchost.util.DataRequests.create(this, kind, "");
+            runOnUiThread(() -> Toast.makeText(this,
+                    id != null ? R.string.data_request_created : R.string.data_request_failed,
+                    Toast.LENGTH_LONG).show());
+        }, "KodaDataRequest").start();
+    }
+
+    /** the full delete needs an admin decision, so it asks once more with the wait. */
+    private void confirmDataDeleteRequest() {
+        eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.data_request_delete_confirm_title),
+                getString(R.string.data_request_delete_confirm_body));
+        sheet.primaryWithCountdown(getString(R.string.data_request_delete), 5, v -> {
+            sheet.sheet.dismiss();
+            createDataRequest(eu.kodanetwork.mchost.util.DataRequests.DELETE);
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
 
     /** change password of the app account, three fields in the shared sheet chrome. */
     private void showChangePasswordSheet(final String email) {

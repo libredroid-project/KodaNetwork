@@ -411,7 +411,9 @@
     <string name="cdns_use_existing">使用现有: %1$s</string>
     <string name="cdns_open_app">打开 %1$s 应用</string>
     <string name="cdns_open_settings">%1$s 设置</string>
-    <string name="praetor_delete_account_explanation">您即将永久删除您的 KodaHosting 账号。此操作无法撤销。\n\n• 您所有的服务器、世界和插件数据将被不可撤销地删除。\n• KodaHosting 支持无法恢复已删除的账号。\n• 您账号下注册的所有子域名将被释放到公共池。\n• 您的个人数据将按照 GDPR 指南被清除。</string>
+    <string name="praetor_delete_account_explanation">这只会删除你的 KodaHosting 账户和此设备上的登录。服务器、世界和文件会保留在手机上并继续运行。
+
+如果想同时删除你的数据，请在账户面板中使用“申请完全删除数据”。</string>
 
     <!-- strings only the developer mode ever shows -->
     <string name="dev_options">开发者选项</string>
@@ -1603,4 +1605,61 @@
     <string name="account_logout_body">要在这台手机上退出 KodaHosting 吗？这台手机上的服务器会保留。</string>
     <string name="account_logged_out">已退出登录</string>
     <string name="account_sheet_title">账户</string>
+    <string name="idea">建议</string>
+    <string name="chat_type_question">问题</string>
+    <string name="chat_type_idea">建议</string>
+    <string name="ticket_subject_question">你的问题是什么？</string>
+    <string name="ticket_subject_idea">我们应该增加什么？</string>
+    <string name="notif_title">通知</string>
+    <string name="notif_empty">这里还没有内容。团队的新消息会显示在这里。</string>
+    <string name="notif_mark_all">全部标为已读</string>
+    <string name="notif_clear_all">全部删除</string>
+    <string name="notif_filter_all">全部</string>
+    <string name="notif_settings_title">通知设置</string>
+    <string name="notif_settings_desc">选择此设备接收哪些通知。收件箱会保留全部内容。</string>
+    <string name="notif_mute">静音</string>
+    <string name="notif_email">同时发送电子邮件</string>
+    <string name="notif_kind_system">系统</string>
+    <string name="notif_kind_support">支持</string>
+    <string name="notif_kind_release">更新</string>
+    <string name="notif_kind_security">安全</string>
+    <string name="notif_kind_account">账户</string>
+    <string name="notif_kind_data">数据</string>
+    <string name="notif_data_approved_title">数据申请已批准</string>
+    <string name="notif_data_approved_body">你的申请已获批准，我们会尽快处理并通知你。</string>
+    <string name="notif_data_rejected_title">数据申请被拒绝</string>
+    <string name="notif_data_rejected_body">你的申请被拒绝，打开申请查看原因。</string>
+    <string name="notif_export_ready_title">你的数据导出已准备好</string>
+    <string name="notif_export_ready_body">在应用中打开申请即可下载，链接有效七天。</string>
+    <string name="notif_new_channel">通知</string>
+    <string name="notif_deleted">通知已删除</string>
+    <string name="notif_settings_saved">已保存</string>
+    <string name="data_requests_title">我的申请</string>
+    <string name="data_request_export">申请我的数据</string>
+    <string name="data_request_export_desc">获取 KodaHosting 存储的关于你的全部数据副本。</string>
+    <string name="data_request_delete">申请完全删除数据</string>
+    <string name="data_request_delete_desc">删除账户和数据，法律要求的记录保留至期限。</string>
+    <string name="data_request_kind_export">数据导出</string>
+    <string name="data_request_kind_delete">完全删除数据</string>
+    <string name="data_request_status_pending">待处理</string>
+    <string name="data_request_status_approved">已批准</string>
+    <string name="data_request_status_rejected">已拒绝</string>
+    <string name="data_request_status_fulfilled">已完成</string>
+    <string name="data_request_status_cancelled">已撤回</string>
+    <string name="data_request_cancel">撤回</string>
+    <string name="data_request_download">下载导出</string>
+    <string name="data_request_downloading">正在下载…</string>
+    <string name="data_request_saved">已保存到下载</string>
+    <string name="data_request_download_failed">下载失败</string>
+    <string name="data_request_created">申请已发送，你会收到通知。</string>
+    <string name="data_request_failed">申请发送失败。</string>
+    <string name="data_request_note_hint">需要我们知道什么吗？（可选）</string>
+    <string name="data_request_delete_confirm_title">申请完全删除数据？</string>
+    <string name="data_request_delete_confirm_body">需要管理员先批准。之后账户和全部数据将被删除。只有法律要求保留的记录（账务、合同）会在单独的表中保留至期限。</string>
+    <string name="data_request_empty">还没有申请。</string>
+    <string name="account_delete_only">这只会删除你的 KodaHosting 账户和此设备上的登录。服务器和文件会保留在手机上。</string>
+    <string name="notif_today">今天</string>
+    <string name="notif_yesterday">昨天</string>
+    <string name="account_deleted">账户已删除。</string>
+    <string name="account_delete_failed">无法删除账户：%1$s</string>
 </resources>
