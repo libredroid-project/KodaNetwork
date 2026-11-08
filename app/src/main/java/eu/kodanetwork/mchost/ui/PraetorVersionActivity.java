@@ -61,8 +61,11 @@ public class PraetorVersionActivity extends AppCompatActivity {
         getWindow().setFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);
         if (android.os.Build.VERSION.SDK_INT >= 21) {
-            getWindow().setStatusBarColor(0xFF0A0000);
-            getWindow().setNavigationBarColor(0xFF0A0000);
+            getWindow().setStatusBarColor(0xFF241C18);
+            getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                getWindow().setNavigationBarContrastEnforced(false);
+            }
         }
         setContentView(R.layout.activity_praetor_version);
 
@@ -79,17 +82,12 @@ public class PraetorVersionActivity extends AppCompatActivity {
         String praetorHtml = "<font color=\"#555555\">P.R.</font><font color=\"#AAAAAA\">A.E.T.</font>"
                 + "<font color=\"#FFFFFF\">O.R.</font>";
         title.setText(android.text.Html.fromHtml(praetorHtml, android.text.Html.FROM_HTML_MODE_LEGACY));
+        android.view.View subtitle = findViewById(R.id.tv_praetor_subtitle);
+        if (subtitle != null) subtitle.setVisibility(android.view.View.GONE);
 
-        // blinking warning icon, exactly like the confirm screen
+        // no warning symbol any more, the red button and the copy carry the risk
         android.view.View warningIcon = findViewById(R.id.tv_warning_icon);
-        if (warningIcon != null) {
-            android.view.animation.AlphaAnimation blink =
-                    new android.view.animation.AlphaAnimation(1.0f, 0.0f);
-            blink.setDuration(700);
-            blink.setRepeatMode(android.view.animation.Animation.REVERSE);
-            blink.setRepeatCount(android.view.animation.Animation.INFINITE);
-            warningIcon.startAnimation(blink);
-        }
+        if (warningIcon != null) warningIcon.setVisibility(android.view.View.GONE);
 
         TextView headline = findViewById(R.id.tv_change_headline);
         headline.setText(downgrade ? R.string.praetor_version_downgrade : R.string.praetor_version_upgrade);
