@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
         subject: notification.title,
         heading: notification.title,
         paragraphs: [notification.body],
-        footnote: "Du bekommst diese Mail, weil du für diese Kategorie E-Mail-Kopien aktiviert hast. In der App kannst du das jederzeit ändern.",
+        footnote: "You receive this mail because you enabled e-mail copies for this category. You can change that in the app at any time.",
       });
       if (result.ok) sent++;
       else failures.push(`resend ${result.status}: ${result.error ?? "unknown"}`);

@@ -100,7 +100,7 @@ export function renderKodaMail(mail: KodaMail): string {
     ${action}
     ${footnote}
     <p style="color:#555555;font-size:11px;margin:28px 0 0;">
-      KodaHosting · host.kodanetwork.eu · Diese Mail wurde automatisch erzeugt.
+      KodaHosting · host.kodanetwork.eu · This mail was generated automatically.
     </p>
   </div>
 </body></html>`;

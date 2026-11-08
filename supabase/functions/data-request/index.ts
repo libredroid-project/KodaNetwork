@@ -573,15 +573,15 @@ async function decide(admin: Admin, body: any, cors: Record<string, string>) {
     if (mail) {
       const sent = await sendKodaMail({
         to: mail,
-        subject: "Dein KodaHosting Datenexport",
-        heading: "Deine Daten sind bereit",
+        subject: "Your KodaHosting data export",
+        heading: "Your data is ready",
         paragraphs: [
-          "Wir haben alle personenbezogenen Daten zusammengestellt, die KodaHosting zu diesem Gerät und diesem Konto gespeichert hat.",
-          "Der Link ist sieben Tage gültig. Danach kannst du jederzeit einen neuen Export beantragen.",
+          "We collected every personal record KodaHosting stores for this device and this account.",
+          "The link is valid for seven days. After that you can request a new export at any time.",
         ],
-        actionLabel: "Datenexport herunterladen",
+        actionLabel: "Download data export",
         actionUrl: link || "https://host.kodanetwork.eu/dashboard",
-        footnote: "Wenn du den Export nicht angefordert hast, ignoriere diese Mail und melde dich beim Support.",
+        footnote: "If you did not request this export, ignore this mail and contact support.",
       });
       mailed = sent.ok;
       if (mailed) {
@@ -595,15 +595,15 @@ async function decide(admin: Admin, body: any, cors: Record<string, string>) {
     const approved = decision === "APPROVED";
     const sent = await sendKodaMail({
       to: mail,
-      subject: approved ? "Dein KodaHosting Antrag wurde genehmigt" : "Dein KodaHosting Antrag wurde abgelehnt",
-      heading: approved ? "Antrag genehmigt" : "Antrag abgelehnt",
+      subject: approved ? "Your KodaHosting request was approved" : "Your KodaHosting request was rejected",
+      heading: approved ? "Request approved" : "Request rejected",
       paragraphs: approved
-        ? ["Deine Löschanfrage wurde genehmigt. Wir löschen dein Konto und alle Daten, die wir nicht gesetzlich aufbewahren müssen."]
+        ? ["Your deletion request was approved. We delete your account and all data we are not legally required to keep."]
         : [
-          "Dein Antrag wurde abgelehnt.",
-          body.admin_note ? `Begründung: ${String(body.admin_note)}` : "Bei Fragen antworte einfach auf diese Mail.",
+          "Your request was rejected.",
+          body.admin_note ? `Reason: ${String(body.admin_note)}` : "If you have questions, just reply to this mail.",
         ],
-      footnote: "Du kannst den Status jederzeit in der App unter Konto → Meine Anträge sehen.",
+      footnote: "You can check the status at any time in the app under Account → My requests.",
     });
     mailed = sent.ok;
     if (mailed) {
@@ -638,13 +638,13 @@ async function purgeData(admin: Admin, request: any, cors: Record<string, string
   if (mail) {
     const sent = await sendKodaMail({
       to: mail,
-      subject: "Dein KodaHosting Konto wurde gelöscht",
-      heading: "Deine Daten sind gelöscht",
+      subject: "Your KodaHosting account was deleted",
+      heading: "Your data is deleted",
       paragraphs: [
-        "Dein Konto und alle personenbezogenen Daten wurden gelöscht.",
-        "Nur die Daten, die wir gesetzlich aufbewahren müssen (Abrechnung und Vertragsnachweise), liegen noch in einer getrennten Aufbewahrungstabelle. Sie werden automatisch gelöscht, sobald die gesetzliche Frist endet.",
+        "Your account and all personal data were deleted.",
+        "Only the records we are legally required to keep (billing and contract proof) remain in a separate retention table. They are deleted automatically when the legal deadline ends.",
       ],
-      footnote: "Wenn du Fragen dazu hast, antworte einfach auf diese Mail oder nutze contact@kodaserv.eu.",
+      footnote: "If you have questions, reply to this mail or use contact@kodaserv.eu.",
     });
     mailed = sent.ok;
     if (mailed) {

@@ -74,15 +74,15 @@ Deno.serve(async (req) => {
     if (mail) {
       await sendKodaMail({
         to: mail,
-        subject: "Dein KodaHosting Konto wurde gelöscht",
-        heading: "Konto gelöscht",
+        subject: "Your KodaHosting account was deleted",
+        heading: "Account deleted",
         paragraphs: [
           mcName
-            ? `Das Konto für ${mcName} wurde von diesem Gerät entfernt.`
-            : "Dein KodaHosting Konto wurde von diesem Gerät entfernt.",
-          "Deine Server und Dateien bleiben auf dem Handy und laufen weiter. Wenn du auch alle Daten löschen möchtest, nutze in der App „Komplette Löschung beantragen“.",
+            ? `The account for ${mcName} was removed from this device.`
+            : "Your KodaHosting account was removed from this device.",
+          "Your servers and files stay on the phone and keep running. If you want all data deleted as well, use \"Request full data deletion\" in the app.",
         ],
-        footnote: "Falls du das nicht warst, melde dich sofort bei contact@kodaserv.eu.",
+        footnote: "If this was not you, contact contact@kodaserv.eu immediately.",
       });
     }
 
