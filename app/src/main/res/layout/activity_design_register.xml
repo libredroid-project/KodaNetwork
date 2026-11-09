@@ -165,17 +165,29 @@
             android:textSize="13sp"
             app:cornerRadius="12dp" />
 
+        <!-- the real Google button: white surface, dark label, four colour G -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_google"
-            style="@style/KodaButton.Outline"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="10dp"
+            android:backgroundTint="#FFFFFF"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:text="@string/auth_google"
-            android:textSize="13sp"
-            app:cornerRadius="12dp" />
+            android:textAllCaps="false"
+            android:textColor="#1F1F1F"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif"
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_google_g"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp"
+            app:iconSize="20dp"
+            app:iconTint="@null"
+            app:rippleColor="#1F1F1F"
+            app:strokeColor="#DADCE0"
+            app:strokeWidth="1dp" />
 
         <TextView
             android:id="@+id/tv_sign_in"
