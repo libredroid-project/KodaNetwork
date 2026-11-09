@@ -567,6 +567,17 @@ function readSubmission(body: any) {
   };
 }
 
+async function emailVerified(admin: Admin, authId: string): Promise<boolean> {
+  // verified means: the account proved control of its mail address on one of its devices
+  const { data } = await admin
+    .from("koda_users")
+    .select("email_verified_at")
+    .eq("auth_id", authId)
+    .not("email_verified_at", "is", null)
+    .limit(1);
+  return Array.isArray(data) && data.length > 0;
+}
+
 async function pendingCount(admin: Admin, authId: string): Promise<number> {
   const { count } = await admin
     .from("extension_versions")
@@ -584,6 +595,7 @@ async function uploadTarget(admin: Admin, extId: string, versionCode: number) {
 }
 
 async function submitExtension(admin: Admin, user: { id: string }, body: any, cors: Record<string, string>) {
+  if (!(await emailVerified(admin, user.id))) return fail("email_not_verified", 403, cors);
   const parsed = readSubmission(body);
   if (parsed.error) return fail(parsed.error, 400, cors);
   const meta = parsed.meta!;
@@ -639,6 +651,7 @@ async function submitExtension(admin: Admin, user: { id: string }, body: any, co
 }
 
 async function addVersion(admin: Admin, user: { id: string }, extId: string, body: any, cors: Record<string, string>) {
+  if (!(await emailVerified(admin, user.id))) return fail("email_not_verified", 403, cors);
   const parsed = readSubmission({ ...body, ext_id: extId });
   if (parsed.error) return fail(parsed.error, 400, cors);
   const meta = parsed.meta!;
@@ -711,6 +724,7 @@ async function addVersion(admin: Admin, user: { id: string }, extId: string, bod
 }
 
 async function finalizeVersion(admin: Admin, user: { id: string }, extId: string, body: any, cors: Record<string, string>) {
+  if (!(await emailVerified(admin, user.id))) return fail("email_not_verified", 403, cors);
   const versionCode = intIn(body.version_code, 1, 1_000_000_000);
   if (versionCode == null) return fail("invalid_version_code", 400, cors);
 
@@ -818,6 +832,7 @@ async function getMe(admin: Admin, user: { id: string; email: string | null; cre
       .not("host", "like", "deleted_%");
     serverCount = count ?? 0;
   }
+  const emailVerifiedFlag = await emailVerified(admin, user.id);
   const { count: extCount } = await admin.from("extensions")
     .select("id", { count: "exact", head: true }).eq("owner_auth_id", user.id);
 
@@ -825,6 +840,7 @@ async function getMe(admin: Admin, user: { id: string; email: string | null; cre
     ok: true,
     me: {
       email: user.email,
+      email_verified: emailVerifiedFlag,
       member_since: user.created_at,
       nickname: profile?.nickname ?? null,
       mc_username: profile?.mc_username ?? null,

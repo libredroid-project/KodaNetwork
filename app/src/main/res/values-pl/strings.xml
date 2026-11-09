@@ -1636,4 +1636,19 @@ Jeśli chcesz usunąć także swoje dane, użyj "Poproś o pełne usunięcie dan
     <string name="data_request_status_ready">W przeglądzie</string>
     <string name="data_request_already_open">Masz już otwarty wniosek tego rodzaju.</string>
     <string name="data_request_slow_down">Zbyt wiele wniosków, spróbuj później.</string>
+    <string name="register_success">Konto utworzone.</string>
+    <string name="verify_email_title">Potwierdź e-mail</string>
+    <string name="verify_email_body">Wysyłamy kod na e-mail konta. Potwierdź go tutaj, aby publikować rozszerzenia.</string>
+    <string name="verify_email_send">Wyślij kod</string>
+    <string name="verify_email_code_hint">6-cyfrowy kod</string>
+    <string name="verify_email_confirm">Potwierdź</string>
+    <string name="verify_email_skip">Później</string>
+    <string name="verify_email_done">E-mail potwierdzony</string>
+    <string name="verify_email_failed">Kod jest błędny lub wygasł.</string>
+    <string name="email_verified">E-mail potwierdzony</string>
+    <string name="email_not_verified">E-mail niepotwierdzony</string>
+    <string name="login_title">Zaloguj się</string>
+    <string name="login_subtitle">Jedno konto do aplikacji, dashboardu i wsparcia</string>
+    <string name="register_title">Utwórz konto</string>
+    <string name="register_subtitle">To samo konto do aplikacji, dashboardu i wsparcia</string>
 </resources>

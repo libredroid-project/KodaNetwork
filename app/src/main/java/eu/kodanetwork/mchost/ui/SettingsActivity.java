@@ -1380,6 +1380,9 @@ public class SettingsActivity extends Activity {
 
         String email = prefs.getString("account_email", "Unknown Email");
         tvEmail.setText(email);
+        // keep the verified badge in the account sheet current
+        eu.kodanetwork.mchost.util.EmailVerification.check(this,
+                verified -> prefs.edit().putBoolean("email_verified", verified).apply());
 
         cardAccount.setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
@@ -1390,6 +1393,16 @@ public class SettingsActivity extends Activity {
 
             final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
                     this, getString(R.string.account_sheet_title), email);
+
+            // verified state of the account mail: extensions need it
+            final boolean verified = prefs.getBoolean("email_verified", false);
+            sheet.row(getString(verified ? R.string.email_verified : R.string.email_not_verified),
+                    verified ? null : getString(R.string.verify_email_body), false, x -> {
+                        if (verified) return;
+                        sheet.sheet.dismiss();
+                        showVerifyEmailSheet(email);
+                    });
+            sheet.divider();
 
             sheet.row(getString(R.string.transfer_settings_send), null, false, x -> {
                 sheet.sheet.dismiss();
@@ -1464,6 +1477,59 @@ public class SettingsActivity extends Activity {
         sheet.primaryWithCountdown(getString(R.string.data_request_delete), 5, v -> {
             sheet.sheet.dismiss();
             createDataRequest(eu.kodanetwork.mchost.util.DataRequests.DELETE);
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    /** first step: explain, then send the code. */
+    private void showVerifyEmailSheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.verify_email_title), getString(R.string.verify_email_body));
+        sheet.primary(getString(R.string.verify_email_send), v -> {
+            sheet.sheet.dismiss();
+            eu.kodanetwork.mchost.network.ResendHelper.sendOTP(email,
+                    new eu.kodanetwork.mchost.network.ResendHelper.Callback() {
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> showVerifyEmailCodeSheet(email));
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            runOnUiThread(() -> Toast.makeText(SettingsActivity.this, message,
+                                    Toast.LENGTH_LONG).show());
+                        }
+                    });
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    /** second step: the code. a correct code marks the account as verified. */
+    private void showVerifyEmailCodeSheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.verify_email_title), email);
+        final android.widget.EditText input = sheet.field("",
+                getString(R.string.verify_email_code_hint), true);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        sheet.add(input, 48);
+
+        sheet.primary(getString(R.string.verify_email_confirm), v -> {
+            final String code = input.getText().toString().trim();
+            if (code.isEmpty()) return;
+            eu.kodanetwork.mchost.network.ResendHelper.verifyOtp(email, code, (valid, error) -> runOnUiThread(() -> {
+                if (!valid) {
+                    Toast.makeText(this, R.string.verify_email_failed, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                eu.kodanetwork.mchost.util.EmailVerification.markVerified(this, email, ok -> {
+                    prefs.edit().putBoolean("email_verified", ok).apply();
+                    Toast.makeText(this, ok ? R.string.verify_email_done : R.string.verify_email_failed,
+                            Toast.LENGTH_LONG).show();
+                    sheet.sheet.dismiss();
+                });
+            }));
         });
         sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
         sheet.show();

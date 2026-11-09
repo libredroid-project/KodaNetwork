@@ -1697,4 +1697,19 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="data_request_status_ready">In Prüfung</string>
     <string name="data_request_already_open">Es ist bereits ein offener Antrag dieser Art vorhanden.</string>
     <string name="data_request_slow_down">Zu viele Anträge, versuch es später nochmal.</string>
+    <string name="register_success">Konto erstellt.</string>
+    <string name="verify_email_title">E-Mail bestätigen</string>
+    <string name="verify_email_body">Wir schicken einen Code an deine Konto-E-Mail. Bestätige ihn hier, dann kannst du Extensions veröffentlichen.</string>
+    <string name="verify_email_send">Code senden</string>
+    <string name="verify_email_code_hint">6-stelliger Code</string>
+    <string name="verify_email_confirm">Bestätigen</string>
+    <string name="verify_email_skip">Später</string>
+    <string name="verify_email_done">E-Mail bestätigt</string>
+    <string name="verify_email_failed">Code ist falsch oder abgelaufen.</string>
+    <string name="email_verified">E-Mail bestätigt</string>
+    <string name="email_not_verified">E-Mail nicht bestätigt</string>
+    <string name="login_title">Anmelden</string>
+    <string name="login_subtitle">Ein Konto für App, Dashboard und Support</string>
+    <string name="register_title">Konto erstellen</string>
+    <string name="register_subtitle">Dasselbe Konto für App, Dashboard und Support</string>
 </resources>

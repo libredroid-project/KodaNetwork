@@ -1667,4 +1667,19 @@
     <string name="data_request_status_ready">审核中</string>
     <string name="data_request_already_open">你已经有一个同类型的未完成申请。</string>
     <string name="data_request_slow_down">申请太频繁，请稍后再试。</string>
+    <string name="register_success">账户已创建。</string>
+    <string name="verify_email_title">验证电子邮箱</string>
+    <string name="verify_email_body">我们会向账户邮箱发送验证码。在这里确认后即可发布扩展。</string>
+    <string name="verify_email_send">发送验证码</string>
+    <string name="verify_email_code_hint">6 位验证码</string>
+    <string name="verify_email_confirm">确认</string>
+    <string name="verify_email_skip">稍后</string>
+    <string name="verify_email_done">邮箱已验证</string>
+    <string name="verify_email_failed">验证码错误或已过期。</string>
+    <string name="email_verified">邮箱已验证</string>
+    <string name="email_not_verified">邮箱未验证</string>
+    <string name="login_title">登录</string>
+    <string name="login_subtitle">一个账户用于应用、仪表板和支持</string>
+    <string name="register_title">创建账户</string>
+    <string name="register_subtitle">同一个账户用于应用、仪表板和支持</string>
 </resources>

@@ -1686,4 +1686,19 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="data_request_status_ready">Under review</string>
     <string name="data_request_already_open">You already have an open request of this kind.</string>
     <string name="data_request_slow_down">Too many requests, please try again later.</string>
+    <string name="register_success">Account created.</string>
+    <string name="verify_email_title">Verify your e-mail</string>
+    <string name="verify_email_body">We send a code to your account e-mail. Submit it here and you can publish extensions.</string>
+    <string name="verify_email_send">Send code</string>
+    <string name="verify_email_code_hint">6-digit code</string>
+    <string name="verify_email_confirm">Confirm</string>
+    <string name="verify_email_skip">Skip for now</string>
+    <string name="verify_email_done">E-mail verified</string>
+    <string name="verify_email_failed">Code is wrong or expired.</string>
+    <string name="email_verified">E-mail verified</string>
+    <string name="email_not_verified">E-mail not verified</string>
+    <string name="login_title">Sign in</string>
+    <string name="login_subtitle">One account for app, dashboard and support</string>
+    <string name="register_title">Create account</string>
+    <string name="register_subtitle">Same account for app, dashboard and support</string>
 </resources>

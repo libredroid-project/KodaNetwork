@@ -60,6 +60,8 @@ public class LoginPageActivity extends AppCompatActivity {
         }
 
         eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
+        // the theme forces monospace, these pages want the normal Koda font
+        eu.kodanetwork.mchost.util.KodaFont.apply(this, findViewById(android.R.id.content));
 
         btnSignIn.setOnClickListener(v -> {
             String email = etUser.getText().toString().trim();

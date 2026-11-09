@@ -64,6 +64,8 @@ public class RegisterPageActivity extends AppCompatActivity {
         }
 
         eu.kodanetwork.mchost.util.ThemeHelper.apply(this);
+        // the theme forces monospace, these pages want the normal Koda font
+        eu.kodanetwork.mchost.util.KodaFont.apply(this, findViewById(android.R.id.content));
 
         btnCreate.setOnClickListener(v -> {
             if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(this)) return;
@@ -115,42 +117,25 @@ public class RegisterPageActivity extends AppCompatActivity {
                                     btnCreate.setEnabled(false);
                                     btnCreate.setText(getString(R.string.register_loading));
                                     dialog.dismiss();
-
-                                    eu.kodanetwork.mchost.network.supabase.SupabaseAuth.signUp(RegisterPageActivity.this, email, pwd, new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
-                                        @Override
-                                        public void onSuccess() {
-                                            runOnUiThread(() -> {
-                                                Toast.makeText(RegisterPageActivity.this, "Account erfolgreich erstellt!", Toast.LENGTH_SHORT).show();
-                                                // came from the welcome setup, hand control back instead of restarting
-                    if (getIntent().getBooleanExtra("RETURN_TO_WELCOME", false)) {
-                        setResult(RESULT_OK);
-                        finish();
-                        return;
-                    }
-                    startActivity(new Intent(RegisterPageActivity.this, eu.kodanetwork.mchost.ui.MainActivity.class));
-                                                finishAffinity();
-                                            });
-                                        }
-
-                                        @Override
-                                        public void onError(String message) {
-                                            runOnUiThread(() -> {
-                                                btnCreate.setEnabled(true);
-                                                btnCreate.setText(getString(R.string.register_create_account));
-                                                Toast.makeText(RegisterPageActivity.this, "Fehler: " + message, Toast.LENGTH_LONG).show();
-                                            });
-                                        }
-                                    });
+                                    // the account is only created after the code was accepted,
+                                    // so the verified flag is written before the auth user exists
+                                    eu.kodanetwork.mchost.util.EmailVerification.markVerified(RegisterPageActivity.this, email, ok ->
+                                            createAccount(email, pwd, btnCreate));
                                 } else {
                                     Toast.makeText(RegisterPageActivity.this, "Falscher Code! " + (error == null ? "" : error), Toast.LENGTH_SHORT).show();
                                 }
                             }));
                         });
                         
-                        dialog.findViewById(R.id.btn_dialog_cancel).setOnClickListener(v -> {
-                            dialog.cancel();
-                            btnCreate.setEnabled(true);
-                            btnCreate.setText(getString(R.string.register_create_account));
+                        android.widget.TextView skip = dialog.findViewById(R.id.btn_dialog_cancel);
+                        skip.setText(R.string.verify_email_skip);
+                        skip.setOnClickListener(v -> {
+                            // skipping is allowed, the account just stays unverified until
+                            // the account settings verify it
+                            dialog.dismiss();
+                            btnCreate.setEnabled(false);
+                            btnCreate.setText(getString(R.string.register_loading));
+                            createAccount(email, pwd, btnCreate);
                         });
                         
                         dialog.show();
@@ -172,5 +157,38 @@ public class RegisterPageActivity extends AppCompatActivity {
             eu.kodanetwork.mchost.util.AnimHelper.startSlideVertical(this, new Intent(this, LoginPageActivity.class));
             finish();
         });
+    }
+
+    /** creates the auth account, for verified and skipped signups alike. */
+    private void createAccount(String email, String pwd, Button btnCreate) {
+        eu.kodanetwork.mchost.network.supabase.SupabaseAuth.signUp(this, email, pwd,
+                new eu.kodanetwork.mchost.network.supabase.SupabaseAuth.AuthCallback() {
+                    @Override
+                    public void onSuccess() {
+                        runOnUiThread(() -> {
+                            Toast.makeText(RegisterPageActivity.this, R.string.register_success,
+                                    Toast.LENGTH_SHORT).show();
+                            // came from the welcome setup, hand control back instead of restarting
+                            if (getIntent().getBooleanExtra("RETURN_TO_WELCOME", false)) {
+                                setResult(RESULT_OK);
+                                finish();
+                                return;
+                            }
+                            startActivity(new Intent(RegisterPageActivity.this,
+                                    eu.kodanetwork.mchost.ui.MainActivity.class));
+                            finishAffinity();
+                        });
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        runOnUiThread(() -> {
+                            btnCreate.setEnabled(true);
+                            btnCreate.setText(getString(R.string.register_create_account));
+                            Toast.makeText(RegisterPageActivity.this, "Fehler: " + message,
+                                    Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
     }
 }
