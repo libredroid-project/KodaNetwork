@@ -17,7 +17,7 @@
 # KodaLobbyPlugin configuration
 
 # the Supabase anon key, used to fetch the server data
-supabase_anon_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjc2V6cGZycm1weXVhcGJsYnhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDE4MjYsImV4cCI6MjA5MjUxNzgyNn0.rHro6kQpXHAnxEaFxozYzsKY8IHIUlot-7-Q4LNbZT8"
+supabase_anon_key: ""
 
 # lobby key for the remote commands (start/stop/plugins/console).
 # it sits in the Supabase table koda_lobby_keys and must be put in here,
