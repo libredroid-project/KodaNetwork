@@ -282,7 +282,7 @@ function switchTab(tab) {
     else if (tab === 'players') loadPlayers();
     else if (tab === 'files') loadFiles(state.currentPath);
     else if (tab === 'plugins') loadPlugins();
-    else if (tab === 'settings') loadSettings();
+    else if (tab === 'settings') { loadSettings(); loadMcp(); }
 }
 
 function openSidebar() { $('sidebar').classList.add('open'); $('scrim').classList.add('open'); }
@@ -861,9 +861,39 @@ function refreshPlayersIfStale(maxAgeMs) {
     loadPlayers();
 }
 
+/** 3725 -> "1h 2m"; the leaderboard is a quick scan, not a stopwatch. */
+function formatPlaytime(seconds) {
+    var total = Math.max(0, Number(seconds) || 0);
+    var hours = Math.floor(total / 3600);
+    var minutes = Math.floor((total % 3600) / 60);
+    return hours + 'h ' + minutes + 'm';
+}
+
+function loadPlaytime() {
+    var list = $('playtime-list');
+    if (!list) return;
+    api('/api/players/playtime').then(function (d) {
+        var items = (d.items || []).slice(0, 10);
+        if (!items.length) {
+            list.innerHTML = '<div class="empty-state">No playtime recorded yet</div>';
+            return;
+        }
+        list.innerHTML = items.map(function (p, index) {
+            return '<div class="player-row">'
+                + '<div class="name">' + (index + 1) + '. ' + escapeHtml(p.name || '?') + '</div>'
+                + '<div class="spacer"></div>'
+                + '<div class="meta">' + formatPlaytime(p.seconds) + ' - ' + (p.sessions || 0) + ' sessions</div>'
+                + '</div>';
+        }).join('');
+    }).catch(function (e) {
+        list.innerHTML = '<div class="empty-state">' + escapeHtml(e.message) + '</div>';
+    });
+}
+
 function loadPlayers() {
     var list = $('players-list');
     lastPlayersFetch = Date.now();
+    loadPlaytime();
     // returns the promise so callers can re-render once the list is fresh
     return api('/api/players').then(function (d) {
         state.players = d.players || [];
@@ -1818,6 +1848,8 @@ function init() {
     $('settings-save').addEventListener('click', saveSettings);
     $('settings-search').addEventListener('input', renderSettings);
 
+    initMcp();
+
     /* a click on the overlay closes the modal, the editor only closes with its own button */
     var overlays = document.querySelectorAll('.modal-overlay');
     for (var o = 0; o < overlays.length; o++) {
@@ -1847,6 +1879,104 @@ function init() {
         $('token-input').value = savedToken;
         if (savedPassword) $('password-input').value = savedPassword;
         doLogin();
+    }
+}
+
+/* ------------------------------------------------------------------- mcp */
+var mcpState = null;
+
+function initMcp() {
+    var enabled = $('mcp-enabled');
+    if (!enabled) return;
+    enabled.addEventListener('change', function () { saveMcp({ enabled: this.checked }); });
+    $('mcp-readonly').addEventListener('change', function () { saveMcp({ readOnly: this.checked }); });
+    $('mcp-cap-console').addEventListener('change', function () { saveMcp({ allowConsole: this.checked }); });
+    $('mcp-cap-files').addEventListener('change', function () { saveMcp({ allowFileWrite: this.checked }); });
+    $('mcp-cap-settings').addEventListener('change', function () { saveMcp({ allowSettings: this.checked }); });
+    $('mcp-cap-plugins').addEventListener('change', function () { saveMcp({ allowPlugins: this.checked }); });
+    $('mcp-regenerate').addEventListener('click', function () {
+        if (!window.confirm('Regenerate the MCP token? The old token stops working immediately.')) return;
+        saveMcp({ regenerate: true });
+    });
+    $('mcp-show-token').addEventListener('click', function () {
+        var input = $('mcp-token');
+        var show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        this.textContent = show ? 'Hide' : 'Show';
+    });
+    $('mcp-copy-token').addEventListener('click', function () {
+        copyMcp($('mcp-token').value, 'Token copied');
+    });
+    $('mcp-copy-endpoint').addEventListener('click', function () {
+        copyMcp($('mcp-endpoint').value, 'Endpoint copied');
+    });
+    var endpoint = $('mcp-endpoint');
+    if (endpoint) endpoint.value = window.location.origin + '/mcp';
+}
+
+function loadMcp() {
+    if (!$('mcp-card')) return;
+    api('/api/mcp').then(function (d) {
+        mcpState = d;
+        renderMcp(d);
+    }).catch(function (e) {
+        var chip = $('mcp-state-chip');
+        if (chip) chip.textContent = 'ERROR';
+        showToast('MCP settings: ' + e.message, 'err');
+    });
+}
+
+function renderMcp(d) {
+    if (!d) return;
+    $('mcp-enabled').checked = !!d.enabled;
+    $('mcp-readonly').checked = !!d.readOnly;
+    $('mcp-cap-console').checked = !!d.allowConsole;
+    $('mcp-cap-files').checked = !!d.allowFileWrite;
+    $('mcp-cap-settings').checked = !!d.allowSettings;
+    $('mcp-cap-plugins').checked = !!d.allowPlugins;
+
+    var readOnly = !!d.readOnly;
+    ['mcp-cap-console', 'mcp-cap-files', 'mcp-cap-settings', 'mcp-cap-plugins'].forEach(function (id) {
+        var el = $(id);
+        if (el) el.disabled = readOnly;
+    });
+
+    var token = $('mcp-token');
+    token.value = d.token || '';
+    token.type = 'password';
+    $('mcp-show-token').textContent = 'Show';
+    $('mcp-show-token').disabled = !d.token;
+    $('mcp-copy-token').disabled = !d.token;
+    $('mcp-instructions').textContent = d.instructions || '';
+
+    var chip = $('mcp-state-chip');
+    chip.textContent = d.enabled ? 'ON' : 'OFF';
+    chip.classList.toggle('selected', !!d.enabled);
+}
+
+function saveMcp(patch) {
+    api('/api/mcp', { method: 'POST', body: patch }).then(function (d) {
+        mcpState = d;
+        renderMcp(d);
+        showToast('MCP settings saved', 'ok');
+    }).catch(function (e) {
+        showToast('MCP settings: ' + e.message, 'err');
+        loadMcp();
+    });
+}
+
+function copyMcp(value, message) {
+    if (!value) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(function () { showToast(message, 'ok'); })
+            .catch(function () { showToast('Clipboard blocked by the browser', 'err'); });
+    } else {
+        var ta = document.createElement('textarea');
+        ta.value = value;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast(message, 'ok'); } catch (e) {}
+        ta.remove();
     }
 }
 

@@ -1,0 +1,37 @@
+# Copyright (c) 2026 KodaHosting
+#
+# This file is part of KodaHosting (KodaNetwork).
+# KodaHosting is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, version 3 of the License.
+#
+# KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: 2026 KodaHosting
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# Minimal frps starting point for a self-hosted KodaHosting instance.
+# The app asks get-tunnel-config for these values, so:
+#   * auth.token must be the same value as the FRP_TOKEN function secret
+#   * 7000 is the control port the app connects to
+#   * 30000-59999 are the public Minecraft and KodaDash ports
+#   * the frps dashboard stays on localhost, do not expose it
+
+bindPort = 7000
+
+auth.method = "token"
+auth.token = "CHANGE_ME_SAME_AS_FRP_TOKEN"
+
+allowPorts = [
+  { start = 30000, end = 59999 }
+]
+
+webServer.addr = "127.0.0.1"
+webServer.port = 7500
+webServer.user = "admin"
+webServer.password = "CHANGE_ME"

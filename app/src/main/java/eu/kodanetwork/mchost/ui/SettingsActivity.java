@@ -34,6 +34,8 @@ import eu.kodanetwork.mchost.App;
 
 public class SettingsActivity extends Activity {
 
+    private static final int REQ_AVATAR = 9301;
+
     private SharedPreferences prefs;
 
     @Override
@@ -460,7 +462,7 @@ public class SettingsActivity extends Activity {
             updateDialStyleButton(btnDevDial, prefs);
             btnDevDial.setOnClickListener(v -> {
                 final String[] items = {"Top view (metal knob)", "Side view (drum with 3D names)"};
-                int checked = "side".equals(prefs.getString("dev_type_dial_style", "top")) ? 1 : 0;
+                int checked = "side".equals(prefs.getString("dev_type_dial_style", "side")) ? 1 : 0;
                 new android.app.AlertDialog.Builder(this)
                         .setTitle("Server type dial")
                         .setSingleChoiceItems(items, checked, (dialog, which) -> {
@@ -1260,7 +1262,8 @@ public class SettingsActivity extends Activity {
                 
                 TextView tvName = new TextView(this);
                 tvName.setText(mcName);
-                tvName.setTextColor(0xFFF5F5F7);
+                tvName.setTextColor(eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this)
+                        ? 0xFF1A1A1A : 0xFFF5F5F7);
                 tvName.setTextSize(15);
                 textLayout.addView(tvName);
                 
@@ -1368,6 +1371,7 @@ public class SettingsActivity extends Activity {
     private void setupAccountManagement() {
         TextView tvEmail = findViewById(R.id.tv_account_email);
         androidx.cardview.widget.CardView cardAccount = findViewById(R.id.card_account);
+        loadAccountAvatar();
         
         if (!eu.kodanetwork.mchost.network.supabase.SupabaseAuth.isLoggedIn(this)) {
             tvEmail.setText("Not logged in (Local Mode)");
@@ -1391,70 +1395,386 @@ public class SettingsActivity extends Activity {
                 return;
             }
 
-            final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
-                    this, getString(R.string.account_sheet_title), email);
-
-            // verified state of the account mail: extensions need it
-            final boolean verified = prefs.getBoolean("email_verified", false);
-            sheet.row(getString(verified ? R.string.email_verified : R.string.email_not_verified),
-                    verified ? null : getString(R.string.verify_email_body), false, x -> {
-                        if (verified) return;
-                        sheet.sheet.dismiss();
-                        showVerifyEmailSheet(email);
-                    });
-            sheet.divider();
-
-            sheet.row(getString(R.string.transfer_settings_send), null, false, x -> {
-                sheet.sheet.dismiss();
-                openTransferPicker();
-            });
-            sheet.divider();
-            sheet.row(getString(R.string.transfer_settings_receive), null, false, x -> {
-                sheet.sheet.dismiss();
-                startActivity(new android.content.Intent(this,
-                        eu.kodanetwork.mchost.transfer.TransferReceiverActivity.class));
-            });
-            sheet.divider();
-            sheet.row(getString(R.string.praetor_action_change_password), null, false, x -> {
-                sheet.sheet.dismiss();
-                showChangePasswordSheet(email);
-            });
-            sheet.divider();
-            sheet.row(getString(R.string.data_request_export),
-                    getString(R.string.data_request_export_desc), false, x -> {
-                        sheet.sheet.dismiss();
-                        createDataRequest(eu.kodanetwork.mchost.util.DataRequests.EXPORT);
-                    });
-            sheet.divider();
-            sheet.row(getString(R.string.data_request_delete),
-                    getString(R.string.data_request_delete_desc), true, x -> {
-                        sheet.sheet.dismiss();
-                        confirmDataDeleteRequest();
-                    });
-            sheet.divider();
-            sheet.row(getString(R.string.data_requests_title), null, false, x -> {
-                sheet.sheet.dismiss();
-                startActivity(new Intent(this, eu.kodanetwork.mchost.ui.DataRequestActivity.class));
-            });
-            sheet.divider();
-            sheet.row(getString(R.string.praetor_action_delete_account), null, true, x -> {
-                sheet.sheet.dismiss();
-                Intent intent = new Intent(this, eu.kodanetwork.mchost.ui.PraetorConfirmActivity.class);
-                intent.putExtra("action", "delete_account");
-                startActivity(intent);
-            });
-            sheet.divider();
-            sheet.row(getString(R.string.praetor_action_logout), null, true, x -> {
-                sheet.sheet.dismiss();
-                confirmLogout();
-            });
-            sheet.secondary(getString(R.string.praetor_action_cancel), x -> sheet.sheet.dismiss());
-            sheet.show();
+            showAccountSheet(email);
         });
 
 
         setupSupport();
       }
+
+    /** the short main account sheet; each category opens its own sheet. */
+    private void showAccountSheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.account_sheet_title), email);
+        sheet.accessory(avatarAccessory(sheet));
+
+        sheet.row(getString(R.string.account_section_profile),
+                getString(R.string.account_section_profile_desc), false, x -> {
+                    sheet.sheet.dismiss();
+                    showProfileSheet(email);
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.account_notifications),
+                getString(R.string.account_notifications_desc), false, x -> {
+                    sheet.sheet.dismiss();
+                    startActivity(new Intent(this, eu.kodanetwork.mchost.ui.NotificationsActivity.class));
+                });
+        sheet.divider();
+            sheet.row(getString(R.string.account_devices),
+                    getString(R.string.account_devices_desc), false, x -> {
+                        sheet.sheet.dismiss();
+                        eu.kodanetwork.mchost.ui.DevicesSheet.show(this,
+                                () -> showAccountSheet(email));
+                    });
+        sheet.divider();
+        sheet.row(getString(R.string.account_section_transfer),
+                getString(R.string.account_section_transfer_desc), false, x -> {
+                    sheet.sheet.dismiss();
+                    showTransferSheet(email);
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.account_section_privacy),
+                getString(R.string.account_section_privacy_desc), false, x -> {
+                    sheet.sheet.dismiss();
+                    showPrivacySheet(email);
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.account_section_account),
+                getString(R.string.account_section_account_desc), true, x -> {
+                    sheet.sheet.dismiss();
+                    showAccountActionsSheet(email);
+                });
+        sheet.secondary(getString(R.string.praetor_action_cancel), x -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    /** big avatar on the right of the sheet title, with a change action below it. */
+    private android.view.View avatarAccessory(final eu.kodanetwork.mchost.util.KodaSheet sheet) {
+        final float d = getResources().getDisplayMetrics().density;
+        int size = (int) (60 * d);
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        box.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+
+        android.widget.FrameLayout photo = new android.widget.FrameLayout(this);
+        photo.setLayoutParams(new android.widget.LinearLayout.LayoutParams(size, size));
+
+        android.widget.TextView initial = new android.widget.TextView(this);
+        initial.setText(initialForAvatar());
+        initial.setTextColor(0xFFFFFFFF);
+        initial.setTextSize(22);
+        initial.setGravity(android.view.Gravity.CENTER);
+        initial.setBackgroundResource(R.drawable.bg_avatar_circle);
+        initial.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda),
+                android.graphics.Typeface.BOLD);
+        photo.addView(initial, new android.widget.FrameLayout.LayoutParams(size, size));
+
+        android.widget.ImageView image = new android.widget.ImageView(this);
+        image.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        image.setVisibility(android.view.View.GONE);
+        android.widget.ImageView cardAvatar = findViewById(R.id.iv_account_avatar);
+        if (cardAvatar != null && cardAvatar.getVisibility() == android.view.View.VISIBLE
+                && cardAvatar.getDrawable() != null) {
+            image.setImageDrawable(cardAvatar.getDrawable());
+            image.setVisibility(android.view.View.VISIBLE);
+            initial.setVisibility(android.view.View.GONE);
+        }
+        photo.addView(image, new android.widget.FrameLayout.LayoutParams(size, size));
+        box.addView(photo);
+
+        // the card may still be on the fallback initial while the profile request
+        // is in flight, so the cached url keeps the real picture in the sheet.
+        if (image.getVisibility() != android.view.View.VISIBLE) {
+            String cached = eu.kodanetwork.mchost.App.getPrefs(this)
+                    .getString("account_avatar_url", "");
+            if (!cached.isEmpty()) {
+                com.bumptech.glide.Glide.with(this).load(cached).circleCrop().into(image);
+                image.setVisibility(android.view.View.VISIBLE);
+                initial.setVisibility(android.view.View.GONE);
+            }
+        }
+
+        android.widget.TextView change = new android.widget.TextView(this);
+        change.setText(R.string.account_change_avatar);
+        change.setTextColor(0xFFFF8C38);
+        change.setTextSize(10);
+        change.setGravity(android.view.Gravity.CENTER);
+        change.setPadding(0, (int) (6 * d), 0, 0);
+        change.setClickable(true);
+        change.setFocusable(true);
+        change.setOnClickListener(v -> {
+            sheet.sheet.dismiss();
+            pickAvatar();
+        });
+        box.addView(change);
+        return box;
+    }
+
+    private String initialForAvatar() {
+        String name = prefs.getString("nickname", "");
+        if (name.isEmpty()) name = prefs.getString("account_email", "?");
+        return name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase();
+    }
+
+    /** the same profile picture as the website; the initial is the fallback. */
+    private void loadAccountAvatar() {
+        final android.widget.ImageView avatar = findViewById(R.id.iv_account_avatar);
+        final TextView initial = findViewById(R.id.tv_account_avatar_initial);
+        if (avatar == null || initial == null) return;
+        String fallback = prefs.getString("nickname", "");
+        if (fallback.isEmpty()) fallback = prefs.getString("account_email", "?");
+        initial.setText(fallback.isEmpty() ? "?" : fallback.substring(0, 1).toUpperCase());
+
+        // show the cached picture immediately, then refresh it from the profile
+        String cachedAvatar = prefs.getString("account_avatar_url", "");
+        if (!cachedAvatar.isEmpty()) loadAvatarFromUrl(cachedAvatar);
+
+        final String appUuid = prefs.getString("app_uuid", "");
+        final String token = prefs.getString("device_token", "");
+        if (appUuid.isEmpty() || token.isEmpty()) return;
+
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(
+                        eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseUrl()
+                                + "/rest/v1/rpc/rpc_get_user_profile");
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) url.openConnection();
+                c.setRequestMethod("POST");
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type", "application/json");
+                c.setRequestProperty("apikey", eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                c.setRequestProperty("Authorization", "Bearer " + eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
+                org.json.JSONObject body = new org.json.JSONObject()
+                        .put("p_app_uuid", appUuid).put("p_device_token", token);
+                c.getOutputStream().write(body.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                java.util.Scanner sc = new java.util.Scanner(c.getInputStream()).useDelimiter("\\A");
+                org.json.JSONObject obj = new org.json.JSONObject(sc.hasNext() ? sc.next() : "{}");
+                c.disconnect();
+
+                final String avatarUrl = obj.optString("avatar_url", "");
+                final String nick = obj.optString("nickname", "");
+                if (isFinishing() || isDestroyed()) return;
+                runOnUiThread(() -> {
+                    if (!nick.isEmpty()) {
+                        prefs.edit().putString("nickname", nick).apply();
+                        initial.setText(nick.substring(0, 1).toUpperCase());
+                    }
+                    if (!avatarUrl.isEmpty()) {
+                        prefs.edit().putString("account_avatar_url", avatarUrl).apply();
+                        com.bumptech.glide.Glide.with(SettingsActivity.this)
+                                .load(avatarUrl).circleCrop().into(avatar);
+                        avatar.setVisibility(android.view.View.VISIBLE);
+                        initial.setVisibility(android.view.View.GONE);
+                    } else {
+                        prefs.edit().remove("account_avatar_url").apply();
+                        avatar.setVisibility(android.view.View.GONE);
+                        avatar.setImageDrawable(null);
+                        initial.setVisibility(android.view.View.VISIBLE);
+                    }
+                });
+            } catch (Exception ignored) {
+            }
+        }, "KodaAvatar").start();
+    }
+
+    /** change the display name that is shown on the website and in the app. */
+    private void showDisplayNameSheet() {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.welcome_nickname_title),
+                getString(R.string.welcome_nickname_text));
+        final android.widget.EditText input = sheet.field(prefs.getString("nickname", ""),
+                getString(R.string.welcome_nickname_hint), false);
+        input.setSingleLine(true);
+        sheet.add(input, 48);
+        sheet.primary(getString(R.string.praetor_action_save), v -> {
+            String name = input.getText().toString().trim();
+            if (name.length() < 2 || name.length() > 20) {
+                Toast.makeText(this, R.string.register_username_required, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            prefs.edit().putString("nickname", name).apply();
+            eu.kodanetwork.mchost.util.NicknameSync.sync(this, false);
+            sheet.sheet.dismiss();
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    /** opens the system picker for a new profile picture. */
+    private void pickAvatar() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            startActivityForResult(Intent.createChooser(intent,
+                    getString(R.string.account_profile_picture)), REQ_AVATAR);
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.account_avatar_failed, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void uploadAvatar(android.net.Uri uri) {
+        Toast.makeText(this, R.string.account_avatar_uploading, Toast.LENGTH_SHORT).show();
+        eu.kodanetwork.mchost.util.AvatarUploader.upload(this, uri,
+                new eu.kodanetwork.mchost.util.AvatarUploader.Callback() {
+                    @Override
+                    public void onSuccess(String publicUrl) {
+                        Toast.makeText(SettingsActivity.this, R.string.account_avatar_done,
+                                Toast.LENGTH_SHORT).show();
+                        loadAvatarFromUrl(publicUrl);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        Toast.makeText(SettingsActivity.this,
+                                getString(R.string.account_avatar_failed) + " " + message,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    private void loadAvatarFromUrl(String url) {
+        android.widget.ImageView avatar = findViewById(R.id.iv_account_avatar);
+        TextView initial = findViewById(R.id.tv_account_avatar_initial);
+        if (avatar == null) return;
+        prefs.edit().putString("account_avatar_url", url).apply();
+        com.bumptech.glide.Glide.with(this).load(url).circleCrop().into(avatar);
+        avatar.setVisibility(android.view.View.VISIBLE);
+        if (initial != null) initial.setVisibility(android.view.View.GONE);
+    }
+
+    /** enable or disable 2FA from the account sheet, reusing the existing password flow. */
+    private void showTwoFactorSheet() {
+        final boolean enabled = prefs.getBoolean("2fa_enabled", false);
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.two_factor),
+                getString(enabled ? R.string.enabled : R.string.disabled));
+        sheet.primary(getString(enabled ? R.string.disable_2fa : R.string.enable_2fa), v -> {
+            sheet.sheet.dismiss();
+            if (enabled) {
+                prefs.edit().putBoolean("2fa_enabled", false).apply();
+                sync2FAToSupabase(false, prefs.getString("2fa_password", null));
+                setup2FA();
+                Toast.makeText(this, R.string.disabled, Toast.LENGTH_SHORT).show();
+            } else {
+                promptFor2FAPassword(true);
+            }
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    /** profile rows: avatar, username, mail, password and 2FA. */
+    private void showProfileSheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.account_section_profile), email);
+        sheet.accessory(avatarAccessory(sheet));
+        final boolean verified = prefs.getBoolean("email_verified", false);
+        sheet.row(getString(verified ? R.string.email_verified : R.string.email_not_verified),
+                verified ? null : getString(R.string.verify_email_body), false, x -> {
+                    if (verified) return;
+                    sheet.sheet.dismiss();
+                    showVerifyEmailSheet(email);
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.account_profile_picture),
+                getString(R.string.account_profile_picture_desc), false, x -> {
+                    sheet.sheet.dismiss();
+                    pickAvatar();
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.welcome_nickname_title),
+                prefs.getString("nickname", ""), false, x -> {
+                    sheet.sheet.dismiss();
+                    showDisplayNameSheet();
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.praetor_action_change_password), null, false, x -> {
+            sheet.sheet.dismiss();
+            showChangePasswordSheet(email);
+        });
+        sheet.divider();
+        final boolean twoFaOn = prefs.getBoolean("2fa_enabled", false);
+        sheet.row(getString(R.string.two_factor),
+                getString(twoFaOn ? R.string.enabled : R.string.disabled), false, x -> {
+                    sheet.sheet.dismiss();
+                    showTwoFactorSheet();
+                });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
+            sheet.sheet.dismiss();
+            showAccountSheet(email);
+        });
+        sheet.show();
+    }
+
+    /** the two device transfer directions. */
+    private void showTransferSheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.account_section_transfer));
+        sheet.row(getString(R.string.transfer_settings_send), null, false, x -> {
+            sheet.sheet.dismiss();
+            openTransferPicker();
+        });
+        sheet.divider();
+        sheet.row(getString(R.string.transfer_settings_receive), null, false, x -> {
+            sheet.sheet.dismiss();
+            startActivity(new Intent(this,
+                    eu.kodanetwork.mchost.transfer.TransferReceiverActivity.class));
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
+            sheet.sheet.dismiss();
+            showAccountSheet(email);
+        });
+        sheet.show();
+    }
+
+    /** export, deletion and the request history. */
+    private void showPrivacySheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.account_section_privacy));
+        sheet.row(getString(R.string.data_request_export),
+                getString(R.string.data_request_export_desc), false, x -> {
+                    sheet.sheet.dismiss();
+                    createDataRequest(eu.kodanetwork.mchost.util.DataRequests.EXPORT);
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.data_request_delete),
+                getString(R.string.data_request_delete_desc), true, x -> {
+                    sheet.sheet.dismiss();
+                    confirmDataDeleteRequest();
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.data_requests_title), null, false, x -> {
+            sheet.sheet.dismiss();
+            startActivity(new Intent(this, eu.kodanetwork.mchost.ui.DataRequestActivity.class));
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
+            sheet.sheet.dismiss();
+            showAccountSheet(email);
+        });
+        sheet.show();
+    }
+
+    /** the destructive account actions. */
+    private void showAccountActionsSheet(final String email) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.account_section_account));
+        sheet.row(getString(R.string.praetor_action_delete_account), null, true, x -> {
+            sheet.sheet.dismiss();
+            Intent intent = new Intent(this, eu.kodanetwork.mchost.ui.PraetorConfirmActivity.class);
+            intent.putExtra("action", "delete_account");
+            startActivity(intent);
+        });
+        sheet.divider();
+        sheet.row(getString(R.string.praetor_action_logout), null, true, x -> {
+            sheet.sheet.dismiss();
+            confirmLogout();
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
+            sheet.sheet.dismiss();
+            showAccountSheet(email);
+        });
+        sheet.show();
+    }
 
     private void createDataRequest(final String kind) {
         eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 50);
@@ -1642,6 +1962,11 @@ public class SettingsActivity extends Activity {
      * to the sender, several get a checkbox sheet first.
      */
     private void openTransferPicker() {
+        openTransferPicker(null);
+    }
+
+    /** @param targetAppUuid preselected family device, null for the normal target picker */
+    public void openTransferPicker(final String targetAppUuid) {
         if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(this)) return;
         java.util.List<eu.kodanetwork.mchost.model.ServerInstance> servers =
                 eu.kodanetwork.mchost.model.ServerRepo.get(this).all();
@@ -1650,7 +1975,7 @@ public class SettingsActivity extends Activity {
             return;
         }
         if (servers.size() == 1) {
-            startTransferSender(java.util.Collections.singletonList(servers.get(0).getId()));
+            startTransferSender(java.util.Collections.singletonList(servers.get(0).getId()), targetAppUuid);
             return;
         }
 
@@ -1689,19 +2014,27 @@ public class SettingsActivity extends Activity {
                 if (boxes.get(i).isChecked()) ids.add(servers.get(i).getId());
             }
             sheet.dismiss();
-            if (!ids.isEmpty()) startTransferSender(ids);
+            if (!ids.isEmpty()) startTransferSender(ids, targetAppUuid);
         });
         box.addView(go, lp);
 
-        sheet.setContentView(box);
-        sheet.show();
+        sheet.setCancelable(true);
+        showChromeSheet(sheet, box);
     }
 
     private void startTransferSender(java.util.List<String> ids) {
+        startTransferSender(ids, null);
+    }
+
+    private void startTransferSender(java.util.List<String> ids, String targetAppUuid) {
         android.content.Intent intent = new android.content.Intent(this,
                 eu.kodanetwork.mchost.transfer.TransferSenderActivity.class);
         intent.putStringArrayListExtra(eu.kodanetwork.mchost.transfer.TransferSenderActivity.EXTRA_SERVER_IDS,
                 new java.util.ArrayList<>(ids));
+        if (targetAppUuid != null && !targetAppUuid.isEmpty()) {
+            intent.putExtra(eu.kodanetwork.mchost.transfer.TransferSenderActivity.EXTRA_TARGET_APP_UUID,
+                    targetAppUuid);
+        }
         startActivity(intent);
     }
 
@@ -1938,19 +2271,11 @@ public class SettingsActivity extends Activity {
         });
         sheet.setOnDismissListener(x -> timer.cancel());
 
-        sheet.setContentView(content);
         sheet.setCancelable(true);
-        sheet.show();
-        if (sheet.getWindow() != null) {
-            sheet.getWindow().setNavigationBarColor(0xFF241C18);
-            if (android.os.Build.VERSION.SDK_INT >= 29) {
-                sheet.getWindow().setNavigationBarContrastEnforced(false);
-            }
-        }
+        showChromeSheet(sheet, content);
         eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 200);
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() ->
                 eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 300), 300);
-        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
     }
 
     /**
@@ -2007,6 +2332,27 @@ public class SettingsActivity extends Activity {
             content.addView(b);
         }
         return content;
+    }
+
+    /**
+     * the chrome every hand-built settings sheet needs: draw behind the system bars, move the
+     * content out of the nav bar, keep the nav bar in the sheet colour and reveal after layout.
+     */
+    private void showChromeSheet(
+            final com.google.android.material.bottomsheet.BottomSheetDialog sheet,
+            final android.view.View content) {
+        sheet.setContentView(content);
+        eu.kodanetwork.mchost.util.KodaSheet.styleWindow(sheet.getWindow());
+        eu.kodanetwork.mchost.util.KodaSheet.applyInsets(content, 24);
+        eu.kodanetwork.mchost.util.SheetFix.apply(sheet);
+        sheet.show();
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setNavigationBarColor(0xFF241C18);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                sheet.getWindow().setNavigationBarContrastEnforced(false);
+            }
+        }
+        content.post(() -> eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content));
     }
 
     /** one permission row: label on the left, the switch on the right. */
@@ -2142,16 +2488,8 @@ public class SettingsActivity extends Activity {
             }).start();
         });
 
-        sheet.setContentView(content);
         sheet.setCancelable(true);
-        sheet.show();
-        if (sheet.getWindow() != null) {
-            sheet.getWindow().setNavigationBarColor(0xFF241C18);
-            if (android.os.Build.VERSION.SDK_INT >= 29) {
-                sheet.getWindow().setNavigationBarContrastEnforced(false);
-            }
-        }
-        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
+        showChromeSheet(sheet, content);
 
         // load the current flags
         if (rowId == null) return;
@@ -2197,6 +2535,11 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_AVATAR && resultCode == RESULT_OK
+                && data != null && data.getData() != null) {
+            uploadAvatar(data.getData());
+            return;
+        }
         if (requestCode == 9002 && resultCode == RESULT_OK) {
             prefs.edit().putBoolean("beta_jni_embedded", false).apply();
             com.google.android.material.switchmaterial.SwitchMaterial sw =
@@ -2743,6 +3086,17 @@ public class SettingsActivity extends Activity {
     private void setupLanguageOptions() {
         TextView btnSelector = findViewById(R.id.btn_lang_selector);
         if (btnSelector == null) return;
+
+        // the XML tint is dark, the shared light theme pass does not reach this button
+        if (eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this)
+                && btnSelector instanceof com.google.android.material.button.MaterialButton) {
+            com.google.android.material.button.MaterialButton mb =
+                    (com.google.android.material.button.MaterialButton) btnSelector;
+            mb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEDEDED));
+            mb.setStrokeColor(android.content.res.ColorStateList.valueOf(0xFFE0E0E0));
+            mb.setStrokeWidth(3);
+            mb.setTextColor(0xFF111111);
+        }
         
         String[] displayLangs = {getString(R.string.system_default), "English", "English (Slang)", "Deutsch", "Polski", "简体中文"};
         final String[] codes = {"system", "en", "en-IE", "de", "pl", "zh"};
@@ -2814,16 +3168,8 @@ public class SettingsActivity extends Activity {
             }
         }
 
-        sheet.setContentView(content);
         sheet.setCancelable(true);
-        sheet.show();
-        if (sheet.getWindow() != null) {
-            sheet.getWindow().setNavigationBarColor(0xFF241C18);
-            if (android.os.Build.VERSION.SDK_INT >= 29) {
-                sheet.getWindow().setNavigationBarContrastEnforced(false);
-            }
-        }
-        eu.kodanetwork.mchost.util.KodaSheetMotion.reveal(content);
+        showChromeSheet(sheet, content);
     }
 
     private void updateLanguageUI() {
@@ -3017,7 +3363,7 @@ public class SettingsActivity extends Activity {
     }
 
     private void updateDialStyleButton(android.widget.Button button, android.content.SharedPreferences prefs) {
-        String style = prefs.getString("dev_type_dial_style", "top");
+        String style = prefs.getString("dev_type_dial_style", "side");
         button.setText("Server type dial: " + ("side".equals(style) ? "Side view" : "Top view"));
     }
 

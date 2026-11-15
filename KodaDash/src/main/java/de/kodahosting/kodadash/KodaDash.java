@@ -23,8 +23,14 @@ import de.kodahosting.kodadash.commands.DashCommand;
 import de.kodahosting.kodadash.managers.ConsoleManager;
 import de.kodahosting.kodadash.managers.EfficiencyManager;
 import de.kodahosting.kodadash.managers.FileManager;
+import de.kodahosting.kodadash.managers.PlaytimeListener;
+import de.kodahosting.kodadash.managers.PlaytimeManager;
 import de.kodahosting.kodadash.managers.ScheduleManager;
 import de.kodahosting.kodadash.managers.StatsManager;
+import de.kodahosting.kodadash.mcp.McpAudit;
+import de.kodahosting.kodadash.mcp.McpInstructions;
+import de.kodahosting.kodadash.mcp.McpSettings;
+import de.kodahosting.kodadash.mcp.McpTools;
 import de.kodahosting.kodadash.server.DashServer;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -41,7 +47,12 @@ public class KodaDash extends JavaPlugin {
     private FileManager fileManager;
     private ScheduleManager scheduleManager;
     private EfficiencyManager efficiencyManager;
+    private PlaytimeManager playtimeManager;
     private DashServer dashServer;
+    private McpSettings mcpSettings;
+    private McpInstructions mcpInstructions;
+    private McpTools mcpTools;
+    private McpAudit mcpAudit;
 
     @Override
     public void onEnable() {
@@ -56,6 +67,14 @@ public class KodaDash extends JavaPlugin {
         fileManager = new FileManager(this);
         scheduleManager = new ScheduleManager(this);
         efficiencyManager = new EfficiencyManager(this);
+        playtimeManager = new PlaytimeManager(this);
+        getServer().getPluginManager().registerEvents(new PlaytimeListener(this), this);
+
+        mcpSettings = new McpSettings(this);
+        mcpInstructions = new McpInstructions(this, mcpSettings);
+        mcpTools = new McpTools(this, mcpSettings, mcpInstructions);
+        mcpAudit = new McpAudit(this, mcpSettings);
+
         dashServer = new DashServer(this);
         
         getCommand("kodadash").setExecutor(new DashCommand(this));
@@ -115,6 +134,9 @@ public class KodaDash extends JavaPlugin {
         if (statsManager != null) {
             statsManager.shutdown();
         }
+        if (playtimeManager != null) {
+            playtimeManager.shutdown();
+        }
         if (consoleManager != null) {
             consoleManager.cleanup();
         }
@@ -140,8 +162,13 @@ public class KodaDash extends JavaPlugin {
     public AuthManager getAuthManager() { return authManager; }
     public ConsoleManager getConsoleManager() { return consoleManager; }
     public StatsManager getStatsManager() { return statsManager; }
+    public PlaytimeManager getPlaytimeManager() { return playtimeManager; }
     public FileManager getFileManager() { return fileManager; }
     public ScheduleManager getScheduleManager() { return scheduleManager; }
     public EfficiencyManager getEfficiencyManager() { return efficiencyManager; }
     public DashServer getDashServer() { return dashServer; }
+    public McpSettings getMcpSettings() { return mcpSettings; }
+    public McpInstructions getMcpInstructions() { return mcpInstructions; }
+    public McpTools getMcpTools() { return mcpTools; }
+    public McpAudit getMcpAudit() { return mcpAudit; }
 }

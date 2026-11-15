@@ -235,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
 
         showWelcomeSplash();
         if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("tos_accepted_v3", false)) {
-            maybeAskNickname();
+            syncNicknameIfSet();
         } // fresh installs: the welcome setup asks (with a working device token)
         // the KodaCluster slave runs whenever its toggle is on, not only after visiting Settings
         if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("dev_cluster_slave", false)) {
@@ -1679,6 +1679,21 @@ public class MainActivity extends AppCompatActivity {
      * koda_users.nickname column is still empty. the answer is PATCHed to Supabase
      * with the session JWT and cached locally.
      */
+    /**
+     * the username is collected in the welcome setup and can be changed in Settings.
+     * this only backfills an existing local name once per day; no random dialog.
+     */
+    private void syncNicknameIfSet() {
+        android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
+        String nick = prefs.getString("nickname", "");
+        if (nick.isEmpty()) return;
+        String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                .format(new java.util.Date());
+        if (today.equals(prefs.getString("nickname_sync_day", ""))) return;
+        eu.kodanetwork.mchost.util.NicknameSync.sync(this, false);
+        prefs.edit().putString("nickname_sync_day", today).apply();
+    }
+
     private void maybeAskNickname() {
         android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
         String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date());
@@ -1978,9 +1993,10 @@ public class MainActivity extends AppCompatActivity {
         String deviceToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
         if (appUuid.isEmpty() || deviceToken.isEmpty()) return out;
 
+        // only this device. family servers belong on the other phone and are not
+        // offered for import/delete here; that was how one setup deleted the other.
         String[][] calls = {
             {"/rest/v1/rpc/rpc_get_my_servers", "{\"p_app_uuid\":\"" + appUuid + "\",\"p_device_token\":\"" + deviceToken + "\"}"},
-            {"/rest/v1/rpc/rpc_get_servers_by_auth_id", "{\"p_app_uuid\":\"" + appUuid + "\",\"p_device_token\":\"" + deviceToken + "\"}"},
         };
         for (String[] call : calls) {
             try {
@@ -2105,7 +2121,7 @@ public class MainActivity extends AppCompatActivity {
     /** IMPORT: adopt, create placeholders WITH a serverDir, offer a zip picker per server. */
     private void executeRecoveryImport(java.util.List<org.json.JSONObject> servers, String baseUrl, String apiKey) {
         new Thread(() -> {
-            callAdoptServers(baseUrl, apiKey);
+            adoptHosts(servers, baseUrl, apiKey);
             runOnUiThread(() -> {
                 pendingZipImports.clear();
                 for (org.json.JSONObject row : servers) {
@@ -2257,37 +2273,18 @@ public class MainActivity extends AppCompatActivity {
         return count;
     }
 
-    /** unpacks a ZIP with a zip-slip guard (pattern from CreateServerActivity.extractZip). */
+    /** unpacks a ZIP through the central-directory reader. */
     private boolean extractRecoveryZip(android.net.Uri uri, java.io.File targetDir) {
+        java.io.File temp = null;
         try {
-            targetDir.mkdirs();
-            String canonicalBase = targetDir.getCanonicalPath() + java.io.File.separator;
-            java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
-                    getContentResolver().openInputStream(uri));
-            java.util.zip.ZipEntry entry;
-            byte[] buf = new byte[8192];
-            while ((entry = zis.getNextEntry()) != null) {
-                java.io.File out = new java.io.File(targetDir, entry.getName());
-                String canonical = out.getCanonicalPath();
-                if (!canonical.startsWith(canonicalBase) && !canonical.equals(targetDir.getCanonicalPath())) {
-                    continue; // that would be a zip slip
-                }
-                if (entry.isDirectory()) {
-                    out.mkdirs();
-                } else {
-                    out.getParentFile().mkdirs();
-                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(out)) {
-                        int n;
-                        while ((n = zis.read(buf)) > 0) fos.write(buf, 0, n);
-                    }
-                }
-                zis.closeEntry();
-            }
-            zis.close();
+            temp = eu.kodanetwork.mchost.util.ZipExtract.copyToCache(this, uri, "recovery");
+            eu.kodanetwork.mchost.util.ZipExtract.extractTolerant(temp, targetDir);
             return true;
         } catch (Exception e) {
             android.util.Log.e("Recovery", "zip extract failed", e);
             return false;
+        } finally {
+            if (temp != null) temp.delete();
         }
     }
 
@@ -2295,7 +2292,6 @@ public class MainActivity extends AppCompatActivity {
     private void executeRecoveryDelete(java.util.List<org.json.JSONObject> servers, String baseUrl, String apiKey) {
         final android.app.Dialog progress = android.app.ProgressDialog.show(this, "", getString(R.string.praetor_recovery_deleting), true);
         new Thread(() -> {
-            callAdoptServers(baseUrl, apiKey);
             String appUuid = eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "");
             String deviceToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
             for (org.json.JSONObject row : servers) {
@@ -2338,20 +2334,30 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void callAdoptServers(String baseUrl, String apiKey) {
+    /** moves only the shown hosts to this device, never the whole account family. */
+    private void adoptHosts(java.util.List<org.json.JSONObject> servers, String baseUrl, String apiKey) {
         try {
             String appUuid = eu.kodanetwork.mchost.App.getPrefs(this).getString("app_uuid", "");
             String deviceToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
             if (appUuid.isEmpty() || deviceToken.isEmpty()) return;
-            java.net.URL url = new java.net.URL(baseUrl + "/rest/v1/rpc/rpc_adopt_servers");
+            org.json.JSONArray hosts = new org.json.JSONArray();
+            for (org.json.JSONObject row : servers) {
+                String host = row.optString("host", "");
+                if (!host.isEmpty()) hosts.put(host);
+            }
+            if (hosts.length() == 0) return;
+            org.json.JSONObject body = new org.json.JSONObject()
+                    .put("p_app_uuid", appUuid)
+                    .put("p_device_token", deviceToken)
+                    .put("p_hosts", hosts);
+            java.net.URL url = new java.net.URL(baseUrl + "/rest/v1/rpc/rpc_adopt_hosts");
             java.net.HttpURLConnection c = (java.net.HttpURLConnection) url.openConnection();
             c.setRequestMethod("POST");
             c.setRequestProperty("Content-Type", "application/json");
             c.setRequestProperty("apikey", apiKey);
             c.setRequestProperty("Authorization", "Bearer " + apiKey);
             c.setDoOutput(true);
-            String body = "{\"p_app_uuid\":\"" + appUuid + "\",\"p_device_token\":\"" + deviceToken + "\"}";
-            c.getOutputStream().write(body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            c.getOutputStream().write(body.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
             c.getResponseCode();
             c.disconnect();
         } catch (Exception ignored) {}

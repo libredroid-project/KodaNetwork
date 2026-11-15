@@ -81,7 +81,6 @@ public class WelcomeActivity extends AppCompatActivity {
         setupLegalStep();
         setupBackgroundStep();
         setupRecoveryStep();
-        setupNicknameStep();
         setupAccountStep();
         setupDoneStep();
     }
@@ -90,7 +89,7 @@ public class WelcomeActivity extends AppCompatActivity {
 
     private void showStep(int id) {
         int[] steps = {R.id.step_welcome, R.id.step_legal, R.id.step_background,
-                R.id.step_recovery, R.id.step_nickname, R.id.step_account, R.id.step_done};
+                R.id.step_recovery, R.id.step_account, R.id.step_done};
         for (int step : steps) {
             View v = findViewById(step);
             if (v != null) v.setVisibility(step == id ? View.VISIBLE : View.GONE);
@@ -230,7 +229,7 @@ public class WelcomeActivity extends AppCompatActivity {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
             deleteCloudServers();
         });
-        findViewById(R.id.btn_recovery_next).setOnClickListener(v -> showStep(R.id.step_nickname));
+        findViewById(R.id.btn_recovery_next).setOnClickListener(v -> showStep(R.id.step_account));
     }
 
     /** runs the moment the recovery step appears, only once. */
@@ -268,9 +267,11 @@ public class WelcomeActivity extends AppCompatActivity {
         String deviceToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
         if (appUuid.isEmpty() || deviceToken.isEmpty()) return out;
 
+        // only this device. servers on other family devices stay there and are
+        // offered separately through the transfer prompt after login; mixing them
+        // in here made the first setup look like it owned the other device's servers.
         String[][] calls = {
                 {"/rest/v1/rpc/rpc_get_my_servers", "{\"p_app_uuid\":\"" + appUuid + "\",\"p_device_token\":\"" + deviceToken + "\"}"},
-                {"/rest/v1/rpc/rpc_get_servers_by_auth_id", "{\"p_app_uuid\":\"" + appUuid + "\",\"p_device_token\":\"" + deviceToken + "\"}"},
         };
         for (String[] call : calls) {
             try {
@@ -314,8 +315,19 @@ public class WelcomeActivity extends AppCompatActivity {
         try {
             String appUuid = prefs();
             String token = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
-            rpc("/rest/v1/rpc/rpc_adopt_servers",
-                    "{\"p_app_uuid\":\"" + appUuid + "\",\"p_device_token\":\"" + token + "\"}");
+            JSONArray hosts = new JSONArray();
+            for (JSONObject row : cloudServers) {
+                String host = row.optString("host", "");
+                if (!host.isEmpty()) hosts.put(host);
+            }
+            if (hosts.length() == 0) return true;
+            // rpc_adopt_servers stole the whole account family. adopt only the
+            // hosts that are actually being imported on this device.
+            JSONObject body = new JSONObject()
+                    .put("p_app_uuid", appUuid)
+                    .put("p_device_token", token)
+                    .put("p_hosts", hosts);
+            rpc("/rest/v1/rpc/rpc_adopt_hosts", body.toString());
             return true;
         } catch (Exception e) {
             return false;
@@ -428,70 +440,18 @@ public class WelcomeActivity extends AppCompatActivity {
 
         new Thread(() -> {
             boolean ok = false;
+            java.io.File temp = null;
             try {
-                targetDir.mkdirs();
-                String canonicalBase = targetDir.getCanonicalPath() + java.io.File.separator;
-                java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
-                        getContentResolver().openInputStream(uri));
-
-                // find the common first directory (the ZIP holds "uuid/server.properties",
-                // zipFolder prepends the source directory name). strip it so the files
-                // land right in the server directory, not in a nested UUID folder.
-                String firstDir = null;
-                java.util.zip.ZipEntry entry;
-                while ((entry = zis.getNextEntry()) != null) {
-                    String name = entry.getName();
-                    int slash = name.indexOf('/');
-                    if (slash > 0) {
-                        String candidate = name.substring(0, slash);
-                        if (firstDir == null) {
-                            firstDir = candidate;
-                        } else if (!firstDir.equals(candidate)) {
-                            firstDir = null; // mixed roots -> no stripping
-                            break;
-                        }
-                    } else {
-                        firstDir = null; // file at root -> no wrapping directory
-                        break;
-                    }
-                    zis.closeEntry();
-                }
-
-                // reopen, the stream was chewed up by the detection pass
-                zis.close();
-                zis = new java.util.zip.ZipInputStream(getContentResolver().openInputStream(uri));
-                String stripPrefix = firstDir != null ? firstDir + "/" : "";
-
-                byte[] buf = new byte[8192];
-                while ((entry = zis.getNextEntry()) != null) {
-                    String name = entry.getName();
-                    if (name.startsWith(stripPrefix)) {
-                        name = name.substring(stripPrefix.length());
-                    }
-                    if (name.isEmpty()) {
-                        zis.closeEntry();
-                        continue;
-                    }
-                    java.io.File out = new java.io.File(targetDir, name);
-                    String canonical = out.getCanonicalPath();
-                    if (!canonical.startsWith(canonicalBase) && !canonical.equals(targetDir.getCanonicalPath())) {
-                        continue; // zip slip, skip it
-                    }
-                    if (entry.isDirectory()) {
-                        out.mkdirs();
-                    } else {
-                        out.getParentFile().mkdirs();
-                        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(out)) {
-                            int n;
-                            while ((n = zis.read(buf)) > 0) fos.write(buf, 0, n);
-                        }
-                    }
-                    zis.closeEntry();
-                }
-                zis.close();
+                // copy first and read the central directory; the old two-pass
+                // ZipInputStream failed on valid ZIP64 backups with a ZLIB EOF.
+                temp = eu.kodanetwork.mchost.util.ZipExtract.copyToCache(
+                        this, uri, "welcome_zip");
+                eu.kodanetwork.mchost.util.ZipExtract.extractStrippingRootTolerant(temp, targetDir);
                 ok = true;
             } catch (Exception e) {
                 android.util.Log.e("Welcome", "zip extract failed", e);
+            } finally {
+                if (temp != null) temp.delete();
             }
 
             // state becomes OFFLINE, not HIBERNATED, so the server can actually start
@@ -547,30 +507,7 @@ public class WelcomeActivity extends AppCompatActivity {
 
     // ---------------------------------------------------------------- step 5
 
-    private void setupNicknameStep() {
-        findViewById(R.id.btn_nickname_next).setOnClickListener(v -> {
-            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
-            String nickname = ((android.widget.EditText) findViewById(R.id.et_nickname)).getText().toString().trim();
-            eu.kodanetwork.mchost.App.getPrefs(this).edit().putString("nickname", nickname).apply();
-            if (!nickname.isEmpty()) {
-                new Thread(() -> {
-                    try {
-                        String token = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
-                        if (token.isEmpty()) return;
-                        JSONObject payload = new JSONObject().put("nickname", nickname);
-                        rpc("/rest/v1/rpc/rpc_patch_user",
-                                "{\"p_app_uuid\":\"" + prefs() + "\",\"p_device_token\":\"" + token
-                                        + "\",\"p_payload\":" + payload + "}");
-                    } catch (Exception ignored) {
-                    }
-                }, "KodaWelcomeNick").start();
-            }
-            showStep(R.id.step_account);
-        });
-    }
-
-    // ---------------------------------------------------------------- step 6
-
+    /** the account question; username, email and password are asked on the sign-up screen. */
     private void setupAccountStep() {
         findViewById(R.id.btn_account_login).setOnClickListener(v -> {
             eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);

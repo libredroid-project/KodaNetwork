@@ -101,7 +101,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${resendApiKey}`
         },
         body: JSON.stringify({
-          from: 'KodaNetwork <noreply@kodanetwork.eu>',
+          from: 'KodaHosting <support@kodaserv.eu>',
           to: clean,
           subject: 'Password Reset - KodaNetwork',
           html: `

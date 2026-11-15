@@ -22,7 +22,11 @@ import eu.kodanetwork.mchost.model.ServerInstance;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -120,12 +124,16 @@ public class ServerImportInspector {
             }
         }
 
-        // libraries tell the real story for forge
+        // libraries tell the real story for forge. 1.12.2 backups often keep the
+        // universal jar under maven/ instead of next to server.properties.
         File forgeLib = new File(dir, "libraries/net/minecraftforge/forge");
-        if (forgeLib.isDirectory()) {
+        File mavenForge = new File(dir, "maven/net/minecraftforge/forge");
+        if (forgeLib.isDirectory() || mavenForge.isDirectory()) {
             in.hasForgeLibraries = true;
-            String mc = versionFromForgeLib(forgeLib);
+            File source = forgeLib.isDirectory() ? forgeLib : mavenForge;
+            String mc = versionFromForgeLib(source);
             if (!mc.isEmpty()) in.detectedVersion = mc;
+            addForgeJars(in, source);
         }
         File neoLib = new File(dir, "libraries/net/neoforged/neoforge");
         if (neoLib.isDirectory() && neoLib.isDirectory()) {
@@ -190,9 +198,44 @@ public class ServerImportInspector {
             if (!c.version.isEmpty()) s.setVersion(c.version);
             else if (!in.detectedVersion.isEmpty()) s.setVersion(in.detectedVersion);
             s.setLauncherJar(c.name);
+            promoteNestedJar(s, c);
         } else if (in.detectedType != null) {
             s.setType(in.detectedType);
             if (!in.detectedVersion.isEmpty()) s.setVersion(in.detectedVersion);
+        }
+    }
+
+    /** copies a jar found under maven/ or libraries/ next to server.properties. */
+    private static void promoteNestedJar(ServerInstance s, Candidate c) {
+        if (c.file == null || s.getServerDir() == null) return;
+        File serverDir = new File(s.getServerDir());
+        File target = new File(serverDir, c.name);
+        if (target.isFile() || c.file.equals(target)) return;
+        try (InputStream in = new FileInputStream(c.file);
+             OutputStream out = new FileOutputStream(target)) {
+            byte[] buffer = new byte[16384];
+            int read;
+            while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** finds forge-*.jar (not installers) below the forge library folder. */
+    private static void addForgeJars(Inspection in, File root) {
+        if (root == null || !root.isDirectory()) return;
+        File[] files = root.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            if (f.isDirectory()) {
+                addForgeJars(in, f);
+                continue;
+            }
+            String lower = f.getName().toLowerCase();
+            if (!lower.endsWith(".jar") || lower.contains("installer")
+                    || !lower.startsWith("forge-")) continue;
+            if (containsCandidate(in, f.getName())) continue;
+            Candidate c = classify(f);
+            if (c != null) in.candidates.add(c);
         }
     }
 

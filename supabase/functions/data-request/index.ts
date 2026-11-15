@@ -644,7 +644,7 @@ async function purgeData(admin: Admin, request: any, cors: Record<string, string
         "Your account and all personal data were deleted.",
         "Only the records we are legally required to keep (billing and contract proof) remain in a separate retention table. They are deleted automatically when the legal deadline ends.",
       ],
-      footnote: "If you have questions, reply to this mail or use contact@kodaserv.eu.",
+      footnote: "If you have questions, reply to this mail or use support@kodaserv.eu.",
     });
     mailed = sent.ok;
     if (mailed) {

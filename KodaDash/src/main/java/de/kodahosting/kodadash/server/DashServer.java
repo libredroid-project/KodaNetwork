@@ -70,6 +70,10 @@ public class DashServer {
             server.createContext("/api/schedule", new ScheduleRoute(plugin));
             server.createContext("/api/stats", new StatsRoute(plugin));
             server.createContext("/api/efficiency", new EfficiencyRoute(plugin));
+            server.createContext("/api/mcp", new McpSettingsRoute(plugin));
+
+            // MCP for AI clients: same HTTP server, own token, POST /mcp only
+            server.createContext("/mcp", new McpRoute(plugin));
 
             // the web UI itself, with the SPA fallback behind it
             server.createContext("/", new StaticHandler(plugin));

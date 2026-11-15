@@ -364,6 +364,12 @@
                 </button>
             </div>
             <div class="list" id="players-list"></div>
+
+            <div class="card" style="margin-top:16px">
+                <h2 class="card-title">Playtime leaderboard</h2>
+                <p class="card-sub">Total time on this server, from join and quit events.</p>
+                <div class="list player-list" id="playtime-list"></div>
+            </div>
         </section>
 
         <!-- ===== Files ===== -->
@@ -432,6 +438,64 @@
                     <svg class="icon icon-sm"><use href="icons.svg#i-save"></use></svg>
                     Save changes
                 </button>
+            </div>
+
+            <div class="card" id="mcp-card" style="margin-bottom:16px">
+                <div class="card-title-row">
+                    <div>
+                        <h2 class="card-title">AI access (MCP)</h2>
+                        <p class="card-sub">Let an AI client inspect and change this server through the Model Context Protocol.</p>
+                    </div>
+                    <span class="chip" id="mcp-state-chip">OFF</span>
+                </div>
+
+                <div class="notice notice-warn" style="margin:12px 0">
+                    <svg class="icon icon-sm"><use href="icons.svg#i-warning"></use></svg>
+                    <span>The MCP token grants full admin: console, files, settings and plugins. It can never start, stop or restart the server. Only give it to an AI you trust.</span>
+                </div>
+
+                <label class="switch-row">
+                    <input type="checkbox" id="mcp-enabled">
+                    <span>Enable MCP</span>
+                </label>
+                <label class="switch-row">
+                    <input type="checkbox" id="mcp-readonly">
+                    <span>Read-only (no console, file writes, settings or plugins)</span>
+                </label>
+
+                <div class="field">
+                    <label for="mcp-endpoint">Endpoint</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <input id="mcp-endpoint" class="input" readonly style="flex:1;min-width:240px">
+                        <button class="btn btn-sm" id="mcp-copy-endpoint">Copy</button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="mcp-token">Token</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <input id="mcp-token" class="input" type="password" readonly style="flex:1;min-width:240px">
+                        <button class="btn btn-sm" id="mcp-show-token">Show</button>
+                        <button class="btn btn-sm" id="mcp-copy-token">Copy</button>
+                        <button class="btn btn-sm" id="mcp-regenerate">Regenerate</button>
+                    </div>
+                    <p class="muted" style="margin-top:6px">Regenerating invalidates the old token immediately. The AI client has to be updated.</p>
+                </div>
+
+                <div class="field">
+                    <label>Capabilities</label>
+                    <label class="switch-row"><input type="checkbox" id="mcp-cap-console"><span>Console commands (start, stop and restart stay blocked)</span></label>
+                    <label class="switch-row"><input type="checkbox" id="mcp-cap-files"><span>File write, rename and delete</span></label>
+                    <label class="switch-row"><input type="checkbox" id="mcp-cap-settings"><span>server.properties changes</span></label>
+                    <label class="switch-row"><input type="checkbox" id="mcp-cap-plugins"><span>Plugin enable, disable and install</span></label>
+                </div>
+
+                <details style="margin-top:10px">
+                    <summary class="muted" style="cursor:pointer">Show system prompt</summary>
+                    <pre id="mcp-instructions" style="white-space:pre-wrap;font-size:.75rem;line-height:1.55;max-height:340px;overflow:auto;background:var(--md-surface-container-low);padding:12px;border-radius:8px;margin-top:8px"></pre>
+                </details>
+
+                <p class="muted" style="margin-top:10px">Audit log: <code>plugins/KodaDash/mcp-audit.log</code> · Connection: <code>Authorization: Bearer &lt;token&gt;</code></p>
             </div>
 
             <div id="settings-tools"></div>

@@ -24,6 +24,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -52,6 +53,12 @@ public final class KodaSheet {
 
     private final Activity activity;
     private final float d;
+    private final ScrollView scroller;
+    private final FrameLayout accessoryHolder;
+    /** the scroll area grows for sheets with many rows, e.g. the account page. */
+    private float maxHeightFactor = 0.52f;
+    /** one horizontal row for the bottom actions, like the delete-server sheet. */
+    private LinearLayout actionRow;
 
     private KodaSheet(Activity activity, String title, String subtitle) {
         this.activity = activity;
@@ -95,7 +102,16 @@ public final class KodaSheet {
                 activity, R.font.font_koda);
         if (koda != null) t.setTypeface(koda, android.graphics.Typeface.BOLD);
         t.setPadding(0, (int) (10 * d), 0, 0);
-        root.addView(t);
+
+        LinearLayout titleRow = new LinearLayout(activity);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
+        titleRow.addView(t, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        accessoryHolder = new FrameLayout(activity);
+        titleRow.addView(accessoryHolder, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(titleRow);
 
         if (subtitle != null && !subtitle.isEmpty()) {
             TextView s = new TextView(activity);
@@ -108,10 +124,10 @@ public final class KodaSheet {
             root.addView(s);
         }
 
-        ScrollView scroller = new ScrollView(activity) {
+        scroller = new ScrollView(activity) {
             @Override
             protected void onMeasure(int widthSpec, int heightSpec) {
-                int max = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.52f);
+                int max = (int) (activity.getResources().getDisplayMetrics().heightPixels * maxHeightFactor);
                 super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(max, MeasureSpec.AT_MOST));
             }
         };
@@ -133,6 +149,42 @@ public final class KodaSheet {
 
     public static KodaSheet create(Activity activity, String title, String subtitle) {
         return new KodaSheet(activity, title, subtitle);
+    }
+
+    /** taller scroll area and a visible scrollbar for sheets with many rows. */
+    public KodaSheet tall() {
+        maxHeightFactor = 0.75f;
+        scroller.setVerticalScrollBarEnabled(true);
+        scroller.setScrollbarFadingEnabled(false);
+        return this;
+    }
+
+    /**
+     * keeps the sheet at its expanded height and stops the sheet drag, so a long
+     * text can scroll without pulling the whole bottom sheet up or down.
+     */
+    public KodaSheet lockSheet() {
+        sheet.setOnShowListener(dialog -> {
+            android.view.View bottom = sheet.findViewById(
+                    com.google.android.material.R.id.design_bottom_sheet);
+            if (bottom == null) return;
+            com.google.android.material.bottomsheet.BottomSheetBehavior<android.view.View> behavior =
+                    com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottom);
+            behavior.setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
+            behavior.setSkipCollapsed(true);
+            behavior.setDraggable(false);
+        });
+        return this;
+    }
+
+    /** a view on the right of the title, e.g. the account avatar and its change action. */
+    public void accessory(View view) {
+        accessoryHolder.removeAllViews();
+        if (view == null) return;
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMarginStart((int) (12 * d));
+        accessoryHolder.addView(view, lp);
     }
 
     /** a full width row with title and description, the danger variant turns the text red. */
@@ -298,7 +350,7 @@ public final class KodaSheet {
         return sw;
     }
 
-    /** the orange action at the bottom, 56dp like every primary action. */
+    /** the orange action at the bottom, 48dp like the rest of the app. */
     public MaterialButton primary(String text, View.OnClickListener click) {
         MaterialButton b = addPrimary(text);
         b.setOnClickListener(click);
@@ -336,16 +388,32 @@ public final class KodaSheet {
         return b;
     }
 
+    /** actions share one right aligned row instead of stacking two full width bars. */
+    private LinearLayout actions() {
+        if (actionRow == null) {
+            actionRow = new LinearLayout(activity);
+            actionRow.setOrientation(LinearLayout.HORIZONTAL);
+            actionRow.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = (int) (20 * d);
+            root.addView(actionRow, lp);
+        }
+        return actionRow;
+    }
+
     private MaterialButton addPrimary(String text) {
         MaterialButton b = KodaButtons.primary(activity, text);
+        b.setMinWidth(0);
+        b.setPadding((int) (20 * d), 0, (int) (20 * d), 0);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (int) (56 * d));
-        lp.topMargin = (int) (20 * d);
-        root.addView(b, lp);
+                LinearLayout.LayoutParams.WRAP_CONTENT, (int) (44 * d));
+        lp.setMarginStart((int) (8 * d));
+        actions().addView(b, lp);
         return b;
     }
 
-    /** the quiet action below the primary one, same size, no fill. */
+    /** the quiet action left of the primary one, same height, no fill. */
     public MaterialButton secondary(String text, View.OnClickListener click) {
         MaterialButton b = KodaButtons.dark(activity, text);
         b.setBackground(androidx.core.content.res.ResourcesCompat.getDrawable(
@@ -354,11 +422,13 @@ public final class KodaSheet {
         // grey outline orange, so the tint list has to go
         b.setBackgroundTintList(null);
         b.setTextColor(0xFFF0F0F0);
+        b.setMinWidth(0);
+        b.setPadding((int) (14 * d), 0, (int) (14 * d), 0);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (int) (56 * d));
-        lp.topMargin = (int) (8 * d);
+                LinearLayout.LayoutParams.WRAP_CONTENT, (int) (44 * d));
         b.setOnClickListener(click);
-        root.addView(b, lp);
+        // cancel sits left of the primary action even when it is added after it
+        actions().addView(b, 0, lp);
         return b;
     }
 

@@ -4235,6 +4235,13 @@ public class KodaServerService extends Service {
             "remotePort = " + s.getPort() + "\n";
 
         if (s.isBedrockSupport() && s.getBedrockPort() > 0) {
+            // NetherNet needs both: TCP for signaling and UDP for the WebRTC gameplay stream
+            toml += "\n[[proxies]]\n" +
+                "name = \"mc-bedrock-signal-" + s.getId().substring(0, 4) + "-" + randSuffix + "\"\n" +
+                "type = \"tcp\"\n" +
+                "localIP = \"127.0.0.1\"\n" +
+                "localPort = " + s.getBedrockPort() + "\n" +
+                "remotePort = " + s.getBedrockPort() + "\n";
             toml += "\n[[proxies]]\n" +
                 "name = \"mc-bedrock-" + s.getId().substring(0, 4) + "-" + randSuffix + "\"\n" +
                 "type = \"udp\"\n" +
@@ -4300,9 +4307,17 @@ public class KodaServerService extends Service {
             if (!new File(geyserDir, ".manual_override").exists()) {
                 try {
                     geyserDir.mkdirs();
+                    String bedrockHost = srv.getJoinAddress();
+                    int hostColon = bedrockHost == null ? -1 : bedrockHost.indexOf(':');
+                    if (hostColon > 0) bedrockHost = bedrockHost.substring(0, hostColon);
+                    if (bedrockHost == null || bedrockHost.isEmpty()) {
+                        bedrockHost = srv.getSubdomain() + "." + srv.getBaseDomain();
+                    }
+                    String advertise = bedrockHost + ":" + srv.getBedrockPort();
                     String geyserConfig = readAsset("geyser_config.yml")
                         .replace("{GEYSER_PORT}", String.valueOf(srv.getBedrockPort()))
                         .replace("{SERVER_PORT}", String.valueOf(srv.getPort()))
+                        .replace("{BEDROCK_ADVERTISE}", advertise)
                         .replace("{VPS_IP}", eu.kodanetwork.mchost.security.PraetorSecurity.getBoreIp());
                     write(new File(geyserDir, "config.yml"), geyserConfig);
                     write(new File(geyserDir, "key.pem"), ensureBedrockKey(pluginsDir));
@@ -4395,6 +4410,23 @@ public class KodaServerService extends Service {
                 java.io.File folder = new java.io.File(srv.getServerDir(), "plugins/KodaDash");
                 if (!folder.exists() && !folder.mkdirs()) continue;
                 write(new java.io.File(folder, "device-info.json"), info.toString());
+
+                // the MCP prompt needs to know the public address and the app version.
+                // local Bukkit values stay authoritative in the plugin; this file is
+                // the app/cloud mirror and is labelled as such.
+                try {
+                    org.json.JSONObject serverInfo = new org.json.JSONObject();
+                    serverInfo.put("host", srv.getSubdomain());
+                    serverInfo.put("baseDomain", srv.getBaseDomain());
+                    serverInfo.put("joinAddress", srv.getJoinAddress());
+                    serverInfo.put("kodadashPort", srv.getKodadashPort());
+                    serverInfo.put("kodadashHttps",
+                            eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("kodadash_https", false));
+                    serverInfo.put("appVersion", eu.kodanetwork.mchost.BuildConfig.VERSION_NAME);
+                    serverInfo.put("updatedAt", now);
+                    write(new java.io.File(folder, "server-info.json"), serverInfo.toString());
+                } catch (Exception ignored) {
+                }
             }
         } catch (Exception e) {
             Log.w(TAG, "Could not write device info", e);
@@ -5386,6 +5418,10 @@ public class KodaServerService extends Service {
                 sb.append("[networking.bedrock]\n");
                 sb.append("enabled = true\n");
                 sb.append("online_mode = false\n");
+                // Bedrock listens on NetherNet. Without this address every server
+                // would grab UDP 19132 and the per-server tunnel port would point nowhere.
+                sb.append("[networking.bedrock.nethernet]\n");
+                sb.append("address = \"0.0.0.0:").append(srv.getBedrockPort()).append("\"\n");
             } else {
                 // two pumpkin servers would both grab UDP 19132, so bedrock stays off
                 sb.append("[networking.bedrock]\n");
@@ -5421,6 +5457,11 @@ public class KodaServerService extends Service {
             File binary = eu.kodanetwork.mchost.util.PumpkinRuntime.getBinaryFile(this);
             File dir = new File(srv.getServerDir());
             if (!dir.exists()) dir.mkdirs();
+            // pumpkin has no plugin installer that would allocate the bedrock port
+            if (srv.isBedrockSupport() && srv.getBedrockPort() == 0) {
+                srv.setBedrockPort(allocatePortSync(srv, "bedrock", 40000, 50000));
+                eu.kodanetwork.mchost.model.ServerRepo.get(this).update(srv);
+            }
             writePumpkinConfigIfMissing(srv, dir);
 
             // leftovers from an app process MIUI killed: the native child stays alive

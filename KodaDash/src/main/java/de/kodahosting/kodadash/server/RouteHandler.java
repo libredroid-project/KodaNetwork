@@ -68,11 +68,12 @@ public abstract class RouteHandler implements HttpHandler {
             }
 
             if (requireAuth()) {
-                if (!plugin.getAuthManager().authenticate(exchange)) {
+                if (!authenticate(exchange)) {
                     if (!countAuthAttempt(exchange)) {
                         sendError(exchange, 429, "Too many failed attempts");
                         return;
                     }
+                    exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer realm=\"KodaDash\"");
                     sendError(exchange, 401, "Unauthorized");
                     return;
                 }
@@ -94,6 +95,14 @@ public abstract class RouteHandler implements HttpHandler {
 
     protected boolean requireAuth() {
         return true;
+    }
+
+    /**
+     * checks the caller. the default is the dashboard token plus optional password;
+     * the MCP route overrides this with its own token-only check.
+     */
+    protected boolean authenticate(HttpExchange exchange) {
+        return plugin.getAuthManager().authenticate(exchange);
     }
 
     protected void handleGet(HttpExchange exchange) throws IOException { sendError(exchange, 405, "Method Not Allowed"); }
@@ -123,7 +132,9 @@ public abstract class RouteHandler implements HttpHandler {
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", allowed);
         exchange.getResponseHeaders().set("Vary", "Origin");
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Token, X-Dashboard-Password");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers",
+                "Content-Type, Authorization, X-API-Token, X-Dashboard-Password, MCP-Protocol-Version, Mcp-Session-Id");
+        exchange.getResponseHeaders().set("Access-Control-Expose-Headers", "Mcp-Session-Id, MCP-Protocol-Version");
     }
 
     /** real per-IP counting (config: rate-limit.max-requests per minute). */

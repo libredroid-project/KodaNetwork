@@ -1,6 +1,6 @@
 Privacy Policy
 
-Last Updated: September 2026
+Last Updated: November 2026
 
 1. Introduction & Data Controller
 
@@ -9,7 +9,7 @@ Welcome to KodaHosting. We respect your privacy and are committed to protecting 
 The Data Controller responsible for your personal information is:
 Karol Brzostowski
 Deutschland Fixberg 17, 33106 Paderborn-Wewer
-Email: support@host.kodanetwork.eu
+Email: support@kodaserv.eu
 
 Note on Legal Capacity: The developer of KodaHosting is a minor under German law (§ 106 BGB, beschränkte Geschäftsfähigkeit). Legal responsibility for the operation of this service, including data protection matters, is jointly held by the legal guardians. Correspondence regarding data protection, including requests under the GDPR, can be addressed to the email above. The legal guardians can be reached via the same address.
 
@@ -33,7 +33,11 @@ KodaHosting processes certain data to function correctly:
 
 - AI Crash Analysis ("Ask AI", opt-in): If you explicitly consent and tap "Ask AI" after a crash, the last portion of your app log (up to approximately 1,000 lines), basic device information (model, RAM, Android version), and the affected server's configuration are transmitted to OpenRouter, a U.S.-based AI gateway, for analysis. OpenRouter routes the request through third-party AI models, which may include models by NVIDIA (Nemotron), MiniMax, Dots Studio, inclusionAI (Ling), and Google (Gemma). The feature is limited to 10 requests per day, requires explicit consent before every first use, and can be revoked at any time in the app settings. Do not use this feature if your logs may contain sensitive personal information. Transfers to the U.S. are safeguarded under the EU-U.S. Data Privacy Framework (DPF) and Standard Contractual Clauses where applicable to the respective model provider.
 
-- Support Tickets: If you contact us through the in-app support ticket system or request a password reset or verification code, we process your email address and your message, including diagnostic information attached to the ticket (device model, app version, memory, network type, and the names and status of your hosted servers). Emails are delivered via Resend, a third-party email delivery service.
+- Support Tickets: If you contact us through the in-app support ticket system, the developer console, or request a password reset or verification code, we process your email address and your message, including diagnostic information attached to the ticket (device model, app version, memory, network type, and the names and status of your hosted servers). Emails are delivered via Resend, a third-party email delivery service.
+
+- Developer Console: If you publish extensions, you sign in to the web developer console with your KodaHosting account. We process your email address, verification status, extension metadata and packages, release versions, store listings, review notes, and developer support tickets. The console is hosted on the same infrastructure and uses the same account.
+
+- Extension Download Statistics (first-party): When an extension is downloaded from the in-app store, we store the extension id, version, time, the device model, Android version and app build sent by the app, and whether the download came from the app or the website. This record contains no account id, device id, advertising id or IP address and is not linked to your account. Developers see only aggregated counts for their own extensions (for example which device models or app builds download them).
 
 - Voluntary Donations: If you choose to support development via Ko-fi, you will be redirected to ko-fi.com, which processes the donation independently. Ko-fi may collect your name, email, and payment information. We do not process or store your payment data. Ko-fi's privacy policy applies to donations. Donations are voluntary gifts and do not create a customer relationship with us.
 
@@ -42,7 +46,7 @@ KodaHosting processes certain data to function correctly:
 We process your personal data on the following legal bases:
 
 - Article 6(1)(b) GDPR: For the performance of a contract (account creation, server hosting).
-- Article 6(1)(f) GDPR: Legitimate interests in operating and securing the Service, preventing abuse, and maintaining infrastructure.
+- Article 6(1)(f) GDPR: Legitimate interests in operating and securing the Service, preventing abuse, maintaining infrastructure, and producing aggregated, non-account-linked extension download statistics for developers.
 - Article 6(1)(a) GDPR: Your consent, where applicable (e.g., biometric authentication, AI Server Builder prompts).
 
 You may withdraw consent at any time without affecting the lawfulness of processing based on consent before its withdrawal.
@@ -51,7 +55,7 @@ You may withdraw consent at any time without affecting the lawfulness of process
 
 The App utilizes certain third-party services that may collect information used to identify you or provide core functionalities:
 
-- Google Play Services: For app distribution and in-app updates. Crash and diagnostic data may be processed by Google via Google Play's standard developer diagnostics (Android Vitals). We do not integrate any additional analytics, advertising, or tracking SDKs.
+- Google Play Services: For app distribution and in-app updates. Crash and diagnostic data may be processed by Google via Google Play's standard developer diagnostics (Android Vitals). We do not integrate any third-party analytics, advertising, or tracking SDKs; the extension download statistics described above are generated by our own API.
 - Supabase: For authentication and real-time database functionality (server management state). Supabase stores your email address and authentication token in encrypted form.
 - OpenRouter: For the optional, consent-based AI crash analysis described in Section 2. OpenRouter is the processor that forwards requests to third-party AI model providers (see Section 2 for the list of possible providers).
 - Resend: For delivering transactional emails (verification codes, password resets, support correspondence) to your email address.
@@ -74,6 +78,14 @@ We retain your account information (email address and authentication data) for a
 
 Upon account deletion, all associated data is permanently removed from our systems within 30 days, with the exception of data that we are legally required to retain or that is stored in backup systems (which will be deleted according to the backup retention cycle).
 
+The following retention rules apply in addition:
+
+- Extension download statistics are stored for 12 months and then deleted automatically by a daily cleanup job. They are not linked to an account.
+- If you request a full data deletion and it is approved, your account and all personal data that is not legally required are deleted immediately. Records we must retain are moved into a separate, access-restricted retention table and deleted when the legal deadline ends: billing and payment records after 10 years (§ 147 AO, § 257 HGB), contract and server records after 6 years, and security or abuse evidence after 180 days.
+- Data export requests create a ZIP in our storage. The download link is valid for seven days; after that you can request a new export. The export contains the data stored for your account and linked devices, including extension publishing data if you used the developer console.
+- Support tickets, including developer support tickets, are kept while the ticket is open and for as long as needed to handle follow-up questions, then deleted with the account or earlier on request.
+- Published extension packages are retained for 365 days. Only the newest approved package is publicly downloadable; support may hand out an older release inside this window for a documented reason, for example a legal request. After 365 days older package files are deleted, while the newest approved package stays available.
+
 7. Your GDPR Rights (User Rights)
 
 Under the General Data Protection Regulation (GDPR) and applicable privacy laws, you have the following rights:
@@ -86,7 +98,9 @@ Under the General Data Protection Regulation (GDPR) and applicable privacy laws,
 - Right to Object (Art. 21 GDPR): You may object to the processing of your personal data based on legitimate interests.
 - Right to Withdraw Consent (Art. 7(3) GDPR): You may withdraw any consent you have given at any time.
 
-To exercise these rights, please contact us at support@host.kodanetwork.eu. If you are under 16, your request must be submitted by or with the consent of your legal guardian.
+To exercise these rights, please contact us at support@kodaserv.eu. If you are under 16, your request must be submitted by or with the consent of your legal guardian.
+
+You can also use the account screen in the app: "Request my data" creates a data export after an admin review, "Request full data deletion" starts a deletion request that must be approved by an admin, and "My requests" shows the status. The developer console offers the same account and support paths for extension developers.
 
 8. Children's Privacy
 
@@ -121,6 +135,6 @@ https://www.ldi.nrw.de
 12. Contact Us
 
 If you have any questions or suggestions about our Privacy Policy, or if you wish to exercise your data protection rights, please contact us at:
-Email: support@host.kodanetwork.eu
+Email: support@kodaserv.eu
 
 For matters concerning the developer's status as a minor, the legal guardians can be reached via the same email address.

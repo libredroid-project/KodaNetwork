@@ -103,6 +103,6 @@ Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz):
 Verantwortlich für den Inhalt dieser App und Website:
 Karol Brzostowski
 Deutschland, Fixberg 17, 33106 Paderborn-Wewer
-E-Mail: support@host.kodanetwork.eu
+E-Mail: support@kodaserv.eu
 
 In rechtlichen Angelegenheiten, die den Status des Entwicklers als Minderjährigen betreffen, sind die gesetzlichen Vertreter über dieselbe E-Mail-Adresse erreichbar.

@@ -103,6 +103,6 @@ Information in accordance with § 5 DDG (Digitale-Dienste-Gesetz):
 Responsible for the content of this application and website:
 Karol Brzostowski
 Deutschland Fixberg 17, 33106 Paderborn-Wewer
-Email: support@host.kodanetwork.eu
+Email: support@kodaserv.eu
 
 For legal matters concerning the developer's status as a minor, the legal guardians can be contacted via the same email address.

@@ -1,6 +1,6 @@
 Datenschutzerklärung
 
-Letzte Aktualisierung: September 2026
+Letzte Aktualisierung: November 2026
 
 1. Einleitung und Verantwortlicher
 
@@ -9,7 +9,7 @@ Willkommen bei KodaHosting. Wir respektieren deine Privatsphäre und verpflichte
 Der für deine personenbezogenen Daten verantwortliche Anbieter ist:
 Karol Brzostowski
 Deutschland, Fixberg 17, 33106 Paderborn-Wewer
-E-Mail: support@host.kodanetwork.eu
+E-Mail: support@kodaserv.eu
 
 Hinweis zur Rechtsfähigkeit: Der Entwickler von KodaHosting ist nach deutschem Recht minderjährig (§ 106 BGB, beschränkte Geschäftsfähigkeit). Die rechtliche Verantwortung für den Betrieb dieses Dienstes, einschließlich datenschutzrechtlicher Angelegenheiten, tragen mit die gesetzlichen Vertreter. Anliegen zum Datenschutz, einschließlich Anfragen nach der DSGVO, können an die oben genannte E-Mail-Adresse gerichtet werden. Die gesetzlichen Vertreter sind über dieselbe Adresse erreichbar.
 
@@ -33,7 +33,11 @@ KodaHosting verarbeitet bestimmte Daten, um korrekt zu funktionieren:
 
 - KI-Crash-Analyse („KI fragen", Opt-in): Wenn du ausdrücklich zustimmst und nach einem Absturz auf „KI fragen" tippst, werden der letzte Teil deiner App-Logdatei (bis zu etwa 1.000 Zeilen), grundlegende Geräteinformationen (Modell, RAM, Android-Version) sowie die Konfiguration des betroffenen Servers zur Analyse an OpenRouter übermittelt, ein in den USA ansässiger KI-Gateway. OpenRouter leitet die Anfrage über Drittanbieter-KI-Modelle weiter, wozu Modelle von NVIDIA (Nemotron), MiniMax, Dots Studio, inclusionAI (Ling) und Google (Gemma) gehören können. Die Funktion ist auf 10 Anfragen pro Tag begrenzt, setzt vor der ersten Nutzung eine ausdrückliche Einwilligung voraus und kann jederzeit in den App-Einstellungen widerrufen werden. Nutze diese Funktion nicht, wenn deine Logs sensible personenbezogene Daten enthalten können. Übermittlungen in die USA sind über das EU-U.S. Data Privacy Framework (DPF) und Standardvertragsklauseln abgesichert, soweit diese für den jeweiligen Modellanbieter gelten.
 
-- Support-Tickets: Wenn du uns über das In-App-Support-Ticket-System kontaktierst oder einen Passwort-Reset bzw. einen Verifizierungscode anforderst, verarbeiten wir deine E-Mail-Adresse und deine Nachricht einschließlich der dem Ticket beigefügten Diagnoseinformationen (Gerätemodell, App-Version, Arbeitsspeicher, Netzwerktyp sowie Namen und Status deiner gehosteten Server). E-Mails werden über Resend, einen E-Mail-Zustelldienst von Drittanbietern, zugestellt.
+- Support-Tickets: Wenn du uns über das In-App-Support-Ticket-System, die Entwicklerkonsole oder einen Passwort-Reset bzw. einen Verifizierungscode kontaktierst, verarbeiten wir deine E-Mail-Adresse und deine Nachricht einschließlich der dem Ticket beigefügten Diagnoseinformationen (Gerätemodell, App-Version, Arbeitsspeicher, Netzwerktyp sowie Namen und Status deiner gehosteten Server). E-Mails werden über Resend, einen E-Mail-Zustelldienst von Drittanbietern, zugestellt.
+
+- Entwicklerkonsole: Wenn du Erweiterungen veröffentlichst, meldest du dich mit deinem KodaHosting-Konto in der Web-Entwicklerkonsole an. Wir verarbeiten deine E-Mail-Adresse, deinen Verifizierungsstatus, Erweiterungs-Metadaten und -Pakete, Release-Versionen, Store-Einträge, Review-Notizen und Entwickler-Support-Tickets. Die Konsole läuft auf derselben Infrastruktur und nutzt dasselbe Konto.
+
+- Erweiterungs-Downloadstatistik (Erstanbieter): Wenn eine Erweiterung aus dem In-App-Store heruntergeladen wird, speichern wir Erweiterungs-ID, Version, Zeitpunkt, das vom Gerät übermittelte Gerätemodell, die Android-Version und den App-Build sowie die Angabe, ob der Download aus der App oder von der Website kam. Dieser Datensatz enthält keine Konto-ID, Geräte-ID, Werbe-ID oder IP-Adresse und ist nicht mit deinem Konto verknüpft. Entwickler sehen ausschließlich aggregierte Zahlen für ihre eigenen Erweiterungen (z.B. welche Gerätemodelle oder App-Builds sie herunterladen).
 
 - Freiwillige Spenden: Wenn du die Entwicklung über Ko-fi unterstützen möchtest, wirst du zu ko-fi.com weitergeleitet, das die Spende unabhängig verarbeitet. Ko-fi erfasst möglicherweise deinen Namen, deine E-Mail-Adresse und Zahlungsinformationen. Wir verarbeiten oder speichern deine Zahlungsdaten nicht. Für Spenden gilt die Datenschutzerklärung von Ko-fi. Spenden sind freiwillige Geschenke und begründen kein Kundenverhältnis mit uns.
 
@@ -42,7 +46,7 @@ KodaHosting verarbeitet bestimmte Daten, um korrekt zu funktionieren:
 Wir verarbeiten deine personenbezogenen Daten auf folgenden Rechtsgrundlagen:
 
 - Art. 6 Abs. 1 lit. b DSGVO: Für die Vertragserfüllung (Kontoerstellung, Server-Hosting).
-- Art. 6 Abs. 1 lit. f DSGVO: Berechtigte Interessen am Betrieb und der Sicherung des Dienstes, der Missbrauchsverhinderung und der Aufrechterhaltung der Infrastruktur.
+- Art. 6 Abs. 1 lit. f DSGVO: Berechtigte Interessen am Betrieb und der Sicherung des Dienstes, der Missbrauchsverhinderung, der Aufrechterhaltung der Infrastruktur sowie an aggregierten, nicht kontobezogenen Erweiterungs-Downloadstatistiken für Entwickler.
 - Art. 6 Abs. 1 lit. a DSGVO: Deine Einwilligung, soweit einschlägig (z.B. biometrische Authentifizierung, Eingaben im KI-Server-Builder, KI-Crash-Analyse).
 
 Du kannst eine Einwilligung jederzeit widerrufen, ohne dass die Rechtmäßigkeit der bis zum Widerruf erfolgten Verarbeitung berührt wird.
@@ -51,7 +55,7 @@ Du kannst eine Einwilligung jederzeit widerrufen, ohne dass die Rechtmäßigkeit
 
 Die App nutzt bestimmte Drittanbieter-Dienste, die Informationen erfassen können, die zur Identifizierung genutzt werden oder Kernfunktionen bereitstellen:
 
-- Google Play Services: Für App-Vertrieb und In-App-Updates. Absturz- und Diagnosedaten können von Google über die Standard-Entwicklerdiagnose von Google Play (Android Vitals) verarbeitet werden. Wir binden keine zusätzlichen Analyse-, Werbe- oder Tracking-SDKs ein.
+- Google Play Services: Für App-Vertrieb und In-App-Updates. Absturz- und Diagnosedaten können von Google über die Standard-Entwicklerdiagnose von Google Play (Android Vitals) verarbeitet werden. Wir binden keine Analyse-, Werbe- oder Tracking-SDKs von Drittanbietern ein; die oben beschriebene Erweiterungs-Downloadstatistik wird von unserer eigenen API erzeugt.
 - Supabase: Für Authentifizierung und Echtzeit-Datenbankfunktionalität (Serververwaltungsstatus). Supabase speichert deine E-Mail-Adresse und dein Authentifizierungs-Token in verschlüsselter Form.
 - OpenRouter: Für die optionale, einwilligungsbasierte KI-Crash-Analyse aus Abschnitt 2. OpenRouter ist der Auftragsverarbeiter, der Anfragen an Drittanbieter-KI-Modelle weiterleitet (siehe Abschnitt 2 für die Liste möglicher Anbieter).
 - Resend: Für die Zustellung transaktionaler E-Mails (Verifizierungscodes, Passwort-Resets, Support-Korrespondenz) an deine E-Mail-Adresse.
@@ -75,6 +79,14 @@ Wir speichern deine Kontoinformationen (E-Mail-Adresse und Authentifizierungsdat
 
 Nach der Kontolöschung werden alle zugehörigen Daten innerhalb von 30 Tagen dauerhaft aus unseren Systemen entfernt, mit Ausnahme von Daten, die wir gesetzlich aufbewahren müssen oder die in Backup-Systemen gespeichert sind (die gemäß dem Backup-Zyklus gelöscht werden).
 
+Zusätzlich gelten folgende Aufbewahrungsregeln:
+
+- Erweiterungs-Downloadstatistiken werden 12 Monate gespeichert und danach durch einen täglichen Aufräumjob automatisch gelöscht. Sie sind nicht mit einem Konto verknüpft.
+- Wenn du eine vollständige Datenlöschung beantragst und diese genehmigt wird, werden dein Konto und alle nicht gesetzlich erforderlichen personenbezogenen Daten sofort gelöscht. Aufbewahrungspflichtige Unterlagen werden in eine separate, zugriffsbeschränkte Aufbewahrungstabelle verschoben und nach Ablauf der gesetzlichen Frist gelöscht: Rechnungs- und Zahlungsunterlagen nach 10 Jahren (§ 147 AO, § 257 HGB), Vertrags- und Serverunterlagen nach 6 Jahren, Sicherheits- oder Missbrauchsnachweise nach 180 Tagen.
+- Datenexporte werden als ZIP in unserem Speicher erzeugt. Der Download-Link ist sieben Tage gültig; danach kannst du einen neuen Export anfordern. Der Export enthält die zu deinem Konto und deinen verknüpften Geräten gespeicherten Daten, einschließlich Erweiterungsdaten, wenn du die Entwicklerkonsole genutzt hast.
+- Support-Tickets, einschließlich Entwickler-Support-Tickets, werden während der Bearbeitung und solange Rückfragen möglich sind aufbewahrt und danach mit dem Konto oder auf Wunsch früher gelöscht.
+- Veröffentlichte Erweiterungs-Pakete werden 365 Tage aufbewahrt. Öffentlich herunterladbar ist nur das neueste freigegebene Paket; Support kann eine ältere Version innerhalb dieses Zeitraums für einen dokumentierten Grund ausgeben, zum Beispiel für eine rechtliche Anfrage. Nach 365 Tagen werden ältere Paketdateien gelöscht, das neueste freigegebene Paket bleibt verfügbar.
+
 7. Deine DSGVO-Rechte (Betroffenenrechte)
 
 Nach der Datenschutz-Grundverordnung (DSGVO) und anwendbaren Datenschutzgesetzen hast du folgende Rechte:
@@ -87,7 +99,9 @@ Nach der Datenschutz-Grundverordnung (DSGVO) und anwendbaren Datenschutzgesetzen
 - Widerspruchsrecht (Art. 21 DSGVO): Du kannst der Verarbeitung deiner Daten auf Grundlage berechtigter Interessen widersprechen.
 - Recht auf Widerruf der Einwilligung (Art. 7 Abs. 3 DSGVO): Du kannst jederzeit eine erteilte Einwilligung widerrufen.
 
-Zur Ausübung dieser Rechte kontaktiere uns bitte unter support@host.kodanetwork.eu. Wenn du unter 16 Jahre alt bist, muss deine Anfrage von deinem gesetzlichen Vertreter gestellt oder von ihm gebilligt werden.
+Zur Ausübung dieser Rechte kontaktiere uns bitte unter support@kodaserv.eu. Wenn du unter 16 Jahre alt bist, muss deine Anfrage von deinem gesetzlichen Vertreter gestellt oder von ihm gebilligt werden.
+
+Du kannst auch den Konto-Bildschirm in der App nutzen: „Meine Daten anfordern" erstellt nach einer Admin-Prüfung einen Datenexport, „Vollständige Datenlöschung beantragen" startet einen Löschantrag, der von einem Admin genehmigt werden muss, und „Meine Anträge" zeigt den Status. Die Entwicklerkonsole bietet dieselben Konto- und Support-Wege für Erweiterungs-Entwickler.
 
 8. Datenschutz von Kindern
 
@@ -122,6 +136,6 @@ https://www.ldi.nrw.de
 12. Kontakt
 
 Wenn du Fragen oder Anregungen zu unserer Datenschutzerklärung hast oder deine Datenschutzrechte ausüben möchtest, kontaktiere uns unter:
-E-Mail: support@host.kodanetwork.eu
+E-Mail: support@kodaserv.eu
 
 In Angelegenheiten, die den Status des Entwicklers als Minderjährigen betreffen, sind die gesetzlichen Vertreter über dieselbe E-Mail-Adresse erreichbar.

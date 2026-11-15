@@ -218,6 +218,7 @@ public class SupabaseAuth {
             .remove("koda_refresh_token")
             .remove("auth_uuid")
             .remove("account_email")
+            .remove("account_avatar_url")
             .remove("mc_username")
             .remove("link_code")
             .apply();

@@ -43,6 +43,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.6";
 import { unzipSync } from "https://esm.sh/fflate@0.8.2";
+import { sendKodaMail } from "../_shared/resend.ts";
 
 const API_NAME = "KodaHosting API";
 const API_VERSION = "1";
@@ -485,10 +486,17 @@ async function getExtension(admin: Admin, extId: string, cors: Record<string, st
   }, 200, cors);
 }
 
-async function downloadExtension(admin: Admin, extId: string, url: URL, cors: Record<string, string>) {
+async function downloadExtension(admin: Admin, extId: string, url: URL, req: Request, cors: Record<string, string>) {
   const { data: ext } = await admin
     .from("extensions").select("id").eq("ext_id", extId).eq("status", "APPROVED").maybeSingle();
   if (!ext) return fail("not_found", 404, cors);
+
+  const cleanHeader = (value: string | null, max: number) =>
+    value ? value.replace(/[^\x20-\x7E]/g, "").trim().slice(0, max) || null : null;
+  const deviceModel = cleanHeader(req.headers.get("x-koda-device"), 80);
+  const osVersion = cleanHeader(req.headers.get("x-koda-os"), 40);
+  const appVersion = intIn(req.headers.get("x-koda-app"), 1, 1_000_000_000);
+  const source = deviceModel || osVersion || appVersion ? "app" : "web";
 
   const { data: vers } = await admin
     .from("extension_versions")
@@ -499,21 +507,31 @@ async function downloadExtension(admin: Admin, extId: string, url: URL, cors: Re
   const all = (vers ?? []) as any[];
   if (all.length === 0) return fail("not_found", 404, cors);
 
+  // only the newest approved package is public. older releases are handed out by
+  // support for a documented reason inside the 365 day retention window.
+  const latest = all[0];
   const wanted = url.searchParams.get("version");
-  let row = all[0];
-  if (wanted && wanted !== "latest") {
-    const match = all.find((v) => String(v.version_code) === wanted || v.version === wanted);
-    if (!match) return fail("not_found", 404, cors);
-    row = match;
+  if (wanted && wanted !== "latest"
+    && wanted !== String(latest.version_code) && wanted !== String(latest.version)) {
+    return fail("older_version_support", 403, cors);
   }
+  const row = latest;
 
   const { data: signed, error } = await admin.storage
     .from("extension_packages")
     .createSignedUrl(row.file_path, 60);
   if (error || !signed?.signedUrl) return fail("internal_error", 500, cors);
 
-  // fire and forget: the counter must not hold up the download
+  // fire and forget: the counter and the analytics event must not hold up the download
   admin.rpc("fn_ext_bump_downloads", { p_ext_id: extId }).then(() => {}, () => {});
+  admin.from("extension_download_events").insert({
+    extension_id: (ext as any).id,
+    version_code: row.version_code,
+    device_model: deviceModel,
+    os_version: osVersion,
+    app_version: appVersion,
+    source,
+  }).then(() => {}, () => {});
 
   return new Response(null, {
     status: 302,
@@ -568,14 +586,23 @@ function readSubmission(body: any) {
 }
 
 async function emailVerified(admin: Admin, authId: string): Promise<boolean> {
-  // verified means: the account proved control of its mail address on one of its devices
-  const { data } = await admin
-    .from("koda_users")
-    .select("email_verified_at")
-    .eq("auth_id", authId)
-    .not("email_verified_at", "is", null)
-    .limit(1);
-  return Array.isArray(data) && data.length > 0;
+  // verified means: the account proved control of its mail address in the app
+  // or in the web console. the app writes koda_users, the console account_profiles.
+  const [devices, profile] = await Promise.all([
+    admin
+      .from("koda_users")
+      .select("email_verified_at")
+      .eq("auth_id", authId)
+      .not("email_verified_at", "is", null)
+      .limit(1),
+    admin
+      .from("account_profiles")
+      .select("email_verified_at")
+      .eq("auth_id", authId)
+      .not("email_verified_at", "is", null)
+      .maybeSingle(),
+  ]);
+  return (Array.isArray(devices.data) && devices.data.length > 0) || !!profile.data;
 }
 
 async function pendingCount(admin: Admin, authId: string): Promise<number> {
@@ -761,26 +788,131 @@ async function finalizeVersion(admin: Admin, user: { id: string }, extId: string
   if (row.sha256 && row.sha256.toLowerCase() !== digest) return cleanup("sha256_mismatch", 400, cors);
   if (row.file_size && Number(row.file_size) !== bytes.byteLength) return cleanup("file_size_mismatch", 400, cors);
 
-  // only keep the manifest, everything else stays compressed (memory stays tiny)
+  // one unpack for the manifest and the package checks. the filter caps single
+  // files, the running total caps the whole package, so a zip bomb cannot take
+  // the function down. the same rules are mirrored in the console preflight.
+  let files: Record<string, Uint8Array> = {};
+  let oversizedFile = false;
+  try {
+    files = unzipSync(new Uint8Array(bytes), {
+      filter: (f) => {
+        if (f.name.endsWith("/")) return false;
+        if (Number((f as any).originalSize ?? 0) > 5 * 1024 * 1024) {
+          oversizedFile = true;
+          return false;
+        }
+        return true;
+      },
+    }) as Record<string, Uint8Array>;
+  } catch (e) {
+    return cleanup("invalid_package", 400, cors);
+  }
+  if (oversizedFile) return cleanup("file_too_large", 400, cors);
+  if (Object.keys(files).length > 2000) return cleanup("too_many_files", 400, cors);
+
+  let totalBytes = 0;
+  for (const [name, data] of Object.entries(files)) {
+    totalBytes += data.byteLength;
+    if (totalBytes > 64 * 1024 * 1024) return cleanup("package_too_large_unpacked", 400, cors);
+    if (name.length > 200) return cleanup("unsafe_path", 400, cors);
+    const parts = name.split("/");
+    if (name.startsWith("/") || name.includes("\\") || parts.some((part) => part === ".." || part === "." || part === "")) {
+      return cleanup("unsafe_path", 400, cors);
+    }
+    if (/\.(apk|dex|so|dll|exe|bat|cmd|msi|scr|jar)$/i.test(name)) return cleanup("executable_file", 400, cors);
+    // native code has no place in a package the app renders itself
+    const magic = data.length >= 4 ? Array.from(data.slice(0, 4)) : [];
+    const elf = magic[0] === 0x7f && magic[1] === 0x45 && magic[2] === 0x4c && magic[3] === 0x46;
+    const pe = magic[0] === 0x4d && magic[1] === 0x5a;
+    const dex = magic[0] === 0x64 && magic[1] === 0x65 && magic[2] === 0x78 && magic[3] === 0x0a;
+    const macho = magic[0] === 0xfe && (magic[1] === 0xed || magic[1] === 0xfa)
+      || magic[0] === 0xcf && magic[1] === 0xfa;
+    if (elf || pe || dex || macho) return cleanup("executable_file", 400, cors);
+  }
+
+  const manifestKey = Object.keys(files).find((k) => k === "manifest.json")
+    ?? Object.keys(files).find((k) => k.endsWith("/manifest.json"));
+  if (!manifestKey) return cleanup("manifest_missing", 400, cors);
+  const base = manifestKey.includes("/") ? manifestKey.slice(0, manifestKey.lastIndexOf("/") + 1) : "";
+  const textOf = (name: string) => new TextDecoder().decode(files[name]);
+  const hasFile = (rel: string) => !!files[base + rel] || !!files[rel];
+
   let manifest: any = null;
   try {
-    const files = unzipSync(new Uint8Array(bytes), {
-      filter: (f) => f.name === "manifest.json" || /^[^/]+\/manifest\.json$/.test(f.name),
-    });
-    const key = Object.keys(files).find((k) => k === "manifest.json")
-      ?? Object.keys(files).find((k) => k.endsWith("/manifest.json"));
-    if (key) manifest = JSON.parse(new TextDecoder().decode(files[key]));
+    manifest = JSON.parse(textOf(manifestKey));
   } catch (e) {
     return cleanup("invalid_package", 400, cors);
   }
   if (!manifest || typeof manifest !== "object") return cleanup("manifest_missing", 400, cors);
   if (typeof manifest.id !== "string" || manifest.id !== extId) return cleanup("manifest_id_mismatch", 400, cors);
   if (Number(manifest.versionCode) !== versionCode) return cleanup("manifest_version_code_mismatch", 400, cors);
-  if (typeof manifest.license !== "string" || !manifest.license.trim()) return cleanup("manifest_license_missing", 400, cors);
+  if (String(manifest.version ?? "") !== String(row.version)) return cleanup("manifest_version_mismatch", 400, cors);
+  if (typeof manifest.name !== "string" || manifest.name.trim().length < 2 || manifest.name.length > 48) {
+    return cleanup("manifest_name_invalid", 400, cors);
+  }
+  if (typeof manifest.license !== "string" || !manifest.license.trim() || manifest.license.length > 64) {
+    return cleanup("manifest_license_missing", 400, cors);
+  }
   if (manifest.schema != null && Number(manifest.schema) !== 1) return cleanup("manifest_schema_unsupported", 400, cors);
   const perms = Array.isArray(manifest.permissions) ? manifest.permissions : [];
+  if (perms.length > 16) return cleanup("manifest_permission_unknown", 400, cors);
   for (const p of perms) {
     if (typeof p !== "string" || !BASE_PERMISSIONS.has(p)) return cleanup("manifest_permission_unknown", 400, cors);
+  }
+
+  const readJsonFile = (rel: string): any | null => {
+    try {
+      return JSON.parse(textOf(files[base + rel] ? base + rel : rel));
+    } catch {
+      return null;
+    }
+  };
+
+  if (manifest.ui && typeof manifest.ui.entry === "string" && manifest.ui.entry.trim()) {
+    if (!hasFile(manifest.ui.entry)) return cleanup("ui_entry_missing", 400, cors);
+  }
+  if (typeof manifest.icon === "string" && manifest.icon.trim() && !hasFile(manifest.icon)) {
+    return cleanup("icon_missing", 400, cors);
+  }
+  if (typeof manifest.automations === "string" && manifest.automations.trim()) {
+    if (!manifest.automations.toLowerCase().endsWith(".json") || !hasFile(manifest.automations)) {
+      return cleanup("automations_invalid", 400, cors);
+    }
+    if (readJsonFile(manifest.automations) == null) return cleanup("automations_invalid", 400, cors);
+  }
+
+  const contributes = manifest.contributes;
+  const languages = Array.isArray(contributes?.languages) ? contributes.languages : [];
+  if (languages.length > 20) return cleanup("language_file_invalid", 400, cors);
+  for (const language of languages) {
+    if (!language || typeof language.file !== "string" || !hasFile(language.file)) {
+      return cleanup("language_file_invalid", 400, cors);
+    }
+    if (readJsonFile(language.file) == null) return cleanup("language_file_invalid", 400, cors);
+  }
+
+  const themes = Array.isArray(contributes?.themes) ? contributes.themes : [];
+  const themeColor = /^#[0-9A-Fa-f]{6}$/;
+  if (themes.length > 20) return cleanup("theme_invalid", 400, cors);
+  for (const theme of themes) {
+    if (!theme || typeof theme.id !== "string" || !/^[a-z0-9][a-z0-9_-]{1,31}$/.test(theme.id)) {
+      return cleanup("theme_invalid", 400, cors);
+    }
+    if (typeof theme.color !== "string" || !themeColor.test(theme.color)) return cleanup("theme_invalid", 400, cors);
+    if (theme.colors && typeof theme.colors === "object") {
+      for (const value of Object.values(theme.colors)) {
+        if (typeof value !== "string" || !themeColor.test(value)) return cleanup("theme_invalid", 400, cors);
+      }
+    }
+  }
+
+  const tabs = Array.isArray(contributes?.server_tabs) ? contributes.server_tabs : [];
+  if (tabs.length > 4) return cleanup("ui_entry_missing", 400, cors);
+  for (const tab of tabs) {
+    const entry = typeof tab?.entry === "string" && tab.entry.trim()
+      ? tab.entry
+      : (manifest.ui && typeof manifest.ui.entry === "string" ? manifest.ui.entry : null);
+    if (typeof entry === "string" && entry.trim() && !hasFile(entry)) return cleanup("ui_entry_missing", 400, cors);
   }
 
   const { error: upErr } = await admin.from("extension_versions")
@@ -1008,9 +1140,352 @@ async function unlinkDevice(admin: Admin, user: { id: string }, appUuid: string,
   return json({ ok: true }, 200, cors);
 }
 
+const OTP_PEPPER = Deno.env.get("OTP_PEPPER") ?? "koda-otp";
+const EMAIL_CODE_TTL_MINUTES = 10;
+const EMAIL_CODE_MAX_PER_WINDOW = 5;
+const EMAIL_CODE_WINDOW_MINUTES = 10;
+const EMAIL_CODE_MAX_ATTEMPTS = 5;
+
+async function otpHash(email: string, code: string): Promise<string> {
+  const data = new TextEncoder().encode(`${OTP_PEPPER}:${email.toLowerCase()}:${code}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** sends a six digit code to the account mail, so developers can verify in the browser. */
+async function sendEmailCode(admin: Admin, user: { id: string; email: string | null }, cors: Record<string, string>) {
+  const email = String(user.email ?? "").trim().toLowerCase();
+  if (!email) return fail("no_email", 400, cors);
+  if (await emailVerified(admin, user.id)) return json({ ok: true, already_verified: true }, 200, cors);
+
+  const since = new Date(Date.now() - EMAIL_CODE_WINDOW_MINUTES * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("koda_otp_codes")
+    .select("id", { count: "exact", head: true })
+    .eq("email", email)
+    .gte("created_at", since);
+  if ((count ?? 0) >= EMAIL_CODE_MAX_PER_WINDOW) return fail("slow_down", 429, cors);
+
+  const random = new Uint32Array(1);
+  crypto.getRandomValues(random);
+  const code = String(100000 + (random[0] % 900000));
+  const { error } = await admin.from("koda_otp_codes").insert({
+    email,
+    code_hash: await otpHash(email, code),
+    purpose: "developer",
+    attempts: 0,
+    verified: false,
+    expires_at: new Date(Date.now() + EMAIL_CODE_TTL_MINUTES * 60 * 1000).toISOString(),
+  });
+  if (error) return fail("internal_error", 500, cors);
+
+  const sent = await sendKodaMail({
+    to: email,
+    subject: "Your KodaHosting verification code",
+    heading: "Your code",
+    paragraphs: [
+      `Your verification code is ${code}. It is valid for ${EMAIL_CODE_TTL_MINUTES} minutes.`,
+      "If you did not request this code, you can ignore this mail.",
+    ],
+  });
+  if (!sent.ok) {
+    await admin.from("koda_otp_codes").delete().eq("email", email).eq("code_hash", await otpHash(email, code));
+    return fail("mail_send_fail", 502, cors);
+  }
+  return json({ ok: true, email }, 200, cors);
+}
+
+/** checks the newest code and marks the account mail verified on every device row. */
+async function verifyEmailCode(admin: Admin, user: { id: string; email: string | null }, body: any, cors: Record<string, string>) {
+  const email = String(user.email ?? "").trim().toLowerCase();
+  if (!email) return fail("no_email", 400, cors);
+  const code = String(body.code ?? "").trim();
+  if (!/^[0-9]{6}$/.test(code)) return fail("invalid_code", 400, cors);
+
+  const { data: row } = await admin
+    .from("koda_otp_codes")
+    .select("id, code_hash, attempts, expires_at")
+    .eq("email", email)
+    .eq("verified", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!row) return fail("no_code", 404, cors);
+  if ((row as any).expires_at && new Date((row as any).expires_at).getTime() < Date.now()) {
+    return fail("expired", 410, cors);
+  }
+  if (Number((row as any).attempts ?? 0) >= EMAIL_CODE_MAX_ATTEMPTS) return fail("too_many_tries", 429, cors);
+
+  if ((await otpHash(email, code)) !== (row as any).code_hash) {
+    await admin.from("koda_otp_codes")
+      .update({ attempts: Number((row as any).attempts ?? 0) + 1 })
+      .eq("id", (row as any).id);
+    return fail("wrong_code", 400, cors);
+  }
+
+  await admin.from("koda_otp_codes").update({ verified: true }).eq("id", (row as any).id);
+  const verifiedAt = new Date().toISOString();
+  // account_profiles survives without a device row, koda_users keeps the app flag in sync
+  const [profile, devices] = await Promise.all([
+    admin.from("account_profiles").upsert(
+      { auth_id: user.id, email_verified_at: verifiedAt, updated_at: verifiedAt },
+      { onConflict: "auth_id" },
+    ),
+    admin.from("koda_users").update({ email_verified_at: verifiedAt }).eq("auth_id", user.id),
+  ]);
+  if (profile.error || devices.error) return fail("internal_error", 500, cors);
+  return json({ ok: true, email_verified: true }, 200, cors);
+}
+
+const DEV_TICKET_TYPE = "DEVELOPER";
+const MAX_OPEN_DEV_TICKETS = 5;
+
+/** a developer keeps their tickets when a device gets linked: both ids are theirs. */
+async function developerIdentities(admin: Admin, authId: string): Promise<string[]> {
+  const { data } = await admin
+    .from("koda_users")
+    .select("app_uuid")
+    .eq("auth_id", authId)
+    .order("is_main", { ascending: false })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const appUuid = (data as any)?.app_uuid ? String((data as any).app_uuid) : null;
+  return appUuid ? [appUuid, `web:${authId}`] : [`web:${authId}`];
+}
+
+async function myAnalytics(admin: Admin, user: { id: string }, url: URL, cors: Record<string, string>) {
+  const days = intIn(url.searchParams.get("days"), 1, 365) ?? 30;
+  const { data, error } = await admin.rpc("rpc_extension_analytics", {
+    p_auth_id: user.id,
+    p_days: days,
+  });
+  if (error) return fail("internal_error", 500, cors);
+  return json({ ok: true, analytics: data }, 200, cors);
+}
+
+async function listDeveloperTickets(admin: Admin, user: { id: string }, cors: Record<string, string>) {
+  const identities = await developerIdentities(admin, user.id);
+  const { data } = await admin
+    .from("support_tickets")
+    .select("id,created_at,ticket_type,reference_id,title,status")
+    .eq("ticket_type", DEV_TICKET_TYPE)
+    .in("reporter_uuid", identities)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const tickets = (data ?? []) as any[];
+  if (tickets.length === 0) return json({ ok: true, items: [] }, 200, cors);
+
+  const { data: messages } = await admin
+    .from("support_ticket_messages")
+    .select("ticket_id,message,is_admin,created_at")
+    .in("ticket_id", tickets.map((ticket) => ticket.id))
+    .order("created_at", { ascending: false });
+  const lastByTicket = new Map<string, any>();
+  for (const message of (messages ?? []) as any[]) {
+    if (!lastByTicket.has(String(message.ticket_id))) lastByTicket.set(String(message.ticket_id), message);
+  }
+
+  return json({
+    ok: true,
+    items: tickets.map((ticket) => {
+      const last = lastByTicket.get(String(ticket.id)) ?? null;
+      return {
+        id: ticket.id,
+        created_at: ticket.created_at,
+        reference_id: ticket.reference_id,
+        title: ticket.title,
+        status: ticket.status,
+        last_message: last?.message ?? null,
+        last_message_at: last?.created_at ?? ticket.created_at,
+        last_message_admin: !!last?.is_admin,
+        awaiting_support: !!last && !last.is_admin,
+      };
+    }),
+  }, 200, cors);
+}
+
+async function developerTicket(admin: Admin, user: { id: string }, ticketId: string, cors: Record<string, string>) {
+  const identities = await developerIdentities(admin, user.id);
+  const { data: ticket } = await admin
+    .from("support_tickets")
+    .select("id,created_at,ticket_type,reference_id,title,status")
+    .eq("id", ticketId)
+    .eq("ticket_type", DEV_TICKET_TYPE)
+    .in("reporter_uuid", identities)
+    .maybeSingle();
+  if (!ticket) return fail("not_found", 404, cors);
+
+  const { data: messages, error } = await admin
+    .from("support_ticket_messages")
+    .select("id,created_at,sender_uuid,message,is_admin")
+    .eq("ticket_id", ticketId)
+    .order("created_at", { ascending: true });
+  if (error) return fail("internal_error", 500, cors);
+
+  return json({ ok: true, ticket, messages: messages ?? [] }, 200, cors);
+}
+
+async function createDeveloperTicket(admin: Admin, user: { id: string }, body: any, cors: Record<string, string>) {
+  const title = str(body.title, 120)?.trim();
+  const message = str(body.message, 4000)?.trim();
+  const extensionId = optStr(body.extension_id, 64)?.trim() || null;
+  if (!title || title.length < 3) return fail("invalid_title", 400, cors);
+  if (!message || message.length < 5) return fail("invalid_message", 400, cors);
+
+  if (extensionId) {
+    const { data: ext } = await admin
+      .from("extensions").select("id").eq("ext_id", extensionId).eq("owner_auth_id", user.id).maybeSingle();
+    if (!ext) return fail("not_found", 404, cors);
+  }
+
+  const identities = await developerIdentities(admin, user.id);
+  const { count } = await admin
+    .from("support_tickets")
+    .select("id", { count: "exact", head: true })
+    .eq("ticket_type", DEV_TICKET_TYPE)
+    .in("reporter_uuid", identities)
+    .in("status", ["OPEN", "IN_PROGRESS"]);
+  if ((count ?? 0) >= MAX_OPEN_DEV_TICKETS) return fail("too_many_tickets", 429, cors);
+
+  const reporter = identities[0];
+  const { data: ticket, error } = await admin
+    .from("support_tickets")
+    .insert({
+      reporter_uuid: reporter,
+      ticket_type: DEV_TICKET_TYPE,
+      reference_id: extensionId,
+      title,
+      status: "OPEN",
+    })
+    .select("id,created_at,ticket_type,reference_id,title,status")
+    .single();
+  if (error || !ticket) return fail("internal_error", 500, cors);
+
+  const { error: msgError } = await admin.from("support_ticket_messages").insert({
+    ticket_id: (ticket as any).id,
+    sender_uuid: reporter,
+    message,
+    is_admin: false,
+  });
+  if (msgError) {
+    await admin.from("support_tickets").delete().eq("id", (ticket as any).id);
+    return fail("internal_error", 500, cors);
+  }
+
+  return json({ ok: true, ticket }, 200, cors);
+}
+
+async function replyDeveloperTicket(admin: Admin, user: { id: string }, ticketId: string, body: any, cors: Record<string, string>) {
+  const message = str(body.message, 4000)?.trim();
+  if (!message || message.length < 1) return fail("invalid_message", 400, cors);
+
+  const identities = await developerIdentities(admin, user.id);
+  const { data: ticket } = await admin
+    .from("support_tickets")
+    .select("id,status,reporter_uuid")
+    .eq("id", ticketId)
+    .eq("ticket_type", DEV_TICKET_TYPE)
+    .in("reporter_uuid", identities)
+    .maybeSingle();
+  if (!ticket) return fail("not_found", 404, cors);
+  if ((ticket as any).status === "CLOSED") return fail("ticket_closed", 409, cors);
+
+  const { error } = await admin.from("support_ticket_messages").insert({
+    ticket_id: ticketId,
+    sender_uuid: (ticket as any).reporter_uuid,
+    message,
+    is_admin: false,
+  });
+  if (error) return fail("internal_error", 500, cors);
+  if ((ticket as any).status !== "OPEN") {
+    await admin.from("support_tickets").update({ status: "OPEN" }).eq("id", ticketId);
+  }
+  return json({ ok: true, status: "OPEN" }, 200, cors);
+}
+
+async function closeDeveloperTicket(admin: Admin, user: { id: string }, ticketId: string, cors: Record<string, string>) {
+  const identities = await developerIdentities(admin, user.id);
+  const { data: ticket } = await admin
+    .from("support_tickets")
+    .select("id,status")
+    .eq("id", ticketId)
+    .eq("ticket_type", DEV_TICKET_TYPE)
+    .in("reporter_uuid", identities)
+    .maybeSingle();
+  if (!ticket) return fail("not_found", 404, cors);
+
+  const { error } = await admin.from("support_tickets").update({ status: "CLOSED" }).eq("id", ticketId);
+  if (error) return fail("internal_error", 500, cors);
+  return json({ ok: true, status: "CLOSED" }, 200, cors);
+}
+
+/** owner only: a short lived link to the newest package, for the in-browser editor. */
+async function extensionSource(admin: Admin, user: { id: string }, extId: string, cors: Record<string, string>) {
+  const { data: ext } = await admin
+    .from("extensions").select("id,owner_auth_id").eq("ext_id", extId).maybeSingle();
+  if (!ext) return fail("not_found", 404, cors);
+  if ((ext as any).owner_auth_id !== user.id) return fail("forbidden", 403, cors);
+
+  const { data: ver } = await admin
+    .from("extension_versions")
+    .select("version,version_code,file_path,sha256,file_size")
+    .eq("extension_id", (ext as any).id)
+    .order("version_code", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!ver || !(ver as any).file_path) return fail("no_package", 404, cors);
+
+  const { data: signed, error } = await admin.storage
+    .from("extension_packages")
+    .createSignedUrl((ver as any).file_path, 900);
+  if (error || !signed) return fail("internal_error", 500, cors);
+
+  return json({
+    ok: true,
+    version: (ver as any).version,
+    version_code: (ver as any).version_code,
+    sha256: (ver as any).sha256,
+    file_size: (ver as any).file_size,
+    url: signed.signedUrl,
+  }, 200, cors);
+}
+
+/** owner only: store listing fields. the package itself goes through addVersion/finalize. */
+async function patchExtension(admin: Admin, user: { id: string }, extId: string, body: any, cors: Record<string, string>) {
+  const { data: ext } = await admin
+    .from("extensions").select("id,owner_auth_id").eq("ext_id", extId).maybeSingle();
+  if (!ext) return fail("not_found", 404, cors);
+  if ((ext as any).owner_auth_id !== user.id) return fail("forbidden", 403, cors);
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if ("name" in body) {
+    const name = str(body.name, 80);
+    if (!name || name.length < 2) return fail("invalid_name", 400, cors);
+    patch.name = name;
+  }
+  if ("summary" in body) patch.summary = optStr(body.summary, 200);
+  if ("description" in body) patch.description = optStr(body.description, 6000);
+  if ("license" in body) patch.license = optStr(body.license, 64);
+  if ("author" in body) patch.author = optStr(body.author, 64);
+  if ("category" in body) patch.category = CATEGORIES.includes(body.category) ? body.category : "other";
+  if ("homepage_url" in body) patch.homepage_url = httpUrl(body.homepage_url);
+  if ("source_url" in body) patch.source_url = httpUrl(body.source_url);
+  if ("icon_url" in body) patch.icon_url = httpUrl(body.icon_url, 500);
+  if ("screenshots" in body) {
+    patch.screenshots = Array.isArray(body.screenshots)
+      ? body.screenshots.map((s: unknown) => httpUrl(s, 500)).filter(Boolean).slice(0, 6)
+      : [];
+  }
+
+  const { error } = await admin.from("extensions").update(patch).eq("id", (ext as any).id);
+  if (error) return fail("internal_error", 500, cors);
+  return json({ ok: true }, 200, cors);
+}
+
 async function myExtensions(admin: Admin, user: { id: string }, cors: Record<string, string>) {  const { data } = await admin
     .from("extensions")
-    .select("ext_id,name,summary,category,status,review_note,downloads,created_at,updated_at,published_at,ended_at,extension_versions(version,version_code,status,review_note,verified_at,reviewed_at,file_size)")
+    .select("id,ext_id,name,summary,description,category,license,author,homepage_url,source_url,icon_url,screenshots,status,review_note,downloads,created_at,updated_at,published_at,ended_at,extension_versions(version,version_code,min_app_version,changelog,permissions,file_size,sha256,status,review_note,verified_at,reviewed_at,created_at)")
     .eq("owner_auth_id", user.id)
     .order("updated_at", { ascending: false });
   const items = ((data ?? []) as any[]).map((e) => ({
@@ -1730,7 +2205,7 @@ Deno.serve(async (req) => {
       return await getExtension(admin, seg[2], cors);
     }
     if (seg.length === 4 && seg[1] === "extensions" && seg[3] === "download" && req.method === "GET") {
-      return await downloadExtension(admin, seg[2], url, cors);
+      return await downloadExtension(admin, seg[2], url, req, cors);
     }
 
     // --- device token (app) ---
@@ -1760,6 +2235,12 @@ Deno.serve(async (req) => {
         return await uploadAsset(admin, user, await jsonBody(req), cors);
       }
 
+      if (seg.length === 4 && seg[1] === "me" && seg[2] === "email" && seg[3] === "send-code" && req.method === "POST") {
+        return await sendEmailCode(admin, user, cors);
+      }
+      if (seg.length === 4 && seg[1] === "me" && seg[2] === "email" && seg[3] === "verify" && req.method === "POST") {
+        return await verifyEmailCode(admin, user, await jsonBody(req), cors);
+      }
       if (seg.length === 2 && seg[1] === "me") {
         if (req.method === "GET") return await getMe(admin, user, cors);
         if (req.method === "PATCH") return await patchMe(admin, user, await jsonBody(req), cors);
@@ -1767,6 +2248,22 @@ Deno.serve(async (req) => {
       if (seg.length === 3 && seg[1] === "me" && seg[2] === "avatar") {
         if (req.method === "POST") return await uploadAvatar(admin, user, await jsonBody(req), cors);
         if (req.method === "DELETE") return await deleteAvatar(admin, user, cors);
+      }
+      if (seg.length === 3 && seg[1] === "me" && seg[2] === "analytics" && req.method === "GET") {
+        return await myAnalytics(admin, user, url, cors);
+      }
+      if (seg.length === 4 && seg[1] === "me" && seg[2] === "developer" && seg[3] === "tickets") {
+        if (req.method === "GET") return await listDeveloperTickets(admin, user, cors);
+        if (req.method === "POST") return await createDeveloperTicket(admin, user, await jsonBody(req), cors);
+      }
+      if (seg.length === 5 && seg[1] === "me" && seg[2] === "developer" && seg[3] === "tickets" && req.method === "GET") {
+        return await developerTicket(admin, user, seg[4], cors);
+      }
+      if (seg.length === 6 && seg[1] === "me" && seg[2] === "developer" && seg[3] === "tickets" && seg[5] === "messages" && req.method === "POST") {
+        return await replyDeveloperTicket(admin, user, seg[4], await jsonBody(req), cors);
+      }
+      if (seg.length === 6 && seg[1] === "me" && seg[2] === "developer" && seg[3] === "tickets" && seg[5] === "close" && req.method === "POST") {
+        return await closeDeveloperTicket(admin, user, seg[4], cors);
       }
       if (seg.length === 3 && seg[1] === "me" && seg[2] === "extensions" && req.method === "GET") {
         return await myExtensions(admin, user, cors);
@@ -1795,6 +2292,12 @@ Deno.serve(async (req) => {
       }
       if (seg.length === 4 && seg[1] === "extensions" && seg[3] === "finalize" && req.method === "POST") {
         return await finalizeVersion(admin, user, seg[2], await jsonBody(req), cors);
+      }
+      if (seg.length === 3 && seg[1] === "extensions" && req.method === "PATCH") {
+        return await patchExtension(admin, user, seg[2], await jsonBody(req), cors);
+      }
+      if (seg.length === 5 && seg[1] === "me" && seg[2] === "extensions" && seg[4] === "source" && req.method === "GET") {
+        return await extensionSource(admin, user, seg[3], cors);
       }
       if (seg.length === 4 && seg[1] === "extensions" && seg[3] === "withdraw" && req.method === "POST") {
         return await withdrawExtension(admin, user, seg[2], cors);

@@ -102,10 +102,10 @@ The app is designed so your server files never leave your phone. The cloud parts
 
 The public source contains no server addresses or keys. Everything instance specific lives in `app/src/main/cpp/secrets_local.h` (git-ignored). To run your own backend:
 
-1. **Supabase**: create a free project, then run the SQL files in `supabase/` (schema, security fixes, RPCs) in the SQL editor and deploy the edge functions from `supabase/functions/` (set their env secrets: `IONOS_API_PREFIX`, `IONOS_API_SECRET`, `RESEND_API_KEY`, `FRP_TOKEN`).
-2. **frps**: rent any small VPS, install [frp](https://github.com/fatedier/frp), open ports 7000 plus 30000-59999 and use the hardened `frps.toml` from this repo's scripts as a template.
+1. **Supabase**: create a free project. Apply `supabase/migrations/*.sql` first, then `supabase/security_fix_*.sql`, then the remaining feature SQL (releases, extensions, notifications, KodaDash beta and profile avatar). Each file reloads the API schema. Create the storage buckets `artifacts`, `release_images`, `support_attachments`, `extension_assets` and `avatars` public, and `extension_packages` and `data_exports` private. Deploy the edge functions from `supabase/functions/`; the full secret list is in `supabase/README.md` (`FRP_TOKEN`, `RESEND_API_KEY`, `KODA_MAIL_FROM`, `OTP_PEPPER`, `OPENROUTER_KEY`, `IONOS_API_PREFIX`, `IONOS_API_SECRET`, `ACME_HOOK_TOKEN`, `JDK_STORAGE_BUCKET`, `OPENJDK17_SHA256_*`).
+2. **frps**: rent any small VPS, install [frp](https://github.com/fatedier/frp), open ports 7000 plus 30000-59999 and start from `vps-https/frps.toml.example`. Its `auth.token` must be the same value as the `FRP_TOKEN` function secret.
 3. **secrets_local.h**: copy `secrets_local.h.example`, encode your values (each char XOR 0x4B) and fill `SUPABASE_URL_OBF`, `SUPABASE_ANON_OBF`, `BORE_HOST_OBF`, or use a generator script of your choice.
-4. Build, done. The official KodaHosting app uses the same mechanism with its own (private) configuration.
+4. Build, done. The official KodaHosting app uses the same mechanism with its own (private) configuration. The long-form self-hosting guide is at [host.kodanetwork.eu/docs](https://host.kodanetwork.eu/docs).
 
 ## Legal
 

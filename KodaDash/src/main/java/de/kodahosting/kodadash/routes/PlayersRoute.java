@@ -69,6 +69,13 @@ public class PlayersRoute extends RouteHandler {
             String path = exchange.getRequestURI().getPath();
             String method = exchange.getRequestMethod();
 
+            if ("GET".equalsIgnoreCase(method) && path.endsWith("/playtime")) {
+                JsonObject response = new JsonObject();
+                response.add("items", plugin.getPlaytimeManager().leaderboard());
+                sendJson(exchange, 200, response);
+                return;
+            }
+
             if (("GET".equalsIgnoreCase(method) && (path.equals("/api/players") || path.equals("/api/players/")))
                     || ("GET".equalsIgnoreCase(method) && path.endsWith("/enderchest"))) {
                 if (path.endsWith("/enderchest")) {

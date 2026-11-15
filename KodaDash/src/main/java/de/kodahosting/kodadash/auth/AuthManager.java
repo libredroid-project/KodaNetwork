@@ -100,6 +100,45 @@ public class AuthManager {
     }
 
     /**
+     * token-only check for the MCP endpoint.
+     *
+     * the MCP client gets its own token, never the dashboard token, and it must
+     * not be able to turn a missing dashboard password into a bypass. only the
+     * Authorization and X-API-Token headers are accepted here; a token in the
+     * query string would end up in logs and proxies.
+     */
+    public boolean authenticateMcp(HttpExchange exchange, String expectedToken) {
+        String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
+        cleanupOldAttempts();
+
+        FailedAttempt attempt = failedAttempts.get(ip);
+        int maxAttempts = plugin.getConfig().getInt("rate-limit.max-auth-attempts", 10);
+        if (attempt != null && attempt.count >= maxAttempts
+                && System.currentTimeMillis() - attempt.lastAttempt < 60000) {
+            return false;
+        }
+
+        String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+        String tokenHeader = exchange.getRequestHeaders().getFirst("X-API-Token");
+        String providedToken = null;
+        if (authHeader != null && authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            providedToken = authHeader.substring(7).trim();
+        } else if (tokenHeader != null) {
+            providedToken = tokenHeader.trim();
+        }
+
+        if (providedToken == null || providedToken.isEmpty()
+                || expectedToken == null || expectedToken.isEmpty()
+                || !MessageDigest.isEqual(providedToken.getBytes(), expectedToken.getBytes())) {
+            recordFailure(ip);
+            return false;
+        }
+
+        failedAttempts.remove(ip);
+        return true;
+    }
+
+    /**
      * only a different name for authenticate(), routes that override handle() call it like this.
      */
     public boolean isAuthenticated(HttpExchange exchange) {

@@ -146,14 +146,10 @@ ON CONFLICT (id) DO UPDATE SET
     file_size_limit = EXCLUDED.file_size_limit,
     allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- public read for the two asset buckets (same pattern as release_images);
--- service role writes, no upload policy for anyone else.
+-- the two asset buckets are public, so object URLs need no SELECT policy.
+-- no SELECT policy on purpose: it would also let anon list every per-user
+-- auth-uuid folder through the storage list endpoint.
 DROP POLICY IF EXISTS extension_assets_public_read ON storage.objects;
-CREATE POLICY extension_assets_public_read ON storage.objects
-    FOR SELECT USING (bucket_id = 'extension_assets');
-
 DROP POLICY IF EXISTS avatars_public_read ON storage.objects;
-CREATE POLICY avatars_public_read ON storage.objects
-    FOR SELECT USING (bucket_id = 'avatars');
 
 NOTIFY pgrst, 'reload schema';

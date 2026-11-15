@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
             : "Your KodaHosting account was removed from this device.",
           "Your servers and files stay on the phone and keep running. If you want all data deleted as well, use \"Request full data deletion\" in the app.",
         ],
-        footnote: "If this was not you, contact contact@kodaserv.eu immediately.",
+        footnote: "If this was not you, contact support@kodaserv.eu immediately.",
       });
     }
 

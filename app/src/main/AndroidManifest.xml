@@ -314,6 +314,10 @@
             android:exported="false"
             />
 
+        <activity android:name=".ui.DevicesActivity"
+            android:exported="false"
+            />
+
         <activity android:name=".ui.DataRequestActivity"
             android:exported="false"
             />

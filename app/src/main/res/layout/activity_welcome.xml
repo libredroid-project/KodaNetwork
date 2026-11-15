@@ -255,60 +255,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- step 5: nickname -->
-        <LinearLayout
-            android:id="@+id/step_nickname"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/welcome_nickname_title"
-                android:textColor="#FF6B00"
-                android:textSize="11sp"
-                android:letterSpacing="0.1"
-                android:fontFamily="@font/font_koda" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/welcome_nickname_text"
-                android:textColor="#C9BFB8"
-                android:textSize="13sp"
-                android:lineSpacingMultiplier="1.35"
-                android:fontFamily="@font/font_koda" />
-
-            <EditText
-                android:id="@+id/et_nickname"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="12dp"
-                android:background="#241C18"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:inputType="textPersonName"
-                android:maxLength="20"
-                android:hint="@string/welcome_nickname_hint"
-                android:textColorHint="#8A8A9A" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_nickname_next"
-                style="@style/KodaButton"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/welcome_continue"
-                android:textSize="13sp"
-                app:cornerRadius="12dp" />
-        </LinearLayout>
-
-        <!-- step 6: account, can be skipped -->
+        <!-- step 5: account question, username and the optional sign in / sign up -->
         <LinearLayout
             android:id="@+id/step_account"
             android:layout_width="match_parent"

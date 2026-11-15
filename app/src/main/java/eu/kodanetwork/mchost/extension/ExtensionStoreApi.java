@@ -21,6 +21,10 @@ package eu.kodanetwork.mchost.extension;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import android.os.Build;
+
+import eu.kodanetwork.mchost.BuildConfig;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -160,9 +164,14 @@ public final class ExtensionStoreApi {
     public static String downloadPackage(StoreExtension ext, File target) throws Exception {
         if (ext.latest == null || ext.latest.versionCode <= 0) throw new IOException("no version to download");
         String url = BASE + "/v1/extensions/" + URLEncoder.encode(ext.extId, "UTF-8")
-                + "/download?version=" + ext.latest.versionCode;
+                + "/download";
 
         HttpURLConnection conn = open(url);
+        // only the API request carries the device, the signed storage redirect does not
+        conn.setRequestProperty("X-Koda-Device",
+                (Build.MANUFACTURER + " " + Build.MODEL).trim());
+        conn.setRequestProperty("X-Koda-Os", "Android " + Build.VERSION.RELEASE);
+        conn.setRequestProperty("X-Koda-App", String.valueOf(BuildConfig.VERSION_CODE));
         // the route answers with a 302 to the signed storage url; follow it by hand
         int hops = 0;
         for (;;) {

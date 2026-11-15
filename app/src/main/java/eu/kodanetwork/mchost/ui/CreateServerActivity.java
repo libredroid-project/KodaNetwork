@@ -49,6 +49,7 @@ import com.google.android.material.button.MaterialButton;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -269,6 +270,16 @@ public class CreateServerActivity extends AppCompatActivity {
 
         // one wizard layout for every mode: the m3 helper restyles the same views
         setContentView(R.layout.activity_create_server);
+        android.widget.CompoundButton bedrockSwitch = findViewById(R.id.sw_bedrock);
+        if (bedrockSwitch != null) {
+            bedrockSwitch.setChecked(false);
+            bedrockSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    buttonView.setChecked(false);
+                    showBedrockUnavailable();
+                }
+            });
+        }
         if (isCyber) {
             findViewById(android.R.id.content).getRootView().setBackgroundResource(R.drawable.bg_cyber_grid);
         }
@@ -819,31 +830,40 @@ public class CreateServerActivity extends AppCompatActivity {
                 Toast.makeText(this, "Zip selected: " + finalDetectedName, Toast.LENGTH_SHORT).show();
             });
             
-            try (InputStream is = getContentResolver().openInputStream(uri);
-                 ZipInputStream zis = new ZipInputStream(is)) {
-                ZipEntry entry;
+            java.io.File temp = null;
+            try {
+                temp = eu.kodanetwork.mchost.util.ZipExtract.copyToCache(this, uri, "zip_inspect");
+                java.util.List<String> names = eu.kodanetwork.mchost.util.ZipExtract.listNames(temp);
                 String detectedVersion = null;
-                ServerInstance.Type detectedType = ServerInstance.Type.PAPER;
-                
-                while ((entry = zis.getNextEntry()) != null) {
-                    String n = entry.getName().toLowerCase();
-                    noteImportName(entry.getName(), entry.isDirectory());
-                    if (n.contains("purpur.yml")) detectedType = ServerInstance.Type.PURPUR;
+                ServerInstance.Type detectedType = null;
+                String detectedJar = "";
+                int bestPriority = -1;
 
-                    if (n.endsWith(".jar")) {
-                        if (n.contains("paper")) detectedType = ServerInstance.Type.PAPER;
-                        else if (n.contains("purpur")) detectedType = ServerInstance.Type.PURPUR;
-                        else if (n.contains("forge") && !n.contains("neoforge")) detectedType = ServerInstance.Type.FORGE;
-                        else if (n.contains("neoforge")) detectedType = ServerInstance.Type.NEOFORGE;
-                        else if (n.contains("fabric")) detectedType = ServerInstance.Type.FABRIC;
-                        else if (n.contains("server") || n.contains("vanilla")) detectedType = ServerInstance.Type.VANILLA;
-
-                        Pattern p = Pattern.compile("(\\d+\\.\\d+(\\.\\d+)?)");
-                        Matcher m = p.matcher(n);
-                        if (m.find()) detectedVersion = m.group(1);
+                for (String entryName : names) {
+                    String n = entryName.toLowerCase();
+                    noteImportName(entryName, entryName.endsWith("/"));
+                    if (n.contains("purpur.yml") && bestPriority < 2) {
+                        detectedType = ServerInstance.Type.PURPUR;
+                        bestPriority = 2;
+                    }
+                    if (!n.endsWith(".jar")) continue;
+                    String jarName = n.substring(n.lastIndexOf('/') + 1);
+                    if (jarName.contains("installer")) continue;
+                    ServerInstance.Type jarType =
+                            eu.kodanetwork.mchost.util.ServerImportInspector.typeForJarName(jarName);
+                    if (jarType == null) continue;
+                    int priority = typePriority(jarType);
+                    if (priority > bestPriority) {
+                        bestPriority = priority;
+                        detectedType = jarType;
+                        detectedJar = jarName;
+                        String v = eu.kodanetwork.mchost.util.ServerImportInspector.versionForJarName(jarName);
+                        if (!v.isEmpty()) detectedVersion = v;
                     }
                 }
-                
+                if (detectedType == null) detectedType = ServerInstance.Type.PAPER;
+                pickedLauncherJar = detectedJar;
+
                 final String fVersion = detectedVersion;
                 final ServerInstance.Type fType = detectedType;
                 mainHandler.post(() -> {
@@ -864,7 +884,10 @@ public class CreateServerActivity extends AppCompatActivity {
                         }, 500);
                     }
                 });
-            } catch (IOException ignored) {}
+            } catch (Exception ignored) {
+            } finally {
+                if (temp != null) temp.delete();
+            }
         });
     }
 
@@ -900,6 +923,9 @@ public class CreateServerActivity extends AppCompatActivity {
                 if (f.getName() == null) continue;
                 String n = f.getName().toLowerCase();
                 noteImportName(f.getName(), f.isDirectory());
+                // the world lives one level below the server root; the old name-only
+                // scan never saw world/level.dat and warned about a missing world.
+                if (f.isDirectory() && f.findFile("level.dat") != null) importHasWorld = true;
                 if (n.contains("purpur.yml")) detectedType = ServerInstance.Type.PURPUR;
 
                 if (n.endsWith(".jar")) {
@@ -1063,7 +1089,7 @@ public class CreateServerActivity extends AppCompatActivity {
                 }
             }
             String dialStyle = eu.kodanetwork.mchost.App.getPrefs(this)
-                    .getString("dev_type_dial_style", "top");
+                    .getString("dev_type_dial_style", "side");
             npServerType.setStyle("side".equals(dialStyle)
                     ? eu.kodanetwork.mchost.util.KodaTypeDial.STYLE_SIDE
                     : eu.kodanetwork.mchost.util.KodaTypeDial.STYLE_TOP);
@@ -1112,7 +1138,8 @@ public class CreateServerActivity extends AppCompatActivity {
         if (layoutThemeColor != null && !supportsAutoDesign) {
             layoutThemeColor.setVisibility(View.GONE);
         }
-        // pumpkin is bundled but not working yet, tell that instead of failing later on start
+        // pumpkin is bundled but not ready: the setup flow, plugin browser and files tab
+        // are still built for Java servers, so it stays disabled until that is finished
         boolean pumpkin = type == ServerInstance.Type.PUMPKIN;
         if (tvTypeUnsupported != null) {
             tvTypeUnsupported.setVisibility(pumpkin ? View.VISIBLE : View.GONE);
@@ -2495,9 +2522,23 @@ public class CreateServerActivity extends AppCompatActivity {
                     });
                     if (isZipImport) {
                         extractZip(sourceUri, new File(dir));
+                        promoteLauncherJar(new File(dir));
                     } else {
                         DocumentFile sourceDir = DocumentFile.fromTreeUri(this, sourceUri);
                         if (sourceDir != null) copyRecursive(sourceDir, new File(dir));
+                    }
+
+                    // after the files are on disk, let the folder inspector settle the
+                    // type and launcher. forge 1.12.2 keeps its universal jar under maven/.
+                    try {
+                        eu.kodanetwork.mchost.util.ServerImportInspector.Inspection ins =
+                                eu.kodanetwork.mchost.util.ServerImportInspector.inspect(new File(dir));
+                        if (ins.best() != null) {
+                            eu.kodanetwork.mchost.util.ServerImportInspector.apply(s, ins, ins.best());
+                        } else if (ins.detectedType != null) {
+                            eu.kodanetwork.mchost.util.ServerImportInspector.apply(s, ins, null);
+                        }
+                    } catch (Exception ignored) {
                     }
 
                     File pluginsDir = new File(dir, "plugins");
@@ -2643,25 +2684,69 @@ public class CreateServerActivity extends AppCompatActivity {
     }
 
     private void extractZip(android.net.Uri zipUri, File destDir) throws IOException {
-        if (!destDir.exists() && !destDir.mkdirs()) throw new IOException("Could not create " + destDir);
-        try (InputStream is = getContentResolver().openInputStream(zipUri);
-             ZipInputStream zis = new ZipInputStream(is)) {
-            ZipEntry entry;
-            byte[] buffer = new byte[8192];
-            while ((entry = zis.getNextEntry()) != null) {
-                File newFile = new File(destDir, entry.getName());
-                if (entry.isDirectory()) {
-                    if (!newFile.exists() && !newFile.mkdirs()) throw new IOException("Could not create dir " + newFile);
-                } else {
-                    File parent = newFile.getParentFile();
-                    if (parent != null && !parent.exists() && !parent.mkdirs()) throw new IOException("Could not create dir " + parent);
-                    try (FileOutputStream fos = new FileOutputStream(newFile)) {
-                        int len;
-                        while ((len = zis.read(buffer)) > 0) fos.write(buffer, 0, len);
-                    }
-                }
-                zis.closeEntry();
+        // copy first, then read the central directory; streaming ZipInputStream
+        // failed on valid ZIP64 backups with "Unexpected end of ZLIB input stream"
+        File temp = null;
+        try {
+            temp = eu.kodanetwork.mchost.util.ZipExtract.copyToCache(
+                    this, zipUri, "server_import");
+            eu.kodanetwork.mchost.util.ZipExtract.extractStrippingRootTolerant(temp, destDir);
+        } finally {
+            if (temp != null) temp.delete();
+        }
+    }
+
+    /**
+     * forge 1.12.2 keeps its universal jar under maven/ or libraries/ in some
+     * backups. the launcher expects a jar next to server.properties, so promote
+     * the detected jar to the server root.
+     */
+    private void promoteLauncherJar(File dir) {
+        if (pickedLauncherJar == null || pickedLauncherJar.isEmpty()) return;
+        File target = new File(dir, pickedLauncherJar);
+        if (target.isFile()) return;
+        File found = findFileRecursive(dir, pickedLauncherJar);
+        if (found == null || !found.isFile() || found.equals(target)) return;
+        try (InputStream in = new FileInputStream(found);
+             OutputStream out = new FileOutputStream(target)) {
+            byte[] buffer = new byte[16384];
+            int read;
+            while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private File findFileRecursive(File dir, String name) {
+        File[] files = dir.listFiles();
+        if (files == null) return null;
+        for (File f : files) {
+            if (f.isDirectory()) {
+                File found = findFileRecursive(f, name);
+                if (found != null) return found;
+            } else if (f.getName().equals(name)) {
+                return f;
             }
+        }
+        return null;
+    }
+
+    /** forge/neoforge before fabric before purpur before paper before vanilla. */
+    private static int typePriority(ServerInstance.Type type) {
+        if (type == null) return -1;
+        switch (type) {
+            case FORGE:
+            case NEOFORGE:
+                return 4;
+            case FABRIC:
+                return 3;
+            case PURPUR:
+                return 2;
+            case PAPER:
+                return 1;
+            case VANILLA:
+                return 0;
+            default:
+                return 0;
         }
     }
 
@@ -2709,6 +2794,15 @@ public class CreateServerActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() { super.onDestroy(); executor.shutdownNow(); }
+
+    /** NetherNet is not usable on Android yet, so the Bedrock switch explains instead of enabling. */
+    private void showBedrockUnavailable() {
+        eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.bedrock_unavailable_title));
+        sheet.text(getString(R.string.bedrock_unavailable_text), 0xFFBCBCC6);
+        sheet.primary(getString(android.R.string.ok), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
 
     /** resolves the VPS ip at runtime from the build config, no hardcoded ip in the source. */
     private static String vpsIp() {

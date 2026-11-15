@@ -95,7 +95,7 @@ public class ServerDetailActivity extends AppCompatActivity {
     private int[] consoleClearPaddings = null;
 
     // dashboard
-    private TextView tvBadge, tvUptime, tvPlayers, tvJoinAddr, tvRamInfo, tvVerInfo, tvJavaInfo, tvBedrockPortDash;
+    private TextView tvBadge, tvUptime, tvPlayers, tvJoinAddr, tvRamInfo, tvVerInfo, tvJavaInfo, tvBedrockPortDash, tvBedrockDiag;
     private MaterialButton btnStart, btnStop, btnRestart;
     private android.view.View btnKill;
     private View dlProgress;
@@ -424,6 +424,21 @@ public class ServerDetailActivity extends AppCompatActivity {
         tvJavaInfo = findViewById(R.id.tv_java_info);
         tvBedrockPortDash = findViewById(R.id.tv_bedrock_port_dash);
 
+        android.view.ViewGroup bedrockBox = findViewById(R.id.layout_bedrock_port);
+        if (bedrockBox != null && tvBedrockDiag == null) {
+            tvBedrockDiag = new TextView(this);
+            float diagD = getResources().getDisplayMetrics().density;
+            tvBedrockDiag.setTextSize(11);
+            tvBedrockDiag.setTextColor(0xFF8A8A9A);
+            tvBedrockDiag.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda));
+            tvBedrockDiag.setPadding(0, (int) (12 * diagD), 0, (int) (4 * diagD));
+            tvBedrockDiag.setBackgroundResource(R.drawable.bg_row_press);
+            tvBedrockDiag.setClickable(true);
+            tvBedrockDiag.setFocusable(true);
+            tvBedrockDiag.setOnClickListener(v -> refreshBedrockDiagnostics());
+            bedrockBox.addView(tvBedrockDiag);
+        }
+
         // bedrock players need the full address, a bare port number confused people
 
         // the sleek layout uses different IDs, so alias them onto the same fields and all
@@ -612,7 +627,7 @@ public class ServerDetailActivity extends AppCompatActivity {
             tvJavaInfo.setText("🎃 Rust native — kein Java-Runtime nötig");
             tvJavaInfo.setTextColor(0xFFF0762B);
         }
-        if (tvVerInfo != null) tvVerInfo.setText("Pumpkin 0.1.0 (MC 1.26.40 + Bedrock)");
+        if (tvVerInfo != null) tvVerInfo.setText(R.string.pumpkin_version_info);
     }
 
     private void setupDatabaseOverrides() {
@@ -4307,6 +4322,12 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (swBedrock != null) {
             swBedrock.setChecked(server.isBedrockSupport());
             swBedrock.setOnClickListener(v -> {
+                // NetherNet is not usable on Android yet; block turning it on, allow turning it off
+                if (!server.isBedrockSupport() && swBedrock.isChecked()) {
+                    swBedrock.setChecked(false);
+                    showBedrockUnavailable();
+                    return;
+                }
                 if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(this)) {
                     swBedrock.setChecked(false); // back off, no network
                     return;
@@ -4411,20 +4432,24 @@ public class ServerDetailActivity extends AppCompatActivity {
             });
         }
 
-        // KodaDash web control addon (per-instance gate via BuildConfig, see build.gradle)
-        String accountEmail = eu.kodanetwork.mchost.App.getPrefs(this).getString("account_email", "");
+        // KodaDash web control addon (per-account beta flag from rpc_get_user_profile)
         boolean isPaperOrPurpur = server.getType() == ServerInstance.Type.PAPER || server.getType() == ServerInstance.Type.PURPUR;
-        
+
         android.widget.CompoundButton swKodadash = findViewById(R.id.switch_kodadash);
         View rowKodadash = findViewById(R.id.row_kodadash);
         View dividerKodadash = findViewById(R.id.divider_kodadash);
+        View rowMcp = findViewById(R.id.row_mcp);
 
-        if (!eu.kodanetwork.mchost.BuildConfig.KODADASH_ACCOUNT.isEmpty()
-                && eu.kodanetwork.mchost.BuildConfig.KODADASH_ACCOUNT.equalsIgnoreCase(accountEmail) && isPaperOrPurpur) {
-            if (rowKodadash != null) rowKodadash.setVisibility(View.VISIBLE);
-            if (dividerKodadash != null) dividerKodadash.setVisibility(View.VISIBLE);
+        if (isPaperOrPurpur && swKodadash != null && rowKodadash != null) {
+            eu.kodanetwork.mchost.util.KodaDashAccess.check(this, enabled -> {
+                if (!enabled || isFinishing() || isDestroyed()) return;
+                rowKodadash.setVisibility(View.VISIBLE);
+                if (dividerKodadash != null) dividerKodadash.setVisibility(View.VISIBLE);
+                if (rowMcp != null) {
+                    rowMcp.setVisibility(View.VISIBLE);
+                    rowMcp.setOnClickListener(v -> showMcpSheet(server));
+                }
 
-            if (swKodadash != null) {
                 swKodadash.setChecked(server.isKodadashSupport());
                 swKodadash.setOnClickListener(v -> {
                     if (!eu.kodanetwork.mchost.security.PraetorSystem.checkNetwork(this)) {
@@ -4528,7 +4553,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                         triggerAddonRestart();
                     }
                 });
-            }
+            });
         }
 
         setupGameplaySettings();
@@ -7896,6 +7921,386 @@ public class ServerDetailActivity extends AppCompatActivity {
         return "";
     }
 
+    // ---------------------------------------------------------------- MCP setup
+
+    private static final String MCP_LOCAL_URL = "http://127.0.0.1:7867/api/mcp";
+
+    /** opens the AI access sheet, or explains why it cannot be opened yet. */
+    private void showMcpSheet(final ServerInstance srv) {
+        if (srv == null) return;
+        if (!srv.isKodadashSupport()) {
+            Toast.makeText(this, R.string.mcp_kodadash_off, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!srv.isRunning()) {
+            Toast.makeText(this, R.string.mcp_start_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (readKodadashToken().isEmpty()) {
+            Toast.makeText(this, R.string.mcp_load_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        fetchMcp(srv, "");
+    }
+
+    private okhttp3.OkHttpClient mcpClient() {
+        return new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(4, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+    }
+
+    private void fetchMcp(final ServerInstance srv, final String password) {
+        final String dashToken = readKodadashToken();
+        new Thread(() -> {
+            try {
+                okhttp3.Request.Builder builder = new okhttp3.Request.Builder()
+                        .url(MCP_LOCAL_URL)
+                        .get()
+                        .addHeader("Authorization", "Bearer " + dashToken);
+                if (password != null && !password.isEmpty()) {
+                    builder.addHeader("X-Dashboard-Password", password);
+                }
+                try (okhttp3.Response response = mcpClient().newCall(builder.build()).execute()) {
+                    String body = response.body() != null ? response.body().string() : "";
+                    if (response.code() == 401) {
+                        runOnUiThread(() -> {
+                            if (password != null && !password.isEmpty()) {
+                                Toast.makeText(this, R.string.mcp_password_wrong, Toast.LENGTH_SHORT).show();
+                            }
+                            showMcpPasswordPrompt(srv);
+                        });
+                        return;
+                    }
+                    if (!response.isSuccessful()) {
+                        runOnUiThread(() -> Toast.makeText(this, R.string.mcp_load_failed, Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+                    final org.json.JSONObject state = new org.json.JSONObject(body);
+                    runOnUiThread(() -> buildMcpSheet(srv, state, password));
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, R.string.mcp_start_first, Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+
+    private void showMcpPasswordPrompt(final ServerInstance srv) {
+        if (isFinishing() || isDestroyed()) return;
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.mcp_password_title), getString(R.string.mcp_password_desc));
+        final android.widget.EditText input = sheet.field("", getString(R.string.mcp_password_hint), false);
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        sheet.add(input);
+        sheet.primary(getString(R.string.mcp_continue), v -> {
+            String password = input.getText().toString();
+            sheet.sheet.dismiss();
+            fetchMcp(srv, password);
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    private void buildMcpSheet(final ServerInstance srv, final org.json.JSONObject state,
+                               final String password) {
+        if (isFinishing() || isDestroyed()) return;
+
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.mcp_title), srv.getSubdomain());
+        sheet.text(getString(R.string.mcp_warning), 0xFFFF8A80);
+
+        String status = getString(state.optBoolean("enabled", false)
+                ? R.string.enabled : R.string.disabled);
+        sheet.row(getString(R.string.mcp_access),
+                status + " · " + getString(R.string.mcp_access_desc), false, v -> {
+                    sheet.sheet.dismiss();
+                    showMcpAccessSheet(srv, state, password);
+                });
+        sheet.divider();
+        sheet.row(getString(R.string.mcp_permissions), mcpPermissionsSummary(state), false, v -> {
+            sheet.sheet.dismiss();
+            showMcpPermissionsSheet(srv, state, password);
+        });
+        sheet.divider();
+        sheet.row(getString(R.string.mcp_preview), getString(R.string.mcp_instructions_desc), false, v -> {
+            sheet.sheet.dismiss();
+            showMcpInstructions(state.optString("instructions", ""), () -> reopenMcp(srv, password));
+        });
+        sheet.divider();
+        sheet.row(getString(R.string.mcp_setup), getString(R.string.mcp_setup_desc), false, v -> {
+            sheet.sheet.dismiss();
+            showMcpHelpSheet(getString(R.string.mcp_setup), getString(R.string.mcp_setup_body),
+                    () -> reopenMcp(srv, password));
+        });
+        sheet.divider();
+        sheet.row(getString(R.string.mcp_troubleshooting), getString(R.string.mcp_troubleshooting_desc), false, v -> {
+            sheet.sheet.dismiss();
+            showMcpHelpSheet(getString(R.string.mcp_troubleshooting),
+                    getString(R.string.mcp_troubleshooting_body), () -> reopenMcp(srv, password));
+        });
+
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.tall();
+        sheet.show();
+    }
+
+    private void reopenMcp(ServerInstance srv, String password) {
+        fetchMcp(srv, password);
+    }
+
+    private String mcpPermissionsSummary(org.json.JSONObject state) {
+        if (state.optBoolean("readOnly", false)) return getString(R.string.mcp_readonly);
+        java.util.ArrayList<String> parts = new java.util.ArrayList<String>();
+        if (state.optBoolean("allowConsole", true)) parts.add(getString(R.string.mcp_cap_console));
+        if (state.optBoolean("allowFileWrite", true)) parts.add(getString(R.string.mcp_cap_files));
+        if (state.optBoolean("allowSettings", true)) parts.add(getString(R.string.mcp_cap_settings));
+        if (state.optBoolean("allowPlugins", true)) parts.add(getString(R.string.mcp_cap_plugins));
+        if (parts.isEmpty()) return getString(R.string.mcp_no_write);
+        return android.text.TextUtils.join(" · ", parts);
+    }
+
+    private void showMcpAccessSheet(final ServerInstance srv, final org.json.JSONObject state,
+                                    final String password) {
+        if (isFinishing() || isDestroyed()) return;
+        final String[] token = {state.optString("token", "")};
+        final boolean[] revealed = {false};
+        final android.widget.TextView[] tokenViewHolder = {null};
+        final String masked = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.mcp_access), srv.getSubdomain());
+
+        final com.google.android.material.switchmaterial.SwitchMaterial enable = sheet.toggle(
+                getString(R.string.mcp_enable), state.optBoolean("enabled", false));
+        final String endpoint = mcpEndpoint(srv);
+        sheet.row(getString(R.string.mcp_endpoint), endpoint, false, v -> {
+            copyToClipboard("MCP endpoint", endpoint);
+            Toast.makeText(this, R.string.mcp_copied, Toast.LENGTH_SHORT).show();
+        });
+
+        sheet.label(getString(R.string.mcp_token));
+        final android.widget.TextView tokenView = sheet.text(
+                token[0].isEmpty() ? getString(R.string.mcp_token_empty) : masked, 0xFFF0F0F0);
+        tokenViewHolder[0] = tokenView;
+        tokenView.setTextSize(13);
+        android.graphics.Typeface koda = androidx.core.content.res.ResourcesCompat.getFont(
+                this, R.font.font_koda);
+        if (koda != null) tokenView.setTypeface(koda);
+        tokenView.setOnClickListener(v -> {
+            if (token[0].isEmpty()) return;
+            revealed[0] = !revealed[0];
+            tokenView.setText(revealed[0] ? token[0] : masked);
+        });
+
+        enable.setOnCheckedChangeListener((button, checked) -> postMcp(srv,
+                mcpBoolPatch("enabled", checked), password,
+                updated -> {
+                    String fresh = updated.optString("token", "");
+                    if (!fresh.isEmpty()) {
+                        token[0] = fresh;
+                        if (tokenViewHolder[0] != null) {
+                            revealed[0] = false;
+                            tokenViewHolder[0].setText(masked);
+                        }
+                    }
+                    Toast.makeText(this, R.string.mcp_saved, Toast.LENGTH_SHORT).show();
+                },
+                this::toastMcpError));
+
+        sheet.row(getString(R.string.mcp_copy), getString(R.string.mcp_token), false, v -> {
+            if (token[0].isEmpty()) {
+                Toast.makeText(this, R.string.mcp_token_empty, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            copyToClipboard("MCP token", token[0]);
+            Toast.makeText(this, R.string.mcp_copied, Toast.LENGTH_SHORT).show();
+        });
+        sheet.row(getString(R.string.mcp_regenerate), getString(R.string.mcp_regenerate_desc), false,
+                v -> confirmMcpRegenerate(srv, password, token, revealed, tokenView, masked));
+
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
+            sheet.sheet.dismiss();
+            reopenMcp(srv, password);
+        });
+        sheet.show();
+    }
+
+    private void showMcpPermissionsSheet(final ServerInstance srv, final org.json.JSONObject state,
+                                         final String password) {
+        if (isFinishing() || isDestroyed()) return;
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.mcp_permissions), srv.getSubdomain());
+
+        final com.google.android.material.switchmaterial.SwitchMaterial readOnly = sheet.toggle(
+                getString(R.string.mcp_readonly), state.optBoolean("readOnly", false));
+        final com.google.android.material.switchmaterial.SwitchMaterial capConsole = sheet.toggle(
+                getString(R.string.mcp_cap_console), state.optBoolean("allowConsole", true));
+        final com.google.android.material.switchmaterial.SwitchMaterial capFiles = sheet.toggle(
+                getString(R.string.mcp_cap_files), state.optBoolean("allowFileWrite", true));
+        final com.google.android.material.switchmaterial.SwitchMaterial capSettings = sheet.toggle(
+                getString(R.string.mcp_cap_settings), state.optBoolean("allowSettings", true));
+        final com.google.android.material.switchmaterial.SwitchMaterial capPlugins = sheet.toggle(
+                getString(R.string.mcp_cap_plugins), state.optBoolean("allowPlugins", true));
+        setMcpCapsEnabled(!readOnly.isChecked(), capConsole, capFiles, capSettings, capPlugins);
+
+        readOnly.setOnCheckedChangeListener((button, checked) -> {
+            setMcpCapsEnabled(!checked, capConsole, capFiles, capSettings, capPlugins);
+            postMcp(srv, mcpBoolPatch("readOnly", checked), password,
+                    updated -> Toast.makeText(this, R.string.mcp_saved, Toast.LENGTH_SHORT).show(),
+                    this::toastMcpError);
+        });
+        bindMcpCap(srv, capConsole, "allowConsole", password);
+        bindMcpCap(srv, capFiles, "allowFileWrite", password);
+        bindMcpCap(srv, capSettings, "allowSettings", password);
+        bindMcpCap(srv, capPlugins, "allowPlugins", password);
+
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
+            sheet.sheet.dismiss();
+            reopenMcp(srv, password);
+        });
+        sheet.show();
+    }
+
+    private void bindMcpCap(final ServerInstance srv, final com.google.android.material.switchmaterial.SwitchMaterial toggle,
+                            final String key, final String password) {
+        toggle.setOnCheckedChangeListener((button, checked) -> postMcp(srv,
+                mcpBoolPatch(key, checked), password,
+                updated -> Toast.makeText(this, R.string.mcp_saved, Toast.LENGTH_SHORT).show(),
+                this::toastMcpError));
+    }
+
+    private void setMcpCapsEnabled(boolean enabled, com.google.android.material.switchmaterial.SwitchMaterial... caps) {
+        for (com.google.android.material.switchmaterial.SwitchMaterial cap : caps) {
+            if (cap == null) continue;
+            cap.setEnabled(enabled);
+            cap.setAlpha(enabled ? 1f : 0.4f);
+        }
+    }
+
+    private void toastMcpError(String message) {
+        Toast.makeText(this, message == null || message.isEmpty()
+                ? getString(R.string.mcp_load_failed) : message, Toast.LENGTH_SHORT).show();
+    }
+
+    private org.json.JSONObject mcpBoolPatch(String key, boolean value) {
+        org.json.JSONObject patch = new org.json.JSONObject();
+        try {
+            patch.put(key, value);
+        } catch (Exception ignored) { }
+        return patch;
+    }
+
+    private void postMcp(final ServerInstance srv, final org.json.JSONObject patch,
+                         final String password,
+                         final java.util.function.Consumer<org.json.JSONObject> onOk,
+                         final java.util.function.Consumer<String> onError) {
+        final String dashToken = readKodadashToken();
+        new Thread(() -> {
+            try {
+                okhttp3.RequestBody body = okhttp3.RequestBody.create(
+                        patch.toString(), okhttp3.MediaType.parse("application/json"));
+                okhttp3.Request.Builder builder = new okhttp3.Request.Builder()
+                        .url(MCP_LOCAL_URL)
+                        .post(body)
+                        .addHeader("Authorization", "Bearer " + dashToken)
+                        .addHeader("Content-Type", "application/json");
+                if (password != null && !password.isEmpty()) {
+                    builder.addHeader("X-Dashboard-Password", password);
+                }
+                try (okhttp3.Response response = mcpClient().newCall(builder.build()).execute()) {
+                    String text = response.body() != null ? response.body().string() : "";
+                    if (!response.isSuccessful()) {
+                        final String message = response.code() == 401
+                                ? getString(R.string.mcp_password_wrong)
+                                : getString(R.string.mcp_load_failed);
+                        runOnUiThread(() -> onError.accept(message));
+                        return;
+                    }
+                    final org.json.JSONObject updated = new org.json.JSONObject(text);
+                    runOnUiThread(() -> onOk.accept(updated));
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> onError.accept(getString(R.string.mcp_load_failed)));
+            }
+        }).start();
+    }
+
+    private void confirmMcpRegenerate(final ServerInstance srv, final String password,
+                                      final String[] token, final boolean[] revealed,
+                                      final android.widget.TextView tokenView, final String masked) {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.mcp_regenerate)
+                .setMessage(R.string.mcp_regenerate_confirm)
+                .setPositiveButton(R.string.mcp_regen, (dialog, which) -> postMcp(srv,
+                        mcpBoolPatch("regenerate", true), password,
+                        updated -> {
+                            token[0] = updated.optString("token", "");
+                            revealed[0] = false;
+                            tokenView.setText(token[0].isEmpty()
+                                    ? getString(R.string.mcp_token_empty) : masked);
+                            Toast.makeText(this, R.string.mcp_saved, Toast.LENGTH_SHORT).show();
+                        },
+                        this::toastMcpError))
+                .setNegativeButton(R.string.praetor_action_cancel, null)
+                .show();
+    }
+
+    private void showMcpHelpSheet(String title, String text, final Runnable onClose) {
+        if (isFinishing() || isDestroyed()) return;
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, title);
+        android.widget.TextView body = sheet.text(
+                text == null || text.trim().isEmpty() ? "\u2014" : text, 0xFFBCBCC6);
+        body.setTextSize(12);
+        body.setTextIsSelectable(false);
+        body.setFocusable(false);
+        body.setClickable(false);
+        android.graphics.Typeface koda = androidx.core.content.res.ResourcesCompat.getFont(
+                this, R.font.font_koda);
+        if (koda != null) body.setTypeface(koda);
+        sheet.tall();
+        sheet.lockSheet();
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
+            sheet.sheet.dismiss();
+            if (onClose != null) onClose.run();
+        });
+        sheet.show();
+    }
+
+    private void showMcpInstructions(String text, final Runnable onClose) {
+        if (isFinishing() || isDestroyed()) return;
+        final eu.kodanetwork.mchost.util.KodaSheet preview = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.mcp_instructions_title));
+        android.widget.TextView body = preview.text(
+                text == null || text.trim().isEmpty() ? "\u2014" : text, 0xFFBCBCC6);
+        body.setTextSize(11);
+        // a selectable TextView swallows the drag gesture and the sheet stops scrolling
+        body.setTextIsSelectable(false);
+        body.setFocusable(false);
+        body.setClickable(false);
+        body.setLongClickable(false);
+        body.setMovementMethod(null);
+        android.graphics.Typeface koda = androidx.core.content.res.ResourcesCompat.getFont(
+                this, R.font.font_koda);
+        if (koda != null) body.setTypeface(koda);
+        preview.tall();
+        preview.lockSheet();
+        preview.secondary(getString(R.string.praetor_action_cancel), v -> {
+            preview.sheet.dismiss();
+            if (onClose != null) onClose.run();
+        });
+        preview.show();
+    }
+
+    private String mcpEndpoint(ServerInstance srv) {
+        String host = srv.getJoinAddress();
+        if (requireHttpsDashboard()) {
+            return "https://" + host + "/mcp";
+        }
+        return "http://" + host + ":" + srv.getKodadashPort() + "/mcp";
+    }
+
     private void updateJoinAddressDisplay() {
         updateKodadashLink();
         if (tvJoinAddr == null || server == null) return;
@@ -9148,25 +9553,14 @@ public class ServerDetailActivity extends AppCompatActivity {
                         ? new java.io.File(new java.io.File(getFilesDir(), "servers"), server.getId())
                         : new java.io.File(server.getServerDir());
                 dir.mkdirs();
-                // zip-slip guard
-                String canonicalBase = dir.getCanonicalPath() + java.io.File.separator;
-                java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(getContentResolver().openInputStream(filesRecoveryUri));
-                java.util.zip.ZipEntry entry;
-                byte[] buf = new byte[8192];
-                while ((entry = zis.getNextEntry()) != null) {
-                    java.io.File out = new java.io.File(dir, entry.getName());
-                    if (!out.getCanonicalPath().startsWith(canonicalBase)) continue;
-                    if (entry.isDirectory()) out.mkdirs();
-                    else {
-                        out.getParentFile().mkdirs();
-                        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(out)) {
-                            int n;
-                            while ((n = zis.read(buf)) > 0) fos.write(buf, 0, n);
-                        }
-                    }
-                    zis.closeEntry();
+                java.io.File temp = null;
+                try {
+                    temp = eu.kodanetwork.mchost.util.ZipExtract.copyToCache(
+                            ServerDetailActivity.this, filesRecoveryUri, "files_recovery");
+                    eu.kodanetwork.mchost.util.ZipExtract.extractTolerant(temp, dir);
+                } finally {
+                    if (temp != null) temp.delete();
                 }
-                zis.close();
                 eu.kodanetwork.mchost.utils.HibernationManager.wakeUpServer(ServerDetailActivity.this, server, repo);
                 runOnUiThread(() -> {
                     updateDash();
@@ -9243,6 +9637,83 @@ public class ServerDetailActivity extends AppCompatActivity {
         android.widget.TextView addr = findViewById(R.id.tv_bedrock_address);
         if (addr != null) addr.setText(bedrockDomain());
         if (tvBedrockPortDash != null) tvBedrockPortDash.setText(String.valueOf(server.getBedrockPort()));
+        refreshBedrockDiagnostics();
+    }
+
+    /**
+     * A small live check for Bedrock: is the UDP port bound by the server, and is the
+     * tunnel process alive. The bind test fails while the server holds the port, which
+     * is exactly the state we want to show. Runs off the main thread.
+     */
+    private void refreshBedrockDiagnostics() {
+        if (tvBedrockDiag == null) return;
+        if (!server.isBedrockSupport() || server.getBedrockPort() <= 0) {
+            tvBedrockDiag.setVisibility(View.GONE);
+            return;
+        }
+        tvBedrockDiag.setVisibility(View.VISIBLE);
+        tvBedrockDiag.setText("…");
+        boolean running = server.state == eu.kodanetwork.mchost.model.ServerInstance.State.ONLINE
+                || server.state == eu.kodanetwork.mchost.model.ServerInstance.State.STARTING;
+        if (!running) {
+            tvBedrockDiag.setText(R.string.bedrock_diag_offline);
+            return;
+        }
+        File plugins = new File(server.getServerDir(), "plugins");
+        boolean geyser = new File(plugins, "Geyser.jar").isFile()
+                || new File(plugins, "Geyser-Spigot.jar").isFile();
+        if (!geyser) {
+            tvBedrockDiag.setText(R.string.bedrock_diag_no_geyser);
+            return;
+        }
+        final int port = server.getBedrockPort();
+        new Thread(() -> {
+            boolean tcpBound;
+            try (java.net.ServerSocket socket = new java.net.ServerSocket()) {
+                socket.setReuseAddress(false);
+                socket.bind(new java.net.InetSocketAddress("127.0.0.1", port));
+                tcpBound = true;
+            } catch (Exception e) {
+                tcpBound = false;
+            }
+            boolean udpBound;
+            try (java.net.DatagramSocket socket = new java.net.DatagramSocket(null)) {
+                socket.setReuseAddress(false);
+                socket.bind(new java.net.InetSocketAddress("127.0.0.1", port));
+                udpBound = true;
+            } catch (Exception e) {
+                udpBound = false;
+            }
+            boolean tunnel = isFrpcRunning();
+            String text = getString(R.string.bedrock_diag_status,
+                    getString(!tcpBound ? R.string.bedrock_diag_tcp_open : R.string.bedrock_diag_tcp_closed),
+                    getString(!udpBound ? R.string.bedrock_diag_udp_open : R.string.bedrock_diag_udp_closed),
+                    getString(tunnel ? R.string.bedrock_diag_tunnel : R.string.bedrock_diag_no_tunnel));
+            runOnUiThread(() -> {
+                if (tvBedrockDiag != null) tvBedrockDiag.setText(text);
+            });
+        }, "BedrockDiag").start();
+    }
+
+    private void showBedrockUnavailable() {
+        eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.bedrock_unavailable_title));
+        sheet.text(getString(R.string.bedrock_unavailable_text), 0xFFBCBCC6);
+        sheet.primary(getString(android.R.string.ok), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    private boolean isFrpcRunning() {
+        try {
+            Process p = new ProcessBuilder("/system/bin/sh", "-c", "pidof frpc || pgrep -f frpc").start();
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(p.getInputStream()));
+            String line = reader.readLine();
+            p.waitFor(1, java.util.concurrent.TimeUnit.SECONDS);
+            return line != null && !line.trim().isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void patchServerPorts() {

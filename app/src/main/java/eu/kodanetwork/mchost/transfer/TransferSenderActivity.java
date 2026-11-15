@@ -63,12 +63,14 @@ import eu.kodanetwork.mchost.util.Material3ThemeHelper;
 public class TransferSenderActivity extends AppCompatActivity {
 
     public static final String EXTRA_SERVER_IDS = "serverIds";
+    public static final String EXTRA_TARGET_APP_UUID = "targetAppUuid";
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private ServerRepo repo;
     private TransferHttpServer httpServer;
     private TransferSession session;
     private String chosenTarget;   // family device the user picked, null = any device via code
+    private String presetTarget;   // target chosen in the devices sheet, skips the picker
     private String lastTargetLabel; // display name of the picked device, for the hint text
     private List<ServerInstance> transferServers = new ArrayList<>();
     private File cacheDir;
@@ -121,6 +123,7 @@ public class TransferSenderActivity extends AppCompatActivity {
             }, "KodaTransferRepublish").start();
         });
 
+        presetTarget = getIntent().getStringExtra(EXTRA_TARGET_APP_UUID);
         ArrayList<String> ids = getIntent().getStringArrayListExtra(EXTRA_SERVER_IDS);
         startPreparation(ids != null ? ids : new ArrayList<>());
     }
@@ -190,6 +193,28 @@ public class TransferSenderActivity extends AppCompatActivity {
             // target picker when the account family has more devices, otherwise the
             // classic path starts right away with the pairing code
             java.util.List<org.json.JSONObject> family = fetchFamilyDevices();
+            if (presetTarget != null && !presetTarget.isEmpty()) {
+                org.json.JSONObject match = null;
+                for (org.json.JSONObject device : family) {
+                    if (presetTarget.equals(device.optString("app_uuid", ""))) {
+                        match = device;
+                        break;
+                    }
+                }
+                if (match != null) {
+                    chosenTarget = presetTarget;
+                    String nickname = match.optString("nickname", "");
+                    String model = match.optString("device_model", "");
+                    lastTargetLabel = TransferSession.deviceLabel(nickname, model, presetTarget);
+                    if (!publishTransferRow(presetTarget)) {
+                        status(getString(R.string.transfer_status_no_row));
+                        return;
+                    }
+                    runOnUiThread(this::showCodeScreen);
+                    startPolling();
+                    return;
+                }
+            }
             if (family.isEmpty()) {
                 if (!publishTransferRow(null)) {
                     status(getString(R.string.transfer_status_no_row));

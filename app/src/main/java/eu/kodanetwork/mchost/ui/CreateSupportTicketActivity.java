@@ -49,29 +49,54 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
         if (ticketType == null) ticketType = "BUG";
 
         TextView tvTitle = findViewById(R.id.tv_title);
+        // ThemeHelper paints every tv_title and button 50 ms after onCreate. Mark
+        // these two as already styled so the quiet form style survives the pass.
+        tvTitle.setTag(R.id.tag_themed, "BLOCKED");
+        tvTitle.setAllCaps(false);
+        tvTitle.setLetterSpacing(0f);
+        tvTitle.setTextColor(0xFFF5F5F7);
+        tvTitle.setShadowLayer(0, 0, 0, 0);
+        tvTitle.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda),
+                android.graphics.Typeface.BOLD);
+        tvTitle.setTextSize(20);
+
+        com.google.android.material.button.MaterialButton createButton = findViewById(R.id.btn_create_ticket);
+        createButton.setTag(R.id.tag_themed, "BLOCKED");
+        createButton.setAllCaps(false);
+        createButton.setLetterSpacing(0.04f);
+        createButton.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda),
+                android.graphics.Typeface.BOLD);
+        createButton.setTextSize(14);
+
         EditText etReference = findViewById(R.id.et_reference);
+        EditText etMessage = findViewById(R.id.et_message);
+        android.view.View referenceSection = findViewById(R.id.ll_reference_section);
         // questions and ideas have no "reference", the message alone is the ticket.
         // "PERSONAL" comes from the crisis support screen: a private message, no diagnostics
         final boolean wantsReference = !("QUESTION".equals(ticketType) || "IDEA".equals(ticketType)
                 || "PERSONAL".equals(ticketType));
         if ("PERSONAL".equals(ticketType)) {
-            // already set above, must not fall through to the bug default
+            tvTitle.setText(R.string.ticket_personal_title);
+            etMessage.setHint(R.string.ticket_personal_hint);
         } else if (ticketType.equals("SERVER_REPORT")) {
-            tvTitle.setText("Report Server");
-            etReference.setHint("Name of the server");
+            tvTitle.setText(R.string.report_server);
+            etReference.setHint(R.string.ticket_server_hint);
+            etMessage.setHint(R.string.message_hint);
         } else if (ticketType.equals("QUESTION")) {
             tvTitle.setText(R.string.chat_type_question);
-            etReference.setHint(R.string.ticket_subject_question);
+            etMessage.setHint(R.string.ticket_subject_question);
         } else if (ticketType.equals("IDEA")) {
             tvTitle.setText(R.string.chat_type_idea);
-            etReference.setHint(R.string.ticket_subject_idea);
+            etMessage.setHint(R.string.ticket_subject_idea);
         } else {
-            tvTitle.setText("Report Bug");
-            etReference.setHint("Short Summary of the bug");
+            tvTitle.setText(R.string.report_bug);
+            etReference.setHint(R.string.ticket_bug_hint);
+            etMessage.setHint(R.string.message_hint);
         }
         if (!wantsReference) {
-            // no separate subject: the first line of the message becomes the title
-            etReference.setVisibility(android.view.View.GONE);
+            // no separate subject: the first line of the message becomes the title.
+            // hide the whole section, not only the field, so no orphan label is left
+            referenceSection.setVisibility(android.view.View.GONE);
         }
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
@@ -81,7 +106,7 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
             String message = ((EditText) findViewById(R.id.et_message)).getText().toString().trim();
 
             if (message.isEmpty() || (wantsReference && reference.isEmpty())) {
-                Toast.makeText(this, "Please fill out all fields", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.ticket_fill_all, Toast.LENGTH_SHORT).show();
                 return;
             }
             if (!wantsReference) {
@@ -97,7 +122,7 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
         String sessionToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("koda_session_token", null);
         String deviceToken = eu.kodanetwork.mchost.App.getPrefs(this).getString("device_token", "");
         if (uuid == null) {
-            Toast.makeText(this, "Not logged in", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.ticket_not_logged_in, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -132,7 +157,7 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
                     String checkResponse = SupportApi.makeSupabaseRequest(
                             "rest/v1/v_servers_public?host=eq." + reference + "&select=id", "GET", null, sessionToken);
                     if (checkResponse == null || checkResponse.equals("[]")) {
-                        runOnUiThread(() -> Toast.makeText(this, "Error: Server does not exist on KodaNetwork", Toast.LENGTH_SHORT).show());
+                        runOnUiThread(() -> Toast.makeText(this, R.string.ticket_server_missing, Toast.LENGTH_SHORT).show());
                         return;
                     }
                 }
@@ -190,10 +215,11 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
 
                     // 3. open the chat activity
                     runOnUiThread(() -> {
-                        Toast.makeText(this, "Ticket created!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, R.string.ticket_created, Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(this, SupportChatActivity.class);
                         intent.putExtra("TICKET_ID", ticketId);
-                        intent.putExtra("TICKET_TITLE", ticketType.equals("SERVER_REPORT") ? "Server Report: " + reference : reference);
+                        intent.putExtra("TICKET_TITLE", ticketType.equals("SERVER_REPORT")
+                                ? getString(R.string.report_server) + ": " + reference : reference);
                         intent.putExtra("TICKET_STATUS", "OPEN");
                         startActivity(intent);
                         finish();
@@ -203,7 +229,7 @@ public class CreateSupportTicketActivity extends AppCompatActivity {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "Error creating ticket", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(this, R.string.ticket_create_failed, Toast.LENGTH_SHORT).show());
             }
         }).start();
     }

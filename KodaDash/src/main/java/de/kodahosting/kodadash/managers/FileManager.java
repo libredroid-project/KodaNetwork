@@ -51,7 +51,11 @@ public class FileManager {
             File file = new File(rootDir, path);
             String canonicalRoot = rootDir.getCanonicalPath();
             String canonicalFile = file.getCanonicalPath();
-            if (!canonicalFile.startsWith(canonicalRoot)) return false;
+            // a bare startsWith also lets /srv/server-backup through for root /srv/server
+            if (!canonicalFile.equals(canonicalRoot)
+                    && !canonicalFile.startsWith(canonicalRoot + File.separator)) {
+                return false;
+            }
 
             List<String> blocked = plugin.getConfig().getStringList("blocked-paths");
             for (String b : blocked) {

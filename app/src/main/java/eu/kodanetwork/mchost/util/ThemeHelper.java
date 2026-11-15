@@ -485,11 +485,12 @@ public class ThemeHelper {
                     if (lightMode) {
                         if (current == 0xFF888888 || current == 0xFF2A2A2A || current == 0xFF444444
                             || current == 0xFF555566 || current == 0xFF8A8A9A || current == DARK_TEXT_SEC
-                            || current == 0xFFB7AE9F) {
+                            || current == 0xFFAAAAAA || current == 0xFFB7AE9F) {
                             tv.setTextColor(LIGHT_TEXT_SEC);
                         } else if (current == Color.WHITE || current == 0xFFEEEEEE || current == 0xFFF0F0F0
                                    || current == DARK_TEXT || current == 0xFFDDDDDD || current == 0xFFBBBBCC
-                                   || current == 0xFFF2EFE9 || current == 0xFFE8E2D6 || current == 0xFFCCCCCC) {
+                                   || current == 0xFFE0E0E0 || current == 0xFFF2EFE9 || current == 0xFFE8E2D6
+                                   || current == 0xFFCCCCCC) {
                             tv.setTextColor(LIGHT_TEXT);
                         }
                     } else {

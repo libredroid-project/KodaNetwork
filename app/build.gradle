@@ -31,10 +31,8 @@ android {
         applicationId "eu.kodanetwork.mchost"
         minSdk 26
         targetSdk 36
-        versionCode 8523
-        versionName "v0.143beta"
-        // instance specific gate (the kodadash beta for example): pass -PKODADASH_ACCOUNT=... at build time
-        buildConfigField "String", "KODADASH_ACCOUNT", "\"" + (project.findProperty('KODADASH_ACCOUNT') ?: '') + "\""
+        versionCode 8527
+        versionName "v0.147beta"
         ndkVersion "27.0.12077973"
         ndk {
             // arm64 only, every termux binary, mariadb and redis in here is arm64 only

@@ -72,6 +72,32 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
+            android:text="@string/welcome_nickname_title"
+            android:textColor="#8A8A9A"
+            android:textSize="11sp"
+            android:fontFamily="@font/font_koda"
+            app:fontFamily="@font/font_koda" />
+
+        <EditText
+            android:id="@+id/et_username"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_koda_field"
+            android:hint="@string/welcome_nickname_hint"
+            android:inputType="textPersonName"
+            android:maxLength="20"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="#F5F5F7"
+            android:textColorHint="#666677"
+            android:textSize="15sp"
+            android:fontFamily="@font/font_koda" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             android:text="@string/auth_email"
             android:textColor="#8A8A9A"
             android:textSize="11sp"

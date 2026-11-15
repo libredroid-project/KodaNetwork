@@ -106,7 +106,7 @@ public class PraetorSystem {
 
         if (isTotalExceeded) {
 
-            String reason = context.getString(R.string.praetor_reason_ram_conflict, totalSystemRamMB, runningServersRamMB, requiredRamMB);
+            String reason = context.getString(R.string.praetor_reason_ram_conflict, requiredRamMB, totalSystemRamMB);
             Intent intent = new Intent(context, PraetorWarningActivity.class);
             intent.putExtra(PraetorWarningActivity.EXTRA_REASON, reason);
             intent.putExtra(PraetorWarningActivity.EXTRA_ACTION, "RAM_CONFLICT");

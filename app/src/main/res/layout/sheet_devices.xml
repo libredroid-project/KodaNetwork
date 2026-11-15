@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/bg_koda_sheet"
+    android:paddingStart="24dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="24dp">
+
+    <View
+        android:layout_width="32dp" android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="18dp"
+        android:background="@drawable/bg_sheet_handle" />
+
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/account_devices"
+            android:textColor="#F5F5F7"
+            android:textSize="21sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/font_koda" />
+
+        <TextView
+            android:id="@+id/btn_devices_close"
+            android:layout_width="40dp" android:layout_height="40dp"
+            android:text="×" android:textColor="#8A8A9A" android:textSize="24sp"
+            android:gravity="center" android:fontFamily="@font/font_koda"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/praetor_action_cancel" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/devices_drag_hint"
+        android:textColor="#8A8A9A"
+        android:textSize="12sp"
+        android:fontFamily="@font/font_koda" />
+
+    <ScrollView
+        android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp"
+        android:fillViewport="true"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:id="@+id/devices_container"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+</LinearLayout>

@@ -56,16 +56,15 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
     public VH onCreateViewHolder(@NonNull ViewGroup p, int t) {
         boolean terminalEnabled = eu.kodanetwork.mchost.App.getPrefs(ctx).getBoolean("dev_terminal_enabled", false);
         boolean m3Enabled = eu.kodanetwork.mchost.util.Material3ThemeHelper.isM3Enabled(ctx);
-        // the redesigned cards are the light default; dark mode needs the
-        // "Neue Server-Karten" developer toggle, they are not the release default
-        boolean lightMode = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(ctx);
+        // the release card is the same in light and dark mode. the redesigned v2 card
+        // stays behind the "Neue Server-Karten" developer toggle until it is ready.
         boolean v2CardsDark = eu.kodanetwork.mchost.App.getPrefs(ctx).getBoolean("dev_v2_cards_dark", false);
         int layoutId;
         if (terminalEnabled) {
             layoutId = R.layout.item_server_terminal;
         } else if (m3Enabled) {
             layoutId = R.layout.item_server_m3;
-        } else if (lightMode || v2CardsDark) {
+        } else if (v2CardsDark) {
             layoutId = R.layout.item_server;
         } else {
             layoutId = R.layout.item_server_legacy;
@@ -177,21 +176,28 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
             boolean isLight = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(ctx);
             boolean isCyber = "cyber".equals(prefs.getString("app_theme", "modern"));
 
-            // the modern dark design is the default, light mode gets its own skin below
+            // the v2 card gets a neutral row around it. the release card already has its
+            // own face, so wrapping it again would read as a card inside a card.
             if (isLight) {
-                android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
-                gd.setColor(0xFFF5F5F5); // neutral row background, the card face sits on top
-                gd.setStroke(3, 0xFFE0E0E0); // neutral border
-                gd.setCornerRadius(12f * ctx.getResources().getDisplayMetrics().density);
-                int pL = itemView.getPaddingLeft(), pT = itemView.getPaddingTop(), pR = itemView.getPaddingRight(), pB = itemView.getPaddingBottom();
-                itemView.setBackground(gd);
-                itemView.setPadding(pL, pT, pR, pB);
+                if (chipVersion != null) {
+                    android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+                    gd.setColor(0xFFF5F5F5); // neutral row background, the card face sits on top
+                    gd.setStroke(3, 0xFFE0E0E0); // neutral border
+                    gd.setCornerRadius(12f * ctx.getResources().getDisplayMetrics().density);
+                    int pL = itemView.getPaddingLeft(), pT = itemView.getPaddingTop(), pR = itemView.getPaddingRight(), pB = itemView.getPaddingBottom();
+                    itemView.setBackground(gd);
+                    itemView.setPadding(pL, pT, pR, pB);
 
-                // margins so the cards do not touch each other
-                if (itemView.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams) {
-                    android.view.ViewGroup.MarginLayoutParams p = (android.view.ViewGroup.MarginLayoutParams) itemView.getLayoutParams();
-                    p.setMargins(16, 16, 16, 16);
-                    itemView.setLayoutParams(p);
+                    // margins so the cards do not touch each other
+                    if (itemView.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams) {
+                        android.view.ViewGroup.MarginLayoutParams p = (android.view.ViewGroup.MarginLayoutParams) itemView.getLayoutParams();
+                        p.setMargins(16, 16, 16, 16);
+                        itemView.setLayoutParams(p);
+                    }
+                }
+                if (statusPill != null) {
+                    statusPill.setTag(R.id.tag_themed, "BLOCKED");
+                    statusPill.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEEEEEE));
                 }
             }
 
@@ -271,7 +277,7 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
                 badge.setText(label);
                 badge.setTextColor(textCol);
                 dot.setBackground(ctx.getDrawable(dotDrw));
-                tintCardStroke(textCol);
+                tintCardStroke(isLight && st == ServerInstance.State.OFFLINE ? 0xFFE0E0E0 : textCol);
 
                 // start/stop button
                 if (btnAction != null) {
@@ -406,12 +412,9 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
                     }
                 } else {
                     ivServerIcon.setImageResource(R.mipmap.ic_launcher);
-                    if (isLight) {
-                        // the light cell is neutral, the logo still stands out in orange
-                        ivServerIcon.setColorFilter(0xFFFF8C38, android.graphics.PorterDuff.Mode.SRC_IN);
-                    } else {
-                        ivServerIcon.clearColorFilter();
-                    }
+                    // the launcher icon already carries its own colours, tinting it in
+                    // light mode turned the whole square orange
+                    ivServerIcon.clearColorFilter();
                 }
             }
 
@@ -419,14 +422,12 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
 
             // ── v2 card elements: chip_version only exists in the redesigned item_server.xml ──
             if (chipVersion != null) {
-            if (chipVersion != null) {
                     String shortVer = s.getVersion() == null ? "" : s.getVersion();
                     chipVersion.setText((s.getType().name() + " " + shortVer).toUpperCase().trim());
                     chipVersion.setTag(R.id.tag_themed, "BLOCKED");
                     chipVersion.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
                             isLight ? 0xFFEEEEEE : 0xFF26221E));
                     chipVersion.setTextColor(isLight ? 0xFF444444 : 0xFFB7AE9F);
-                }
                 if (cardFace != null) {
                     // keep the espresso elements out of ThemeHelper's BFS recoloring and
                     // tint the card face per mode ourselves
@@ -506,7 +507,7 @@ public class ServerCardAdapter extends RecyclerView.Adapter<ServerCardAdapter.VH
             }
             badge.setText(label);
             badge.setTextColor(textCol);
-            tintCardStroke(textCol);
+            tintCardStroke(isLight && st == ServerInstance.State.OFFLINE ? 0xFFE0E0E0 : textCol);
             
             String verText = s.getType().name();
             if (!s.isDatabase()) {

@@ -371,6 +371,26 @@ public class ConsoleManager {
     }
 
     /**
+     * runs a command without the dashboard's blocked-commands list.
+     *
+     * the MCP layer uses this because its permission model is different: it has
+     * the full admin except server lifecycle, and it applies its own lifecycle
+     * block before calling this. the dashboard route keeps using the checked
+     * executeCommand above.
+     */
+    public boolean executeCommandRaw(String command) {
+        if (command == null || command.trim().isEmpty()) return false;
+        final String toRun = command.trim();
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), toRun);
+            }
+        });
+        return true;
+    }
+
+    /**
      * fills the parameters into the log message, if there are any.
      */
     private String formatMessage(LogRecord record) {

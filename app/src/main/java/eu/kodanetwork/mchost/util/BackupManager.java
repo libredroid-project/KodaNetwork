@@ -35,7 +35,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import eu.kodanetwork.mchost.model.ServerInstance;
@@ -241,28 +240,10 @@ public final class BackupManager {
         }
 
         boolean ok = true;
-        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile)))) {
-            ZipEntry entry;
-            byte[] buffer = new byte[16384];
-            while ((entry = zip.getNextEntry()) != null) {
-                File out = new File(serverDir, entry.getName());
-                if (!out.getCanonicalPath().startsWith(serverDir.getCanonicalPath() + File.separator)) {
-                    Log.w(TAG, "Skipping entry outside the server folder: " + entry.getName());
-                    continue;
-                }
-                if (entry.isDirectory()) {
-                    out.mkdirs();
-                    continue;
-                }
-                File parentDir = out.getParentFile();
-                if (parentDir != null && !parentDir.exists()) parentDir.mkdirs();
-                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(out))) {
-                    int read;
-                    while ((read = zip.read(buffer)) > 0) {
-                        bos.write(buffer, 0, read);
-                    }
-                }
-            }
+        try {
+            // ZipFile reads the central directory; ZipInputStream threw
+            // "Unexpected end of ZLIB input stream" on valid ZIP64 backups.
+            ZipExtract.extractTolerant(zipFile, serverDir);
         } catch (Exception e) {
             Log.e(TAG, "Restore failed: " + e.getMessage());
             ok = false;
