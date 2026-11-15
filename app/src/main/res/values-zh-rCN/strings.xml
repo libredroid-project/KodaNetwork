@@ -811,7 +811,7 @@
     <string name="mcp_setup_desc">一步步连接你的 AI 客户端</string>
     <string name="mcp_troubleshooting">故障排除</string>
     <string name="mcp_troubleshooting_desc">常见问题和解决方法</string>
-    <string name="mcp_setup_body">1. 启用 KodaDash 并启动服务器。\n2. 打开 AI access (MCP)，进入连接，启用 MCP。\n3. 复制端点和令牌。\n4. 在 AI 客户端中添加远程 HTTP MCP 服务器，使用该 URL 和以下请求头：\n\nAuthorization: Bearer &lt;token&gt;\n\n5. 使用 tools/list 测试。客户端应显示 KodaDash 工具。\n\n只把令牌交给你信任的 AI。它可以修改服务器，但永远不能启动、停止或重启服务器。</string>
+    <string name="mcp_setup_body">1. 启用 KodaDash 并启动服务器。\n2. 打开 AI access (MCP)，进入连接，启用 MCP。\n3. 复制端点和令牌。\n4. 在 AI 客户端中添加远程 HTTP MCP 服务器，使用该 URL 和以下请求头：\n\nAuthorization: Bearer &lt;token&gt;\n\n如果客户端询问类型，请选择 HTTP。在 ZCode 中：New MCP server、Type HTTP、Timeout 30000、Protocol Auto，并在 Headers 中填入 {\"Authorization\": \"Bearer &lt;token&gt;\"}。\n\n5. 使用 tools/list 测试。客户端应显示 KodaDash 工具。\n\n只把令牌交给你信任的 AI。它可以修改服务器，但永远不能启动、停止或重启服务器。</string>
     <string name="mcp_troubleshooting_body">404：MCP 已关闭或 KodaDash 已关闭。请都打开。\n401：令牌错误或已重新生成。请重新复制当前令牌。\nGET 返回 405：正常。端点只接受 POST。\n无法连接：服务器必须在线，HTTPS 面板必须能打开。\n工具缺失：只读模式或某个权限开关已关闭。\n旧插件：安装 8527 或更新版本，然后重启服务器一次。</string>
     <string name="ram_budget_hint">设备 %1$d GB - 其他服务器占用 %2$d MB - 当前可用 %3$d MB</string>
     <string name="vps_state_ok">网络正常</string>
