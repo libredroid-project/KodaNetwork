@@ -837,6 +837,8 @@ Wenn auch deine Daten gelöscht werden sollen, nutze "Komplette Löschung beantr
     <string name="mcp_instructions_desc">Was der KI über Server und Handy gesagt wird</string>
     <string name="mcp_kodadash_off">Schalte zuerst KodaDash ein</string>
     <string name="mcp_no_write">Keine Schreibwerkzeuge</string>
+    <string name="mcp_copy_json">JSON kopieren</string>
+    <string name="mcp_copy_json_desc">Zum Einfügen im AI-Client</string>
     <string name="mcp_setup">Einrichtung</string>
     <string name="mcp_setup_desc">Verbinde deinen AI-Client Schritt für Schritt</string>
     <string name="mcp_troubleshooting">Fehlerbehebung</string>

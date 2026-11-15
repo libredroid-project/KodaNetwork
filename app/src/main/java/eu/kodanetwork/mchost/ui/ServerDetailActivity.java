@@ -8116,6 +8116,14 @@ public class ServerDetailActivity extends AppCompatActivity {
             copyToClipboard("MCP token", token[0]);
             Toast.makeText(this, R.string.mcp_copied, Toast.LENGTH_SHORT).show();
         });
+        sheet.row(getString(R.string.mcp_copy_json), getString(R.string.mcp_copy_json_desc), false, v -> {
+            if (token[0].isEmpty()) {
+                Toast.makeText(this, R.string.mcp_token_empty, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            copyToClipboard("MCP JSON", mcpJson(endpoint, token[0]));
+            Toast.makeText(this, R.string.mcp_copied, Toast.LENGTH_SHORT).show();
+        });
         sheet.row(getString(R.string.mcp_regenerate), getString(R.string.mcp_regenerate_desc), false,
                 v -> confirmMcpRegenerate(srv, password, token, revealed, tokenView, masked));
 
@@ -8299,6 +8307,27 @@ public class ServerDetailActivity extends AppCompatActivity {
             return "https://" + host + "/mcp";
         }
         return "http://" + host + ":" + srv.getKodadashPort() + "/mcp";
+    }
+
+    /**
+     * the ready-to-paste mcpServers object for ZCode, Cursor, Claude Code and
+     * the other clients. ZCode also accepts the bare {"name": {...}} form, but
+     * every client in the docs understands the wrapper.
+     */
+    private String mcpJson(String endpoint, String token) {
+        try {
+            org.json.JSONObject headers = new org.json.JSONObject();
+            headers.put("Authorization", "Bearer " + token);
+            org.json.JSONObject server = new org.json.JSONObject();
+            server.put("type", "http");
+            server.put("url", endpoint);
+            server.put("headers", headers);
+            org.json.JSONObject root = new org.json.JSONObject();
+            root.put("mcpServers", new org.json.JSONObject().put("KodaHosting", server));
+            return root.toString(2);
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private void updateJoinAddressDisplay() {

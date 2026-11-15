@@ -826,6 +826,8 @@ If you want your data deleted as well, use "Request full data deletion" in the a
     <string name="mcp_instructions_desc">What the AI is told about this server and phone</string>
     <string name="mcp_kodadash_off">Turn on KodaDash first</string>
     <string name="mcp_no_write">No write tools</string>
+    <string name="mcp_copy_json">Copy JSON</string>
+    <string name="mcp_copy_json_desc">Paste into your AI client</string>
     <string name="mcp_setup">How to set up</string>
     <string name="mcp_setup_desc">Connect your AI client step by step</string>
     <string name="mcp_troubleshooting">Troubleshooting</string>

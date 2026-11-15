@@ -807,6 +807,8 @@
     <string name="mcp_instructions_desc">AI 会被告知哪些服务器和手机信息</string>
     <string name="mcp_kodadash_off">请先启用 KodaDash</string>
     <string name="mcp_no_write">无写入工具</string>
+    <string name="mcp_copy_json">复制 JSON</string>
+    <string name="mcp_copy_json_desc">粘贴到 AI 客户端</string>
     <string name="mcp_setup">如何设置</string>
     <string name="mcp_setup_desc">一步步连接你的 AI 客户端</string>
     <string name="mcp_troubleshooting">故障排除</string>

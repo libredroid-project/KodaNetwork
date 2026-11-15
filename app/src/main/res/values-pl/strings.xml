@@ -841,6 +841,8 @@ Jeśli chcesz usunąć także swoje dane, użyj "Poproś o pełne usunięcie dan
     <string name="mcp_instructions_desc">Co AI wie o serwerze i telefonie</string>
     <string name="mcp_kodadash_off">Najpierw włącz KodaDash</string>
     <string name="mcp_no_write">Brak narzędzi zapisu</string>
+    <string name="mcp_copy_json">Kopiuj JSON</string>
+    <string name="mcp_copy_json_desc">Wklej w kliencie AI</string>
     <string name="mcp_setup">Jak skonfigurować</string>
     <string name="mcp_setup_desc">Połącz klienta AI krok po kroku</string>
     <string name="mcp_troubleshooting">Rozwiązywanie problemów</string>
