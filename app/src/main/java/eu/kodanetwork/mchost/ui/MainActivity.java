@@ -1773,8 +1773,8 @@ public class MainActivity extends AppCompatActivity {
         dialog.findViewById(R.id.btn_dialog_cancel).setOnClickListener(v -> dialog.dismiss());
         dialog.findViewById(R.id.btn_dialog_confirm).setOnClickListener(v -> {
             String nick = input != null ? input.getText().toString().trim() : "";
-            if (nick.isEmpty() || nick.length() > 24) {
-                android.widget.Toast.makeText(this, "1-24 Zeichen", android.widget.Toast.LENGTH_SHORT).show();
+            if (!eu.kodanetwork.mchost.util.NicknameSync.isValid(nick)) {
+                android.widget.Toast.makeText(this, R.string.nickname_invalid, android.widget.Toast.LENGTH_SHORT).show();
                 return;
             }
             prefs.edit().putString("nickname", nick).apply();
@@ -1790,8 +1790,12 @@ public class MainActivity extends AppCompatActivity {
                     c.setRequestProperty("Content-Type", "application/json");
                     c.setRequestProperty("apikey", eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
                     c.setRequestProperty("Authorization", "Bearer " + eu.kodanetwork.mchost.security.PraetorSecurity.getSupabaseKey());
-                    String body = "{\"p_app_uuid\":\"" + appUuid + "\", \"p_device_token\":\"" + deviceToken + "\", \"p_payload\":{\"nickname\":\"" + nick + "\"}}";
-                    c.getOutputStream().write(body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    org.json.JSONObject payload = new org.json.JSONObject().put("nickname", nick);
+                    org.json.JSONObject body = new org.json.JSONObject()
+                            .put("p_app_uuid", appUuid)
+                            .put("p_device_token", deviceToken)
+                            .put("p_payload", payload);
+                    c.getOutputStream().write(body.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
                     android.util.Log.d("Nickname", "rpc response " + c.getResponseCode());
                     c.disconnect();
                 } catch (Exception e) {

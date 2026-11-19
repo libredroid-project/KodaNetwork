@@ -20,6 +20,7 @@ package eu.kodanetwork.mchost.util;
 
 import android.content.Context;
 import eu.kodanetwork.mchost.App;
+import eu.kodanetwork.mchost.R;
 import eu.kodanetwork.mchost.security.PraetorSecurity;
 import android.widget.Toast;
 
@@ -29,6 +30,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 /**
  * pushes the local nickname to koda_users.nickname through the rpc_patch_user
@@ -41,12 +43,22 @@ import java.util.Scanner;
  */
 public final class NicknameSync {
 
+    // letters and numbers in any script, plus underscore, hyphen and spaces.
+    // quotes and braces broke the old hand-built json body, so they stay out.
+    private static final Pattern NICKNAME_PATTERN =
+            Pattern.compile("^[\\p{L}\\p{N}_ -]{2,20}$");
+
     private NicknameSync() {}
+
+    /** true when the name is 2-20 letters, numbers, spaces, underscores or hyphens. */
+    public static boolean isValid(String nickname) {
+        return nickname != null && NICKNAME_PATTERN.matcher(nickname.trim()).matches();
+    }
 
     /** @param interactive toasts the outcome (the dev retry button), silent otherwise */
     public static void sync(Context ctx, boolean interactive) {
         android.content.SharedPreferences prefs = App.getPrefs(ctx);
-        String nick = prefs.getString("nickname", "");
+        String nick = prefs.getString("nickname", "").trim();
         if (nick.isEmpty()) {
             if (interactive) Toast.makeText(ctx, "Kein lokaler Nickname gespeichert", Toast.LENGTH_SHORT).show();
             return;
@@ -75,8 +87,10 @@ public final class NicknameSync {
                 c.setRequestProperty("Content-Type", "application/json");
                 c.setRequestProperty("apikey", apikey);
                 c.setRequestProperty("Authorization", "Bearer " + apikey);
-                String body = "{\"p_app_uuid\":\"" + appUuid + "\", \"p_device_token\":\"" + deviceToken + "\"}";
-                c.getOutputStream().write(body.getBytes(StandardCharsets.UTF_8));
+                JSONObject body = new JSONObject()
+                        .put("p_app_uuid", appUuid)
+                        .put("p_device_token", deviceToken);
+                c.getOutputStream().write(body.toString().getBytes(StandardCharsets.UTF_8));
                 Scanner sc = new Scanner(c.getInputStream()).useDelimiter("\\A");
                 JSONObject obj = new JSONObject(sc.hasNext() ? sc.next() : "{}");
                 dbHasIt = !obj.isNull("nickname") && !obj.optString("nickname", "").isEmpty();
@@ -93,6 +107,15 @@ public final class NicknameSync {
                 return;
             }
 
+            if (!isValid(nick)) {
+                if (interactive) {
+                    android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+                    h.post(() -> Toast.makeText(ctx, R.string.nickname_invalid, Toast.LENGTH_LONG).show());
+                }
+                android.util.Log.w("Nickname", "nickname rejected by the character whitelist");
+                return;
+            }
+
             int code = -1;
             try {
                 HttpURLConnection c = (HttpURLConnection) new URL(
@@ -102,8 +125,12 @@ public final class NicknameSync {
                 c.setRequestProperty("Content-Type", "application/json");
                 c.setRequestProperty("apikey", apikey);
                 c.setRequestProperty("Authorization", "Bearer " + apikey);
-                String body = "{\"p_app_uuid\":\"" + appUuid + "\", \"p_device_token\":\"" + deviceToken + "\", \"p_payload\":{\"nickname\":\"" + nick + "\"}}";
-                c.getOutputStream().write(body.getBytes(StandardCharsets.UTF_8));
+                JSONObject payload = new JSONObject().put("nickname", nick);
+                JSONObject body = new JSONObject()
+                        .put("p_app_uuid", appUuid)
+                        .put("p_device_token", deviceToken)
+                        .put("p_payload", payload);
+                c.getOutputStream().write(body.toString().getBytes(StandardCharsets.UTF_8));
                 code = c.getResponseCode();
                 c.disconnect();
             } catch (Exception e) {

@@ -827,6 +827,7 @@ Jeśli chcesz usunąć także swoje dane, użyj "Poproś o pełne usunięcie dan
     <string name="mcp_cap_files">Zapis i usuwanie plików</string>
     <string name="mcp_cap_settings">Ustawienia serwera</string>
     <string name="mcp_cap_plugins">Pluginy</string>
+    <string name="mcp_cap_modrinth">Pobieranie z Modrinth</string>
     <string name="mcp_preview">Pokaż instrukcje AI</string>
     <string name="mcp_instructions_title">Instrukcje AI</string>
     <string name="mcp_password_title">Hasło panelu</string>
@@ -1036,6 +1037,7 @@ Jeśli chcesz usunąć także swoje dane, użyj "Poproś o pełne usunięcie dan
     <string name="welcome_account_register">Przejdź do rejestracji</string>
     <string name="welcome_account_skip">Pomiń, zacznij bez konta</string>
     <string name="register_username_required">Wybierz nazwę użytkownika od 2 do 20 znaków.</string>
+    <string name="nickname_invalid">Użyj od 2 do 20 znaków: liter, cyfr, spacji, _ lub -.</string>
     <string name="account_profile_picture">Zdjęcie profilowe</string>
     <string name="account_change_avatar">Zmień</string>
     <string name="devices_user">Użytkownik: %1$s</string>

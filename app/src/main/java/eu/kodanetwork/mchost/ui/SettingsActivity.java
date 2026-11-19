@@ -1588,8 +1588,8 @@ public class SettingsActivity extends Activity {
         sheet.add(input, 48);
         sheet.primary(getString(R.string.praetor_action_save), v -> {
             String name = input.getText().toString().trim();
-            if (name.length() < 2 || name.length() > 20) {
-                Toast.makeText(this, R.string.register_username_required, Toast.LENGTH_SHORT).show();
+            if (!eu.kodanetwork.mchost.util.NicknameSync.isValid(name)) {
+                Toast.makeText(this, R.string.nickname_invalid, Toast.LENGTH_SHORT).show();
                 return;
             }
             prefs.edit().putString("nickname", name).apply();

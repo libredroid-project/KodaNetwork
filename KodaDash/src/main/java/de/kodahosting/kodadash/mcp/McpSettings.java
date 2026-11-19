@@ -71,6 +71,10 @@ public final class McpSettings {
         return !readOnly() && plugin.getConfig().getBoolean("mcp.allow-plugins", true);
     }
 
+    public boolean allowModrinth() {
+        return !readOnly() && plugin.getConfig().getBoolean("mcp.allow-modrinth", true);
+    }
+
     /** makes sure a token exists and returns it. */
     public String ensureToken() {
         String current = token();
@@ -126,6 +130,11 @@ public final class McpSettings {
         plugin.saveConfig();
     }
 
+    public void setAllowModrinth(boolean allow) {
+        plugin.getConfig().set("mcp.allow-modrinth", allow);
+        plugin.saveConfig();
+    }
+
     public void setAudit(boolean audit) {
         plugin.getConfig().set("mcp.audit", audit);
         plugin.saveConfig();
@@ -142,6 +151,7 @@ public final class McpSettings {
         if (body.has("allowFileWrite")) setAllowFileWrite(body.get("allowFileWrite").getAsBoolean());
         if (body.has("allowSettings")) setAllowSettings(body.get("allowSettings").getAsBoolean());
         if (body.has("allowPlugins")) setAllowPlugins(body.get("allowPlugins").getAsBoolean());
+        if (body.has("allowModrinth")) setAllowModrinth(body.get("allowModrinth").getAsBoolean());
         if (body.has("audit")) setAudit(body.get("audit").getAsBoolean());
         if (body.has("regenerate") && body.get("regenerate").getAsBoolean()) regenerateToken();
         // enabling after a patch has to leave a usable token behind
@@ -159,6 +169,7 @@ public final class McpSettings {
         json.addProperty("allowFileWrite", plugin.getConfig().getBoolean("mcp.allow-file-write", true));
         json.addProperty("allowSettings", plugin.getConfig().getBoolean("mcp.allow-settings", true));
         json.addProperty("allowPlugins", plugin.getConfig().getBoolean("mcp.allow-plugins", true));
+        json.addProperty("allowModrinth", plugin.getConfig().getBoolean("mcp.allow-modrinth", true));
         json.addProperty("audit", audit());
         return json;
     }

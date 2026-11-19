@@ -8056,6 +8056,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (state.optBoolean("allowFileWrite", true)) parts.add(getString(R.string.mcp_cap_files));
         if (state.optBoolean("allowSettings", true)) parts.add(getString(R.string.mcp_cap_settings));
         if (state.optBoolean("allowPlugins", true)) parts.add(getString(R.string.mcp_cap_plugins));
+        if (state.optBoolean("allowModrinth", true)) parts.add(getString(R.string.mcp_cap_modrinth));
         if (parts.isEmpty()) return getString(R.string.mcp_no_write);
         return android.text.TextUtils.join(" · ", parts);
     }
@@ -8150,10 +8151,12 @@ public class ServerDetailActivity extends AppCompatActivity {
                 getString(R.string.mcp_cap_settings), state.optBoolean("allowSettings", true));
         final com.google.android.material.switchmaterial.SwitchMaterial capPlugins = sheet.toggle(
                 getString(R.string.mcp_cap_plugins), state.optBoolean("allowPlugins", true));
-        setMcpCapsEnabled(!readOnly.isChecked(), capConsole, capFiles, capSettings, capPlugins);
+        final com.google.android.material.switchmaterial.SwitchMaterial capModrinth = sheet.toggle(
+                getString(R.string.mcp_cap_modrinth), state.optBoolean("allowModrinth", true));
+        setMcpCapsEnabled(!readOnly.isChecked(), capConsole, capFiles, capSettings, capPlugins, capModrinth);
 
         readOnly.setOnCheckedChangeListener((button, checked) -> {
-            setMcpCapsEnabled(!checked, capConsole, capFiles, capSettings, capPlugins);
+            setMcpCapsEnabled(!checked, capConsole, capFiles, capSettings, capPlugins, capModrinth);
             postMcp(srv, mcpBoolPatch("readOnly", checked), password,
                     updated -> Toast.makeText(this, R.string.mcp_saved, Toast.LENGTH_SHORT).show(),
                     this::toastMcpError);
@@ -8162,6 +8165,7 @@ public class ServerDetailActivity extends AppCompatActivity {
         bindMcpCap(srv, capFiles, "allowFileWrite", password);
         bindMcpCap(srv, capSettings, "allowSettings", password);
         bindMcpCap(srv, capPlugins, "allowPlugins", password);
+        bindMcpCap(srv, capModrinth, "allowModrinth", password);
 
         sheet.secondary(getString(R.string.praetor_action_cancel), v -> {
             sheet.sheet.dismiss();

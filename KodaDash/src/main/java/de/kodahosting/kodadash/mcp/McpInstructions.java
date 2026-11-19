@@ -88,6 +88,7 @@ public final class McpInstructions {
         capabilities.addProperty("fileWrite", settings.allowFileWrite());
         capabilities.addProperty("settings", settings.allowSettings());
         capabilities.addProperty("plugins", settings.allowPlugins());
+        capabilities.addProperty("modrinth", settings.allowModrinth());
         capabilities.addProperty("readOnly", settings.readOnly());
         capabilities.addProperty("audit", settings.audit());
         root.add("capabilities", capabilities);
@@ -257,6 +258,7 @@ public final class McpInstructions {
         b.append(", file-write=").append(caps.get("fileWrite").getAsBoolean());
         b.append(", settings=").append(caps.get("settings").getAsBoolean());
         b.append(", plugins=").append(caps.get("plugins").getAsBoolean());
+        b.append(", modrinth=").append(caps.get("modrinth").getAsBoolean());
         b.append(", read-only=").append(caps.get("readOnly").getAsBoolean());
         b.append(", audit=").append(caps.get("audit").getAsBoolean()).append("\n");
         b.append("Current: ").append(num(server, "playersOnline", -1)).append(" players online, TPS ")

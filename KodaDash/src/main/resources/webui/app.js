@@ -1894,6 +1894,7 @@ function initMcp() {
     $('mcp-cap-files').addEventListener('change', function () { saveMcp({ allowFileWrite: this.checked }); });
     $('mcp-cap-settings').addEventListener('change', function () { saveMcp({ allowSettings: this.checked }); });
     $('mcp-cap-plugins').addEventListener('change', function () { saveMcp({ allowPlugins: this.checked }); });
+    $('mcp-cap-modrinth').addEventListener('change', function () { saveMcp({ allowModrinth: this.checked }); });
     $('mcp-regenerate').addEventListener('click', function () {
         if (!window.confirm('Regenerate the MCP token? The old token stops working immediately.')) return;
         saveMcp({ regenerate: true });
@@ -1934,9 +1935,10 @@ function renderMcp(d) {
     $('mcp-cap-files').checked = !!d.allowFileWrite;
     $('mcp-cap-settings').checked = !!d.allowSettings;
     $('mcp-cap-plugins').checked = !!d.allowPlugins;
+    $('mcp-cap-modrinth').checked = !!d.allowModrinth;
 
     var readOnly = !!d.readOnly;
-    ['mcp-cap-console', 'mcp-cap-files', 'mcp-cap-settings', 'mcp-cap-plugins'].forEach(function (id) {
+    ['mcp-cap-console', 'mcp-cap-files', 'mcp-cap-settings', 'mcp-cap-plugins', 'mcp-cap-modrinth'].forEach(function (id) {
         var el = $(id);
         if (el) el.disabled = readOnly;
     });

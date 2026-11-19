@@ -131,4 +131,5 @@ mcp:
   allow-file-write: true
   allow-settings: true
   allow-plugins: true
+  allow-modrinth: true
   audit: true

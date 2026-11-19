@@ -812,6 +812,7 @@ If you want your data deleted as well, use "Request full data deletion" in the a
     <string name="mcp_cap_files">File write and delete</string>
     <string name="mcp_cap_settings">Server settings</string>
     <string name="mcp_cap_plugins">Plugins</string>
+    <string name="mcp_cap_modrinth">Modrinth downloads</string>
     <string name="mcp_preview">Preview AI instructions</string>
     <string name="mcp_instructions_title">AI instructions</string>
     <string name="mcp_password_title">Dashboard password</string>
@@ -1075,6 +1076,7 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="welcome_account_register">Continue to sign up</string>
     <string name="welcome_account_skip">Skip, start without account</string>
     <string name="register_username_required">Choose a username with 2 to 20 characters.</string>
+    <string name="nickname_invalid">Use 2 to 20 characters: letters, numbers, spaces, _ or -.</string>
     <string name="account_profile_picture">Profile picture</string>
     <string name="account_change_avatar">Change</string>
     <string name="devices_user">User: %1$s</string>

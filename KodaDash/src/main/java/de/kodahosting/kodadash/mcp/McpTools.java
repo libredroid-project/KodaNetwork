@@ -111,6 +111,9 @@ public final class McpTools {
                 "KodaHosting, this server, the Android phone it runs on, enabled MCP capabilities and the policy. "
                         + "Local values are authoritative; the cloud/app mirror is labelled.",
                 true, false, false, emptySchema()));
+        tools.add(tool("mcp_status", "MCP status",
+                "The current MCP mode and the tools this account may use. The token is never included.",
+                true, false, false, emptySchema()));
         tools.add(tool("server_status", "Server status",
                 "Live local TPS, players, RAM, uptime and software version.", true, false, false, emptySchema()));
         tools.add(tool("console_tail", "Console tail",
@@ -135,6 +138,11 @@ public final class McpTools {
                 schemaWith(propInt("lines", "1-2000, default 200"), null)));
         tools.add(tool("plugins_list", "Plugins",
                 "Installed plugins with name, version and enabled state.", true, false, false, emptySchema()));
+        tools.add(tool("modrinth_search", "Modrinth search",
+                "Search Modrinth for Paper/Purpur plugins. Read-only; installs still need modrinth_install with confirm:true.",
+                true, false, true,
+                schemaWith(propString("query", "Search text, for example a plugin name or a feature"),
+                        propInt("limit", "1-20, default 10"), "query")));
         tools.add(tool("settings_get", "Server properties",
                 "The local server.properties values. rcon.password is redacted.", true, false, false, emptySchema()));
         tools.add(tool("schedule_list", "Schedules",
@@ -172,6 +180,11 @@ public final class McpTools {
                     false, true, false,
                     schemaWith(propObject("properties", "Object of key/value pairs"),
                             propBool("confirm", "Must be true"), "properties", "confirm")));
+            tools.add(tool("server_setting", "Change one setting",
+                    "Change one common server setting with validation: motd, max-players, difficulty, gamemode, pvp, whitelist, online-mode, view-distance, simulation-distance or spawn-protection. confirm:true is required.",
+                    false, true, false,
+                    schemaWith(propString("key", "Setting name"), propString("value", "New value"),
+                            propBool("confirm", "Must be true"), "key", "value", "confirm")));
         }
         if (settings.allowPlugins()) {
             tools.add(tool("plugin_enable", "Enable plugin",
@@ -186,6 +199,16 @@ public final class McpTools {
                     false, true, true,
                     schemaWith(propString("url", "Public https URL"), propString("filename", "Plain .jar filename"),
                             propBool("confirm", "Must be true"), "url", "filename", "confirm")));
+            if (settings.allowModrinth()) {
+                tools.add(tool("modrinth_install", "Install from Modrinth",
+                        "Resolve a compatible Modrinth plugin version and install it into plugins/. The SHA-512 from Modrinth is verified. confirm:true is required.",
+                        false, true, true,
+                        schemaWith(propString("project", "Modrinth project id or slug"),
+                                propString("version", "Optional version id; latest compatible by default"),
+                                propString("game_version", "Optional Minecraft version; local version by default"),
+                                propString("loader", "Optional loader: paper, purpur, spigot or bukkit"),
+                                propBool("confirm", "Must be true"), "project", "confirm")));
+            }
         }
         return tools;
     }
@@ -194,8 +217,9 @@ public final class McpTools {
         return "console_command".equals(name) || "files_write".equals(name)
                 || "files_delete".equals(name) || "files_rename".equals(name)
                 || "files_mkdir".equals(name) || "settings_update".equals(name)
+                || "server_setting".equals(name)
                 || "plugin_enable".equals(name) || "plugin_disable".equals(name)
-                || "plugin_install".equals(name);
+                || "plugin_install".equals(name) || "modrinth_install".equals(name);
     }
 
     private boolean available(String name) {
@@ -204,10 +228,15 @@ public final class McpTools {
                 || "files_rename".equals(name) || "files_mkdir".equals(name)) {
             return settings.allowFileWrite();
         }
-        if ("settings_update".equals(name)) return settings.allowSettings();
+        if ("settings_update".equals(name) || "server_setting".equals(name)) {
+            return settings.allowSettings();
+        }
         if ("plugin_enable".equals(name) || "plugin_disable".equals(name)
                 || "plugin_install".equals(name)) {
             return settings.allowPlugins();
+        }
+        if ("modrinth_install".equals(name)) {
+            return settings.allowPlugins() && settings.allowModrinth();
         }
         return true;
     }
@@ -233,6 +262,7 @@ public final class McpTools {
 
     private JsonObject dispatch(String name, JsonObject args) throws Exception {
         if ("server_context".equals(name)) return instructions.contextJson();
+        if ("mcp_status".equals(name)) return mcpStatus();
         if ("server_status".equals(name)) return serverStatus();
         if ("console_tail".equals(name)) return consoleTail(args);
         if ("players_list".equals(name)) return playersList();
@@ -242,6 +272,7 @@ public final class McpTools {
         if ("files_read".equals(name)) return filesRead(args);
         if ("logs_tail".equals(name)) return logsTail(args);
         if ("plugins_list".equals(name)) return pluginsList();
+        if ("modrinth_search".equals(name)) return modrinthSearch(args);
         if ("settings_get".equals(name)) return settingsGet();
         if ("schedule_list".equals(name)) return scheduleList();
         if ("backups_list".equals(name)) return backupsList();
@@ -251,9 +282,11 @@ public final class McpTools {
         if ("files_rename".equals(name)) return filesRename(args);
         if ("files_mkdir".equals(name)) return filesMkdir(args);
         if ("settings_update".equals(name)) return settingsUpdate(args);
+        if ("server_setting".equals(name)) return serverSetting(args);
         if ("plugin_enable".equals(name)) return pluginToggle(args, true);
         if ("plugin_disable".equals(name)) return pluginToggle(args, false);
         if ("plugin_install".equals(name)) return pluginInstall(args);
+        if ("modrinth_install".equals(name)) return modrinthInstall(args);
         throw new ToolException("unknown tool: " + name);
     }
 
@@ -271,6 +304,21 @@ public final class McpTools {
             if (properties.has("max-players")) status.add("maxPlayersSetting", properties.get("max-players"));
         } catch (Exception ignored) { }
         return status;
+    }
+
+    private JsonObject mcpStatus() {
+        JsonObject result = new JsonObject();
+        result.addProperty("enabled", settings.enabled());
+        result.addProperty("readOnly", settings.readOnly());
+        result.addProperty("allowConsole", settings.allowConsole());
+        result.addProperty("allowFileWrite", settings.allowFileWrite());
+        result.addProperty("allowSettings", settings.allowSettings());
+        result.addProperty("allowPlugins", settings.allowPlugins());
+        result.addProperty("allowModrinth", settings.allowModrinth());
+        result.addProperty("audit", settings.audit());
+        result.addProperty("toolCount", definitions().size());
+        result.addProperty("lifecycle", "user-only");
+        return result;
     }
 
     private JsonObject consoleTail(JsonObject args) {
@@ -411,6 +459,15 @@ public final class McpTools {
         }
         JsonObject result = new JsonObject();
         result.add("plugins", out);
+        return result;
+    }
+
+    private JsonObject modrinthSearch(JsonObject args) throws Exception {
+        String query = requireString(args, "query");
+        int limit = clamp(optInt(args, "limit", 10), 1, 20);
+        JsonObject result = new JsonObject();
+        result.addProperty("query", query);
+        result.add("results", Modrinth.search(query, limit));
         return result;
     }
 
@@ -600,6 +657,59 @@ public final class McpTools {
         return result;
     }
 
+    private JsonObject serverSetting(JsonObject args) throws Exception {
+        if (!optBool(args, "confirm", false)) throw new ToolException("pass confirm:true to change a setting");
+        String key = requireString(args, "key").toLowerCase(Locale.ROOT);
+        String value = requireString(args, "value").trim();
+        String propertyKey;
+        String normalized;
+
+        if ("motd".equals(key)) {
+            if (value.length() > 200) throw new ToolException("motd is longer than 200 characters");
+            propertyKey = "motd";
+            normalized = value;
+        } else if ("max-players".equals(key)) {
+            propertyKey = "max-players";
+            normalized = String.valueOf(intRange(value, 1, 1000));
+        } else if ("difficulty".equals(key)) {
+            propertyKey = "difficulty";
+            normalized = oneOf(value, "peaceful", "easy", "normal", "hard");
+        } else if ("gamemode".equals(key)) {
+            propertyKey = "gamemode";
+            normalized = oneOf(value, "survival", "creative", "adventure", "spectator");
+        } else if ("pvp".equals(key)) {
+            propertyKey = "pvp";
+            normalized = boolValue(value);
+        } else if ("whitelist".equals(key) || "white-list".equals(key)) {
+            propertyKey = "white-list";
+            normalized = boolValue(value);
+        } else if ("online-mode".equals(key)) {
+            propertyKey = "online-mode";
+            normalized = boolValue(value);
+        } else if ("view-distance".equals(key)) {
+            propertyKey = "view-distance";
+            normalized = String.valueOf(intRange(value, 2, 32));
+        } else if ("simulation-distance".equals(key)) {
+            propertyKey = "simulation-distance";
+            normalized = String.valueOf(intRange(value, 2, 32));
+        } else if ("spawn-protection".equals(key)) {
+            propertyKey = "spawn-protection";
+            normalized = String.valueOf(intRange(value, 0, 1000));
+        } else {
+            throw new ToolException("unknown setting: " + key);
+        }
+
+        JsonObject updates = new JsonObject();
+        updates.addProperty(propertyKey, normalized);
+        JsonArray updated = ServerProperties.write(updates);
+        JsonObject result = new JsonObject();
+        result.addProperty("key", propertyKey);
+        result.addProperty("value", normalized);
+        result.add("updated", updated);
+        result.addProperty("requiresRestart", true);
+        return result;
+    }
+
     private JsonObject pluginToggle(JsonObject args, final boolean enable) throws Exception {
         final String name = requireString(args, "plugin");
         if (!enable && !optBool(args, "confirm", false)) {
@@ -642,7 +752,102 @@ public final class McpTools {
         return result;
     }
 
+    private JsonObject modrinthInstall(JsonObject args) throws Exception {
+        String project = requireString(args, "project");
+        if (!optBool(args, "confirm", false)) throw new ToolException("pass confirm:true to install a plugin");
+        String versionId = optString(args, "version", "");
+        String gameVersion = optString(args, "game_version", localGameVersion());
+        String loader = optString(args, "loader", localLoader());
+
+        Modrinth.Version version = Modrinth.resolve(project, versionId, gameVersion, loader);
+        File installed = PluginInstaller.install(plugin, version.url, version.filename);
+
+        String algorithm = version.sha512.isEmpty() ? "SHA-1" : "SHA-512";
+        String expected = version.sha512.isEmpty() ? version.sha1 : version.sha512;
+        String actual = hashFile(installed, algorithm);
+        if (!actual.equalsIgnoreCase(expected)) {
+            installed.delete();
+            throw new ToolException("checksum mismatch; the downloaded file was deleted");
+        }
+
+        JsonObject result = new JsonObject();
+        result.addProperty("project", project);
+        result.addProperty("version", version.versionNumber);
+        result.addProperty("version_id", version.id);
+        result.addProperty("filename", version.filename);
+        result.addProperty("size", installed.length());
+        result.addProperty("checksum", actual);
+        result.addProperty("checksum_algorithm", algorithm);
+        result.addProperty("game_version", gameVersion);
+        result.addProperty("loader", loader);
+        result.addProperty("note", "Restart the server to load the new plugin; only the user may restart it.");
+        return result;
+    }
+
     // ---------------------------------------------------------------- helpers
+
+    private static String localGameVersion() {
+        try {
+            String version = Bukkit.getVersion();
+            int marker = version.indexOf("(MC: ");
+            if (marker >= 0) {
+                int end = version.indexOf(')', marker);
+                if (end > marker) return version.substring(marker + 5, end).trim();
+            }
+            String bukkit = Bukkit.getBukkitVersion();
+            int dash = bukkit.indexOf('-');
+            return dash > 0 ? bukkit.substring(0, dash) : bukkit;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static String localLoader() {
+        try {
+            String name = Bukkit.getName().toLowerCase(Locale.ROOT);
+            if ("purpur".equals(name)) return "purpur";
+        } catch (Exception ignored) { }
+        return "paper";
+    }
+
+    private static String hashFile(File file, String algorithm) throws Exception {
+        java.security.MessageDigest digest = java.security.MessageDigest.getInstance(algorithm);
+        try (java.io.FileInputStream in = new java.io.FileInputStream(file)) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = in.read(buffer)) != -1) digest.update(buffer, 0, read);
+        }
+        StringBuilder out = new StringBuilder();
+        for (byte b : digest.digest()) out.append(String.format("%02x", b));
+        return out.toString();
+    }
+
+    private static int intRange(String value, int min, int max) throws ToolException {
+        try {
+            int number = Integer.parseInt(value.trim());
+            if (number < min || number > max) {
+                throw new ToolException("value must be between " + min + " and " + max);
+            }
+            return number;
+        } catch (NumberFormatException e) {
+            throw new ToolException("value is not a number");
+        }
+    }
+
+    private static String oneOf(String value, String... allowed) throws ToolException {
+        String lower = value.toLowerCase(Locale.ROOT);
+        for (String candidate : allowed) {
+            if (candidate.equals(lower)) return lower;
+        }
+        throw new ToolException("value must be one of: " + String.join(", ", allowed));
+    }
+
+    private static String boolValue(String value) throws ToolException {
+        String lower = value.toLowerCase(Locale.ROOT);
+        if ("true".equals(lower) || "on".equals(lower) || "yes".equals(lower)) return "true";
+        if ("false".equals(lower) || "off".equals(lower) || "no".equals(lower)) return "false";
+        throw new ToolException("value must be true or false");
+    }
 
     private static JsonObject errorJson(String message) {
         JsonObject json = new JsonObject();

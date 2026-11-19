@@ -793,6 +793,7 @@
     <string name="mcp_cap_files">写入和删除文件</string>
     <string name="mcp_cap_settings">服务器设置</string>
     <string name="mcp_cap_plugins">插件</string>
+    <string name="mcp_cap_modrinth">Modrinth 下载</string>
     <string name="mcp_preview">预览 AI 指令</string>
     <string name="mcp_instructions_title">AI 指令</string>
     <string name="mcp_password_title">面板密码</string>
@@ -1056,6 +1057,7 @@
     <string name="welcome_account_register">继续注册</string>
     <string name="welcome_account_skip">跳过，不使用账号</string>
     <string name="register_username_required">请选择 2 到 20 个字符的用户名。</string>
+    <string name="nickname_invalid">请使用 2 到 20 个字符：字母、数字、空格、_ 或 -。</string>
     <string name="account_profile_picture">头像</string>
     <string name="account_change_avatar">更改</string>
     <string name="devices_user">用户：%1$s</string>

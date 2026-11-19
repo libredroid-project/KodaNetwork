@@ -1319,6 +1319,10 @@ public class KodaServerService extends Service {
                 setState(srv, ServerInstance.State.CRASHED);
                 return;
             }
+
+            // the arm64 JREs are not affected by Java4Shell, only the x86_64
+            // emulator JRE is old enough to need the Base64 intrinsic disabled.
+            final boolean usingX86Jre = !isArm64;
             
             File jvmDir;
             if (isArm64) {
@@ -1562,6 +1566,14 @@ public class KodaServerService extends Service {
                 } else {
                     log(id, getString(R.string.con_unix_args_missing));
                 }
+            }
+
+            if (usingX86Jre) {
+                // Java4Shell (CVE-2026-114938): the NDK x86_64 JRE is Java 21
+                // from 2023 and predates the fix. ARM64 is not affected.
+                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(jvmArgsFile, true)) {
+                    fos.write("-XX:-UseBASE64Intrinsics\n".getBytes());
+                } catch (Exception ignored) {}
             }
 
             RT rt = new RT();

@@ -84,8 +84,8 @@ public class RegisterPageActivity extends AppCompatActivity {
                 Toast.makeText(this, "Bitte Pflichtfelder ausfüllen", Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (username.length() < 2 || username.length() > 20) {
-                Toast.makeText(this, R.string.register_username_required, Toast.LENGTH_SHORT).show();
+            if (!eu.kodanetwork.mchost.util.NicknameSync.isValid(username)) {
+                Toast.makeText(this, R.string.nickname_invalid, Toast.LENGTH_SHORT).show();
                 return;
             }
             if (cbLegal != null && !cbLegal.isChecked()) {

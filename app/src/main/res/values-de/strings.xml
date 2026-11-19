@@ -823,6 +823,7 @@ Wenn auch deine Daten gelöscht werden sollen, nutze "Komplette Löschung beantr
     <string name="mcp_cap_files">Dateien schreiben und löschen</string>
     <string name="mcp_cap_settings">Servereinstellungen</string>
     <string name="mcp_cap_plugins">Plugins</string>
+    <string name="mcp_cap_modrinth">Modrinth-Downloads</string>
     <string name="mcp_preview">KI-Anweisungen ansehen</string>
     <string name="mcp_instructions_title">KI-Anweisungen</string>
     <string name="mcp_password_title">Dashboard-Passwort</string>
@@ -1086,6 +1087,7 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="welcome_account_register">Weiter zur Registrierung</string>
     <string name="welcome_account_skip">Überspringen, ohne Konto starten</string>
     <string name="register_username_required">Wähle einen Benutzernamen mit 2 bis 20 Zeichen.</string>
+    <string name="nickname_invalid">Nutze 2 bis 20 Zeichen: Buchstaben, Zahlen, Leerzeichen, _ oder -.</string>
     <string name="account_profile_picture">Profilbild</string>
     <string name="account_change_avatar">Ändern</string>
     <string name="devices_user">Benutzer: %1$s</string>
