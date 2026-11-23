@@ -523,6 +523,18 @@ public class SettingsActivity extends Activity {
                 Toast.makeText(this, checked ? "Neue Karten im Dark Mode. Restart app." : "Alte Karten im Dark Mode. Restart app.", Toast.LENGTH_LONG).show();
             });
         }
+
+        // Home screen in the new website design
+        com.google.android.material.switchmaterial.SwitchMaterial swWebsite = findViewById(R.id.switch_dev_website);
+        if (swWebsite != null) {
+            swWebsite.setChecked(prefs.getBoolean("dev_website_design", false));
+            swWebsite.setOnCheckedChangeListener((btn, checked) -> {
+                prefs.edit().putBoolean("dev_website_design", checked).apply();
+                Toast.makeText(this, checked
+                        ? "Website design on. Go back to the home screen."
+                        : "Website design off. Go back to the home screen.", Toast.LENGTH_LONG).show();
+            });
+        }
        switchLiquidGlass.setChecked(prefs.getBoolean("dev_liquid_glass", false));
         switchLiquidGlass.setOnCheckedChangeListener((buttonView, isChecked) -> {
             prefs.edit().putBoolean("dev_liquid_glass", isChecked).apply();

@@ -1863,4 +1863,25 @@
     <string name="ban_servers_zipping">正在打包 %1$s…</string>
     <string name="ban_server_start_blocked">此账号已被暂停。无法启动服务器。</string>
     <string name="chat_type_unban">封禁申诉</string>
+
+    <string name="dev_website_design">网站设计（主屏幕）</string>
+    <string name="dev_website_design_desc">让主屏幕与新网站设计一致。修改后请重新打开应用。</string>
+    <string name="website_home_title">Minecraft 服务器</string>
+    <plurals name="website_server_count">
+        <item quantity="other">%1$d 个服务器</item>
+    </plurals>
+    <string name="website_empty_title">还没有服务器</string>
+    <string name="website_empty_body">在 KodaHosting 应用中创建一个。它会在这里显示地址和控制选项。</string>
+    <string name="website_players">玩家</string>
+    <string name="website_memory">内存</string>
+    <string name="website_version">版本</string>
+    <string name="website_start">启动</string>
+    <string name="website_restart">重启</string>
+    <string name="website_stop">停止</string>
+    <string name="website_meta">运行时间 %1$s  ·  TPS %2$s</string>
+    <string name="website_copy_address">复制地址</string>
+    <string name="website_new_server">新服务器</string>
+    <string name="website_debug_log">调试日志</string>
+    <string name="website_donate">捐赠</string>
+    <string name="website_more">更多</string>
 </resources>

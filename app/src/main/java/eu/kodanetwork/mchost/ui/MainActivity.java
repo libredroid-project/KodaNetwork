@@ -66,6 +66,10 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView rv;
     private View tvEmpty;
     private ServerCardAdapter adapter;
+    /** true when the developer option renders the website-style home screen. */
+    private boolean websiteDesignActive;
+    /** the list starts at the first card once per visit, never at a restored offset. */
+    private boolean websiteHomeReset;
     private ServerRepo repo;
     private KodaServerService svc;
     private boolean bound = false;
@@ -223,7 +227,21 @@ public class MainActivity extends AppCompatActivity {
         eu.kodanetwork.mchost.security.AntiTamperSystem.check(this);
         eu.kodanetwork.mchost.security.TripwireObserver.startWatching(this);
 
-        if (eu.kodanetwork.mchost.util.SleekThemeHelper.isSleekEnabled(this)) {
+        websiteDesignActive = eu.kodanetwork.mchost.App.getPrefs(this)
+                .getBoolean("dev_website_design", false);
+        if (websiteDesignActive) {
+            // the website home draws under the system bars: the glass topbar owns the
+            // status bar area instead of a separate opaque stripe above the content
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                getWindow().setNavigationBarContrastEnforced(false);
+            }
+            android.view.View decor = getWindow().getDecorView();
+            decor.setSystemUiVisibility(0); // white icons on the dark glass
+            setContentView(R.layout.activity_main_website);
+        } else if (eu.kodanetwork.mchost.util.SleekThemeHelper.isSleekEnabled(this)) {
             setContentView(R.layout.activity_main_sleek);
         } else if (this.lastM3Enabled) {
             setContentView(R.layout.activity_main_m3);
@@ -297,6 +315,15 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+            // the website home uses a small header action instead of the FAB
+            View btnNewWebsite = findViewById(R.id.btn_new_server);
+            if (btnNewWebsite != null) {
+                btnNewWebsite.setOnClickListener(v -> {
+                    eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
+                    startActivity(new Intent(MainActivity.this, CreateServerActivity.class));
+                });
+            }
+
             // ── Sleek layout: nav bar buttons + header icon ──
             if (eu.kodanetwork.mchost.util.SleekThemeHelper.isSleekEnabled(this)) {
                 // sleek wants its own touch feedback, no Android ripple
@@ -337,8 +364,14 @@ public class MainActivity extends AppCompatActivity {
             View btnDonateMain = findViewById(R.id.btn_donate_main);
             if (btnDonateMain != null) {
                 btnDonateMain.setOnClickListener(v -> {
+                    hideWebsiteMoreMenu();
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
-                    showSupportDialog();
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://ko-fi.com/kodahosting")));
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(this, "https://ko-fi.com/kodahosting", android.widget.Toast.LENGTH_LONG).show();
+                    }
                 });
             }
 
@@ -346,6 +379,7 @@ public class MainActivity extends AppCompatActivity {
             View btnDiscordMain = findViewById(R.id.btn_discord_main);
             if (btnDiscordMain != null) {
                 btnDiscordMain.setOnClickListener(v -> {
+                    hideWebsiteMoreMenu();
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
                     try {
                         startActivity(new Intent(Intent.ACTION_VIEW,
@@ -358,6 +392,7 @@ public class MainActivity extends AppCompatActivity {
             View btnGithubMain = findViewById(R.id.btn_github_main);
             if (btnGithubMain != null) {
                 btnGithubMain.setOnClickListener(v -> {
+                    hideWebsiteMoreMenu();
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 20);
                     try {
                         startActivity(new Intent(Intent.ACTION_VIEW,
@@ -371,6 +406,7 @@ public class MainActivity extends AppCompatActivity {
             View btnSupportMain = findViewById(R.id.btn_support_main);
             if (btnSupportMain != null) {
                 btnSupportMain.setOnClickListener(v -> {
+                    hideWebsiteMoreMenu();
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
                     SupportSelectionDialog dialog = new SupportSelectionDialog(this, new SupportSelectionDialog.SupportDialogListener() {
                         @Override
@@ -424,6 +460,7 @@ public class MainActivity extends AppCompatActivity {
             View btnDebug = findViewById(R.id.btn_debug_log);
             if (btnDebug != null) {
                 btnDebug.setOnClickListener(v -> {
+                    hideWebsiteMoreMenu();
                     eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 80);
                     startActivity(new Intent(this, DebugLogActivity.class));
                 });
@@ -436,6 +473,9 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(new Intent(this, SettingsActivity.class));
                 });
             }
+
+            setupWebsiteMoreMenu();
+            setupWebsiteCollapsingHeader();
 
 
 
@@ -453,7 +493,10 @@ public class MainActivity extends AppCompatActivity {
                 startService(startSvc);
             }
 
-            ThemeHelper.apply(this);
+            // the website design brings its own typography and palette. ThemeHelper
+            // forces monospace, caps and the orange accent on every TextView, which
+            // would flatten the whole redesign.
+            if (!websiteDesignActive) ThemeHelper.apply(this);
             eu.kodanetwork.mchost.util.HapticUtil.applyHaptics(this);
             // the text-based first setup replaces the cinematic tutorial on fresh installs
             if (!eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("tos_accepted_v3", false)) {
@@ -594,6 +637,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 List<ServerInstance> list = repo.all();
                 adapter.setData(list);
+                if (websiteDesignActive) updateSleekStats();
                 if (tvEmpty != null) tvEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
                 
                 TextView tvCount = findViewById(R.id.tv_footer_count);
@@ -615,7 +659,12 @@ public class MainActivity extends AppCompatActivity {
     private void startPeriodicRefresh() {
         handler.postDelayed(new Runnable() {
             @Override public void run() {
-                if (bound) adapter.notifyDataSetChanged();
+                if (bound) {
+                    adapter.notifyDataSetChanged();
+                    // the legacy adapter is not the one attached in website mode, so the
+                    // website list needs its own tick or the cards would freeze
+                    if (websiteDesignActive) updateSleekStats();
+                }
                 handler.postDelayed(this, 1000);
             }
         }, 1000);
@@ -697,6 +746,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // the developer option can be flipped in Settings while this screen sits in
+        // the back stack; rebuild once so the new home layout actually appears
+        boolean websiteNow = eu.kodanetwork.mchost.App.getPrefs(this)
+                .getBoolean("dev_website_design", false);
+        if (websiteNow != websiteDesignActive) {
+            websiteDesignActive = websiteNow;
+            recreate();
+            return;
+        }
         checkInfraOverloadScreen();
         // keep the tunnel server line up to date while the screen is open
         vpsHandler.removeCallbacks(vpsTick);
@@ -706,10 +764,12 @@ public class MainActivity extends AppCompatActivity {
         startTransferPolling();
         // coach phase 1 fires here, the tutorial may have finished while
         // MainActivity sat paused behind it
-        eu.kodanetwork.mchost.util.TutorialCoach.maybeShowNewServerHint(this, findViewById(R.id.fab_add));
+        View coachAnchor = findViewById(R.id.fab_add);
+        if (coachAnchor == null) coachAnchor = findViewById(R.id.btn_new_server);
+        eu.kodanetwork.mchost.util.TutorialCoach.maybeShowNewServerHint(this, coachAnchor);
         // re-theme dynamically created views (server cards) so light mode
         // works here like it does in Settings
-        eu.kodanetwork.mchost.util.ThemeHelper.reapply(this);
+        if (!websiteDesignActive) eu.kodanetwork.mchost.util.ThemeHelper.reapply(this);
         updateSleekStats();
         android.content.SharedPreferences prefs = eu.kodanetwork.mchost.App.getPrefs(this);
         String currentTheme = prefs.getString("app_theme", "modern");
@@ -1366,11 +1426,12 @@ public class MainActivity extends AppCompatActivity {
         logo.animate().alpha(1f).setDuration(400).start(); // no pulse at start
         topLeft.addView(logo);
 
-        // KodaHosting types itself live in the app's pixel font, left-aligned
+        // KodaHosting types itself live in the website's display font, left-aligned
         android.widget.TextView typed = new android.widget.TextView(this);
         typed.setTextColor(0xFFFF8C38);
-        typed.setTextSize(22);
-        typed.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, eu.kodanetwork.mchost.R.font.press_start_2p));
+        typed.setTextSize(26);
+        typed.setLetterSpacing(-0.01f);
+        typed.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, eu.kodanetwork.mchost.R.font.space_grotesk_medium));
         android.widget.LinearLayout.LayoutParams tLp = new android.widget.LinearLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
         tLp.topMargin = (int)(20 * d);
@@ -1627,25 +1688,324 @@ public class MainActivity extends AppCompatActivity {
         sheet.show();
     }
 
+    /**
+     * scrolling down collapses the page title row under the pinned wordmark/controls.
+     * the glass scrim fades in, the title fades out and the wordmark settles a touch
+     * smaller, so the bar reads as one compact surface instead of a jump cut.
+     */
+    private void setupWebsiteCollapsingHeader() {
+        final androidx.recyclerview.widget.RecyclerView rv = findViewById(R.id.rv);
+        final View titleRow = findViewById(R.id.website_title_row);
+        final View wordmark = findViewById(R.id.tv_wordmark);
+        final View surface = findViewById(R.id.topbar_surface);
+        final View root = findViewById(R.id.website_root);
+        final View topbar = findViewById(R.id.topbar_container);
+        final View listContainer = findViewById(R.id.website_list_container);
+        final View headerRow = findViewById(R.id.topbar_header_row);
+        final View empty = findViewById(R.id.tv_empty);
+        final View cta = findViewById(R.id.btn_new_server);
+        final View morePanel = findViewById(R.id.website_more_overlay);
+        final float density = getResources().getDisplayMetrics().density;
+        if (rv == null || titleRow == null) return;
+        final int fullTitleHeight = titleRow.getLayoutParams().height > 0
+                ? titleRow.getLayoutParams().height
+                : (int) (52 * density);
+
+        final int[] topInset = {0};
+        final int[] bottomInset = {0};
+        final boolean[] insetsSeen = {false};
+        final int[] appliedHeaderHeight = {0};
+
+        // the header state comes from the list's real scroll offset, not from an
+        // accumulated dy. a restored or transient scroll can otherwise leave the
+        // glass card collapsed while the list is already back at the first card.
+        final Runnable updateHeader = () -> {
+            float range = Math.max(1f, fullTitleHeight);
+            // computeVerticalScrollOffset counts the list's top padding on this
+            // RecyclerView, which made the card look collapsed while the first card
+            // was still at rest. derive the scroll from the first card instead.
+            int offset = 0;
+            androidx.recyclerview.widget.RecyclerView.LayoutManager lm = rv.getLayoutManager();
+            if (lm instanceof androidx.recyclerview.widget.LinearLayoutManager) {
+                androidx.recyclerview.widget.LinearLayoutManager linear =
+                        (androidx.recyclerview.widget.LinearLayoutManager) lm;
+                int first = linear.findFirstVisibleItemPosition();
+                if (first > 0) {
+                    offset = Math.round(range);
+                } else if (first == 0) {
+                    View firstView = linear.findViewByPosition(0);
+                    if (firstView != null) {
+                        offset = Math.max(0, rv.getPaddingTop() - firstView.getTop());
+                    }
+                }
+            }
+            float fraction = Math.max(0f, Math.min(1f, offset / range));
+            titleRow.setAlpha(1f - fraction);
+            android.view.ViewGroup.LayoutParams lp = titleRow.getLayoutParams();
+            int nextHeight = Math.round(range * (1f - fraction));
+            if (lp.height != nextHeight) {
+                lp.height = nextHeight;
+                titleRow.setLayoutParams(lp);
+            }
+            if (surface != null) {
+                surface.setAlpha(fraction);
+                surface.setElevation(fraction * 18f * density);
+            }
+            if (wordmark != null) {
+                float scale = 1f - 0.04f * fraction;
+                wordmark.setScaleX(scale);
+                wordmark.setScaleY(scale);
+            }
+        };
+
+        // edge to edge: the system bars are transparent. the list is clipped below the
+        // status bar and the floating glass card covers it, so the clock never sits on
+        // server content and there is no black stripe above the card.
+        final java.util.function.Consumer<androidx.core.view.WindowInsetsCompat> applyInsets = insets -> {
+            topInset[0] = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).top;
+            bottomInset[0] = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom;
+            if (root != null) root.setPadding(0, 0, 0, 0);
+            int headerPad = Math.round(12 * density);
+            if (headerRow != null) {
+                headerRow.setPaddingRelative(headerPad, topInset[0] + Math.round(8 * density),
+                        headerPad, Math.round(20 * density));
+            }
+            if (listContainer != null) {
+                android.widget.FrameLayout.LayoutParams lp =
+                        (android.widget.FrameLayout.LayoutParams) listContainer.getLayoutParams();
+                lp.topMargin = topInset[0];
+                listContainer.setLayoutParams(lp);
+            }
+            if (morePanel != null) {
+                android.widget.FrameLayout.LayoutParams lp =
+                        (android.widget.FrameLayout.LayoutParams) morePanel.getLayoutParams();
+                lp.topMargin = topInset[0] + Math.round(10 * density);
+                morePanel.setLayoutParams(lp);
+            }
+            if (cta != null) {
+                android.widget.FrameLayout.LayoutParams lp =
+                        (android.widget.FrameLayout.LayoutParams) cta.getLayoutParams();
+                lp.bottomMargin = bottomInset[0] + Math.round(20 * density);
+                cta.setLayoutParams(lp);
+            }
+            insetsSeen[0] = true;
+        };
+        if (root != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+                applyInsets.accept(insets);
+                return insets;
+            });
+            androidx.core.view.ViewCompat.requestApplyInsets(root);
+            // onCreate happens before the content view is attached on some phones, so
+            // the first request can be dropped. read the root insets once laid out.
+            root.post(() -> {
+                if (insetsSeen[0]) return;
+                androidx.core.view.WindowInsetsCompat wi =
+                        androidx.core.view.ViewCompat.getRootWindowInsets(root);
+                if (wi != null) applyInsets.accept(wi);
+            });
+        }
+
+        // the list starts below the fully expanded header, but its content still
+        // scrolls underneath the floating card (clipToPadding is off). the padding is
+        // applied after the header row really has its measured height, otherwise the
+        // first card would start behind the glass instead of below the page title.
+        if (topbar != null && headerRow != null) {
+            final View emptyView = empty;
+            final View rvView = rv;
+            topbar.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                           int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    int headerHeight = headerRow.getHeight();
+                    if (headerHeight <= 0 || headerHeight == appliedHeaderHeight[0]) return;
+                    appliedHeaderHeight[0] = headerHeight;
+
+                    // the glass panel wraps its content; the two match_parent layers
+                    // would otherwise make the FrameLayout as tall as the whole screen.
+                    // the card covers the status bar; the list is clipped below it.
+                    if (surface != null) {
+                        android.view.ViewGroup.LayoutParams lp = surface.getLayoutParams();
+                        if (lp instanceof android.widget.FrameLayout.LayoutParams) {
+                            ((android.widget.FrameLayout.LayoutParams) lp).topMargin = 0;
+                        }
+                        lp.height = Math.max(1, headerHeight - Math.round(4 * density));
+                        surface.setLayoutParams(lp);
+                    }
+
+                    // the list container is already offset by the status bar, so the
+                    // list padding is the header below the status bar only
+                    int expanded = headerHeight - topInset[0]
+                            + Math.round(4 * density) + fullTitleHeight;
+                    if (rvView instanceof androidx.recyclerview.widget.RecyclerView) {
+                        androidx.recyclerview.widget.RecyclerView list =
+                                (androidx.recyclerview.widget.RecyclerView) rvView;
+                        list.setPadding(Math.round(16 * density), expanded,
+                                Math.round(16 * density),
+                                bottomInset[0] + Math.round(120 * density));
+                        list.post(() -> {
+                            resetWebsiteHome();
+                            updateHeader.run();
+                        });
+                    }
+                    if (emptyView != null) {
+                        emptyView.setPadding(Math.round(20 * density), expanded,
+                                Math.round(20 * density), bottomInset[0]);
+                    }
+                }
+            });
+        }
+
+        rv.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView view,
+                                   int dx, int dy) {
+                updateHeader.run();
+            }
+        });
+        // the header padding and the list padding are applied in separate layout
+        // passes; re-read the first card position after every list layout too.
+        rv.addOnLayoutChangeListener((v, left, top, right, bottom,
+                                      oldLeft, oldTop, oldRight, oldBottom) -> updateHeader.run());
+
+        // some launches restore the list offset after the first layout. keep putting
+        // the first card back until the user touches the list, then leave it alone.
+        final boolean[] userTouched = {false};
+        final int[] settleTries = {0};
+        rv.setOnTouchListener((v, event) -> {
+            if (event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+                userTouched[0] = true;
+            }
+            return false;
+        });
+        final Runnable settleHome = new Runnable() {
+            @Override
+            public void run() {
+                if (!userTouched[0]) {
+                    resetWebsiteHome();
+                    updateHeader.run();
+                }
+                if (!userTouched[0] && settleTries[0]++ < 10) {
+                    rv.postDelayed(this, 200);
+                }
+            }
+        };
+        rv.postDelayed(settleHome, 100);
+    }
+
+    /**
+     * the website header keeps only the important actions visible. social links,
+     * support and the debug log live behind the "..." button and fold out of it
+     * with a small scale/slide animation.
+     */
+    private void setupWebsiteMoreMenu() {
+        View more = findViewById(R.id.btn_more);
+        View panel = findViewById(R.id.website_more_overlay);
+        View scrim = findViewById(R.id.website_more_scrim);
+        if (more == null || panel == null || scrim == null) return;
+        more.setOnClickListener(v -> {
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
+            if (panel.getVisibility() == View.VISIBLE) hideWebsiteMoreMenu();
+            else showWebsiteMoreMenu(panel, scrim);
+        });
+        scrim.setOnClickListener(v -> hideWebsiteMoreMenu());
+    }
+
+    private void showWebsiteMoreMenu(View panel, View scrim) {
+        scrim.setVisibility(View.VISIBLE);
+        panel.setVisibility(View.VISIBLE);
+        panel.setAlpha(1f);
+        panel.setScaleX(1f);
+        panel.setScaleY(1f);
+        // the bar itself stays put; every icon slides out of the middle to its slot
+        panel.post(() -> {
+            float center = panel.getWidth() / 2f;
+            android.view.animation.PathInterpolator ease =
+                    new android.view.animation.PathInterpolator(0.16f, 1f, 0.3f, 1f);
+            android.view.ViewGroup group = (android.view.ViewGroup) panel;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                float childCenter = child.getLeft() + child.getWidth() / 2f;
+                child.animate().cancel();
+                child.setTranslationX(center - childCenter);
+                child.setAlpha(0f);
+                child.animate()
+                        .translationX(0f)
+                        .alpha(1f)
+                        .setStartDelay(i * 35L)
+                        .setDuration(260)
+                        .setInterpolator(ease)
+                        .start();
+            }
+        });
+    }
+
+    private void hideWebsiteMoreMenu() {
+        View panel = findViewById(R.id.website_more_overlay);
+        View scrim = findViewById(R.id.website_more_scrim);
+        if (panel == null || scrim == null || panel.getVisibility() != View.VISIBLE) return;
+        float center = panel.getWidth() / 2f;
+        android.view.ViewGroup group = (android.view.ViewGroup) panel;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            float childCenter = child.getLeft() + child.getWidth() / 2f;
+            child.animate().cancel();
+            child.animate()
+                    .translationX(center - childCenter)
+                    .alpha(0f)
+                    .setStartDelay(i * 20L)
+                    .setDuration(150)
+                    .start();
+        }
+        panel.postDelayed(() -> panel.setVisibility(View.GONE), 300);
+        scrim.setVisibility(View.GONE);
+    }
+
+    /** puts the first server card back at the top, after the header's list padding. */
+    private void resetWebsiteHome() {
+        if (rv == null) return;
+        androidx.recyclerview.widget.RecyclerView.LayoutManager lm = rv.getLayoutManager();
+        if (lm instanceof androidx.recyclerview.widget.LinearLayoutManager) {
+            ((androidx.recyclerview.widget.LinearLayoutManager) lm)
+                    .scrollToPositionWithOffset(0, rv.getPaddingTop());
+        }
+    }
+
     private void updateSleekStats() {
-        // sleek mode only, the legacy list keeps its own adapter and cards
-        if (!eu.kodanetwork.mchost.util.SleekThemeHelper.isSleekEnabled(this)) return;
+        // sleek and the website design both own the server list; the legacy home keeps
+        // its own adapter and cards
+        boolean website = websiteDesignActive;
+        if (!website && !eu.kodanetwork.mchost.util.SleekThemeHelper.isSleekEnabled(this)) return;
         try {
             java.util.List<ServerInstance> all = repo != null ? repo.all() : java.util.Collections.emptyList();
 
-            // sleek adapter: set it once, then just update the list
             View rvView = findViewById(R.id.rv);
-            if (rvView instanceof androidx.recyclerview.widget.RecyclerView && rvView.getVisibility() == View.VISIBLE) {
+            if (rvView instanceof androidx.recyclerview.widget.RecyclerView) {
                 androidx.recyclerview.widget.RecyclerView rv = (androidx.recyclerview.widget.RecyclerView) rvView;
-                if (rv.getAdapter() == null || !(rv.getAdapter() instanceof eu.kodanetwork.mchost.ui.SleekServerAdapter)) {
-                    rv.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
-                    rv.setAdapter(new eu.kodanetwork.mchost.ui.SleekServerAdapter(all, server -> {
-                        android.content.Intent i = new android.content.Intent(MainActivity.this, ServerDetailActivity.class);
-                        i.putExtra("id", server.getId());
-                        startActivity(i);
-                    }));
-                } else {
-                    ((eu.kodanetwork.mchost.ui.SleekServerAdapter) rv.getAdapter()).update(all);
+                if (website) {
+                    if (!(rv.getAdapter() instanceof eu.kodanetwork.mchost.ui.WebsiteServerAdapter)) {
+                        rv.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+                        rv.setItemAnimator(null);
+                        rv.setAdapter(new eu.kodanetwork.mchost.ui.WebsiteServerAdapter(this, all, this::openServer));
+                    } else {
+                        ((eu.kodanetwork.mchost.ui.WebsiteServerAdapter) rv.getAdapter()).update(all);
+                    }
+                    if (!websiteHomeReset && !all.isEmpty()) {
+                        websiteHomeReset = true;
+                        rv.post(this::resetWebsiteHome);
+                    }
+                } else if (rvView.getVisibility() == View.VISIBLE) {
+                    // sleek adapter: set it once, then just update the list
+                    if (rv.getAdapter() == null || !(rv.getAdapter() instanceof eu.kodanetwork.mchost.ui.SleekServerAdapter)) {
+                        rv.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+                        rv.setAdapter(new eu.kodanetwork.mchost.ui.SleekServerAdapter(all, server -> {
+                            android.content.Intent i = new android.content.Intent(MainActivity.this, ServerDetailActivity.class);
+                            i.putExtra("id", server.getId());
+                            startActivity(i);
+                        }));
+                    } else {
+                        ((eu.kodanetwork.mchost.ui.SleekServerAdapter) rv.getAdapter()).update(all);
+                    }
                 }
             }
             int online = 0;
@@ -1662,7 +2022,14 @@ public class MainActivity extends AppCompatActivity {
             if (tvRam != null) tvRam.setText((totalRam / 1024) + "GB");
 
             TextView tvCount = findViewById(R.id.tv_server_count);
-            if (tvCount != null) tvCount.setText(all.size() + " SERVERS");
+            if (tvCount != null) {
+                if (website) {
+                    tvCount.setText(getResources().getQuantityString(
+                            R.plurals.website_server_count, all.size(), all.size()));
+                } else {
+                    tvCount.setText(all.size() + " SERVERS");
+                }
+            }
 
             View empty = findViewById(R.id.tv_empty);
             View rv = findViewById(R.id.rv);

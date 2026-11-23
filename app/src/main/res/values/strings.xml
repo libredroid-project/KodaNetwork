@@ -1883,4 +1883,26 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="ban_servers_zipping">Zipping %1$s…</string>
     <string name="ban_server_start_blocked">This account is suspended. Servers cannot be started.</string>
     <string name="chat_type_unban">Ban appeal</string>
+
+    <string name="dev_website_design">Website design (home screen)</string>
+    <string name="dev_website_design_desc">Matches the home screen to the new website design. Reopen the app after changing.</string>
+    <string name="website_home_title">Minecraft Servers</string>
+    <plurals name="website_server_count">
+        <item quantity="one">%1$d server</item>
+        <item quantity="other">%1$d servers</item>
+    </plurals>
+    <string name="website_empty_title">No servers yet</string>
+    <string name="website_empty_body">Create one in the KodaHosting app. It appears here with its join address and controls.</string>
+    <string name="website_players">Players</string>
+    <string name="website_memory">Memory</string>
+    <string name="website_version">Version</string>
+    <string name="website_start">Start</string>
+    <string name="website_restart">Restart</string>
+    <string name="website_stop">Stop</string>
+    <string name="website_meta">Uptime %1$s  ·  TPS %2$s</string>
+    <string name="website_copy_address">Copy address</string>
+    <string name="website_new_server">New server</string>
+    <string name="website_debug_log">Debug log</string>
+    <string name="website_donate">Donate</string>
+    <string name="website_more">More</string>
 </resources>

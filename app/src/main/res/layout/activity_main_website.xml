@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2026 KodaHosting
+
+  This file is part of KodaHosting (KodaNetwork).
+  KodaHosting is free software: you can redistribute it and/or modify it under the
+  terms of the GNU General Public License as published by the Free Software
+  Foundation, version 3 of the License.
+
+  KodaHosting is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+  PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with
+  KodaHosting. If not, see <https://www.gnu.org/licenses/>.
+
+  SPDX-FileCopyrightText: 2026 KodaHosting
+  SPDX-License-Identifier: GPL-3.0-only
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/website_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fitsSystemWindows="false">
+
+    <!-- the list lives below the status bar, so the clock never sits on server
+         content. it still scrolls under the floating topbar. -->
+    <FrameLayout
+        android:id="@+id/website_list_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    <!-- the list is full screen: the floating topbar is an overlay above it -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="120dp"
+        android:saveEnabled="false" />
+
+    <LinearLayout
+        android:id="@+id/tv_empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_website_card"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="40dp">
+
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_website_empty_tile"
+                android:contentDescription="@null"
+                android:padding="11dp"
+                android:src="@drawable/ic_server_simple"
+                android:tint="#A1A1AA" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:text="@string/website_empty_title"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="@font/font_koda"
+                android:gravity="center"
+                android:lineSpacingExtra="2dp"
+                android:text="@string/website_empty_body"
+                android:textColor="#A1A1AA"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+    </FrameLayout>
+
+    <!-- floating header: the card, then the collapsing page title -->
+    <LinearLayout
+        android:id="@+id/topbar_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <FrameLayout
+                android:id="@+id/topbar_surface"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:alpha="0"
+                android:background="@drawable/bg_website_topbar"
+                android:clipToOutline="true"
+                android:elevation="0dp">
+
+                <View
+                    android:layout_width="140dp"
+                    android:layout_height="1dp"
+                    android:layout_gravity="top|center_horizontal"
+                    android:layout_marginTop="1dp"
+                    android:alpha="0.9"
+                    android:background="@drawable/bg_website_topbar_accent" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:id="@+id/topbar_header_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:elevation="24dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="12dp">
+
+                <LinearLayout
+                    android:id="@+id/tv_wordmark"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/space_grotesk_medium"
+                        android:letterSpacing="0.01"
+                        android:text="Koda"
+                        android:textColor="#F4F4F5"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/space_grotesk_medium"
+                        android:letterSpacing="0.01"
+                        android:text="Hosting"
+                        android:textColor="#FF8C38"
+                        android:textSize="18sp" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_more"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/website_more"
+                    android:padding="7dp"
+                    android:src="@drawable/ic_website_more" />
+
+                <FrameLayout
+                    android:id="@+id/btn_notifications"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="5dp"
+                    android:background="@drawable/bg_website_icon_button"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageButton
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@null"
+                        android:clickable="false"
+                        android:contentDescription="@string/notif_title"
+                        android:focusable="false"
+                        android:padding="7dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_lucide_bell"
+                        android:tint="#A1A1AA" />
+
+                    <View
+                        android:id="@+id/view_notif_badge"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="3dp"
+                        android:layout_marginEnd="3dp"
+                        android:background="@drawable/bg_notif_badge"
+                        android:visibility="gone" />
+                </FrameLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_settings"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="5dp"
+                    android:background="@drawable/bg_website_icon_button"
+                    android:contentDescription="@string/settings"
+                    android:padding="7dp"
+                    android:src="@drawable/sleek_ic_gear"
+                    android:tint="#A1A1AA" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/website_title_row"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@android:color/transparent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <TextView
+                android:id="@+id/tv_greeting"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:letterSpacing="-0.02"
+                android:text="@string/website_home_title"
+                android:textColor="#FFFFFF"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/tv_server_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/jetbrains_mono_regular"
+                android:textColor="#71717A"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- the one floating action, above the list and the empty state -->
+    <LinearLayout
+        android:id="@+id/btn_new_server"
+        android:layout_width="wrap_content"
+        android:layout_height="52dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_website_cta"
+        android:clickable="true"
+        android:elevation="12dp"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="14dp"
+        android:stateListAnimator="@animator/website_cta_press">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/font_koda"
+            android:text="@string/website_new_server"
+            android:textColor="#F4F4F5"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:fontFamily="@font/font_koda"
+            android:text="›"
+            android:textColor="#FF6A00"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+    <!-- tapping anywhere outside closes the overflow -->
+    <View
+        android:id="@+id/website_more_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#00000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone" />
+
+    <!-- the overflow overlays the header buttons and grows from its center -->
+    <LinearLayout
+        android:id="@+id/website_more_overlay"
+        android:layout_width="wrap_content"
+        android:layout_height="42dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_website_more_panel"
+        android:elevation="30dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btn_discord_main"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_website_icon_button"
+            android:contentDescription="@string/discord_open"
+            android:padding="7dp"
+            android:src="@drawable/ic_si_discord"
+            android:tint="#A1A1AA" />
+
+        <ImageButton
+            android:id="@+id/btn_github_main"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_website_icon_button"
+            android:contentDescription="@string/github_open_source"
+            android:padding="7dp"
+            android:src="@drawable/ic_si_github"
+            android:tint="#A1A1AA" />
+
+        <ImageButton
+            android:id="@+id/btn_donate_main"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_website_icon_button"
+            android:contentDescription="@string/website_donate"
+            android:padding="7dp"
+            android:src="@drawable/ic_lucide_coffee"
+            android:tint="#A1A1AA" />
+
+        <ImageButton
+            android:id="@+id/btn_support_main"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_website_icon_button"
+            android:contentDescription="@string/chat_type_support"
+            android:padding="7dp"
+            android:src="@drawable/ic_lucide_ticket"
+            android:tint="#A1A1AA" />
+
+        <ImageButton
+            android:id="@+id/btn_debug_log"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_website_icon_button"
+            android:contentDescription="@string/website_debug_log"
+            android:padding="7dp"
+            android:src="@drawable/ic_lucide_log"
+            android:tint="#A1A1AA" />
+    </LinearLayout>
+</FrameLayout>

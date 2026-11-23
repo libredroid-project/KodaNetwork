@@ -1894,4 +1894,26 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="ban_servers_zipping">%1$s wird gepackt…</string>
     <string name="ban_server_start_blocked">Dieses Konto ist gesperrt. Server können nicht gestartet werden.</string>
     <string name="chat_type_unban">Einspruch</string>
+
+    <string name="dev_website_design">Website-Design (Home-Screen)</string>
+    <string name="dev_website_design_desc">Gestaltet den Home-Screen wie die neue Website. Nach dem Ändern die App neu öffnen.</string>
+    <string name="website_home_title">Minecraft-Server</string>
+    <plurals name="website_server_count">
+        <item quantity="one">%1$d Server</item>
+        <item quantity="other">%1$d Server</item>
+    </plurals>
+    <string name="website_empty_title">Noch keine Server</string>
+    <string name="website_empty_body">Erstelle einen in der KodaHosting-App. Er erscheint hier mit Join-Adresse und Steuerung.</string>
+    <string name="website_players">Spieler</string>
+    <string name="website_memory">Speicher</string>
+    <string name="website_version">Version</string>
+    <string name="website_start">Starten</string>
+    <string name="website_restart">Neu starten</string>
+    <string name="website_stop">Stoppen</string>
+    <string name="website_meta">Uptime %1$s  ·  TPS %2$s</string>
+    <string name="website_copy_address">Adresse kopieren</string>
+    <string name="website_new_server">Neuer Server</string>
+    <string name="website_debug_log">Debug-Log</string>
+    <string name="website_donate">Spenden</string>
+    <string name="website_more">Mehr</string>
 </resources>

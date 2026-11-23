@@ -1833,4 +1833,28 @@ Jeśli chcesz usunąć także swoje dane, użyj "Poproś o pełne usunięcie dan
     <string name="ban_servers_zipping">Pakowanie %1$s…</string>
     <string name="ban_server_start_blocked">To konto jest zawieszone. Nie można uruchamiać serwerów.</string>
     <string name="chat_type_unban">Odwołanie od bana</string>
+
+    <string name="dev_website_design">Design witryny (ekran główny)</string>
+    <string name="dev_website_design_desc">Dopasowuje ekran główny do nowego designu witryny. Po zmianie uruchom aplikację ponownie.</string>
+    <string name="website_home_title">Serwery Minecraft</string>
+    <plurals name="website_server_count">
+        <item quantity="one">%1$d serwer</item>
+        <item quantity="few">%1$d serwery</item>
+        <item quantity="many">%1$d serwerów</item>
+        <item quantity="other">%1$d serwerów</item>
+    </plurals>
+    <string name="website_empty_title">Brak serwerów</string>
+    <string name="website_empty_body">Utwórz go w aplikacji KodaHosting. Pojawi się tutaj z adresem i sterowaniem.</string>
+    <string name="website_players">Gracze</string>
+    <string name="website_memory">Pamięć</string>
+    <string name="website_version">Wersja</string>
+    <string name="website_start">Start</string>
+    <string name="website_restart">Restart</string>
+    <string name="website_stop">Stop</string>
+    <string name="website_meta">Uptime %1$s  ·  TPS %2$s</string>
+    <string name="website_copy_address">Kopiuj adres</string>
+    <string name="website_new_server">Nowy serwer</string>
+    <string name="website_debug_log">Dziennik debugowania</string>
+    <string name="website_donate">Wesprzyj</string>
+    <string name="website_more">Więcej</string>
 </resources>

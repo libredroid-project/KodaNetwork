@@ -2212,13 +2212,20 @@ public class KodaServerService extends Service {
     }
 
     private void startPeriodicTasks(String id, ServerInstance srv) {
-        exec.submit(() -> { 
-            while (runtimes.containsKey(id)) { 
-                sleep(10000); 
+        exec.submit(() -> {
+            while (runtimes.containsKey(id)) {
+                sleep(10000);
                 updateStatsLocally(id, srv);
-                updateRamUsage(id, srv);
                 ensureTunnelAlive(id, srv);
-            } 
+            }
+        });
+        // RAM and TPS are the numbers the cards animate; polling them every 2 s keeps
+        // the memory line alive instead of stepping once every ten seconds
+        exec.submit(() -> {
+            while (runtimes.containsKey(id)) {
+                sleep(2000);
+                updateRamUsage(id, srv);
+            }
         });
     }
 
@@ -2304,7 +2311,8 @@ public class KodaServerService extends Service {
             }
         }
         
-        if (srv.ramUsageMB != oldRam) setState(srv, srv.state);
+        // ramUsageMB is transient and lives on the same object the repo/UI reads, so
+        // there is no need to write SharedPreferences every two seconds
     }
 
     private int getPid(Process p) {
