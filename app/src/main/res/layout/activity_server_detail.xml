@@ -601,23 +601,32 @@
         android:layout_weight="1" android:orientation="vertical" android:visibility="gone"
         android:paddingTop="12dp" android:paddingHorizontal="12dp">
 
-        <!-- install from the modrinth browser or manage what is already on the server -->
-        <FrameLayout android:id="@+id/fl_plugins_mode"
-            android:layout_width="match_parent" android:layout_height="40dp"
-            android:layout_marginBottom="6dp"/>
-
-        <LinearLayout android:id="@+id/ll_plugin_install"
-            android:layout_width="match_parent" android:layout_height="0dp"
-            android:layout_weight="1" android:orientation="vertical">
         <LinearLayout android:id="@+id/ll_plugin_search_row"
             android:layout_width="match_parent" android:layout_height="56dp"
             android:orientation="horizontal" android:gravity="center_vertical"
             android:background="@drawable/input_bg"
             android:padding="4dp">
+            <FrameLayout android:id="@+id/btn_addon_source"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:visibility="gone"
+                android:clickable="true" android:focusable="true">
+                <ImageView android:id="@+id/iv_addon_source_2"
+                    android:layout_width="18dp" android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:visibility="gone"
+                    android:src="@drawable/ic_provider_curseforge"/>
+                <ImageView android:id="@+id/iv_addon_source"
+                    android:layout_width="18dp" android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_provider_modrinth"/>
+            </FrameLayout>
             <EditText android:id="@+id/et_plugin_search"
                 android:layout_width="0dp" android:layout_height="wrap_content"
                 android:layout_weight="1" android:background="@null"
-                android:padding="12dp" android:hint="Search Modrinth..."
+                android:padding="12dp" android:hint="@string/addon_search_modrinth"
                 android:textColorHint="#5A5A6A" android:textColor="#F0F0F0"
                 android:textSize="14sp" android:fontFamily="@font/font_koda"/>
             <ImageButton android:id="@+id/btn_plugin_search"
@@ -625,8 +634,14 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_menu_search"
                 app:tint="#FF6B00"/>
+            <FrameLayout android:id="@+id/fl_plugins_mode"
+                android:layout_width="48dp" android:layout_height="48dp"
+                android:layout_marginStart="4dp"/>
         </LinearLayout>
-        
+
+        <LinearLayout android:id="@+id/ll_plugin_install"
+            android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1" android:orientation="vertical">
         <ProgressBar android:id="@+id/pb_plugins"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_gravity="center" android:layout_marginTop="20dp"
@@ -642,6 +657,7 @@
         <ScrollView android:id="@+id/ll_plugin_installed"
             android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1" android:visibility="gone"
+            android:layout_marginTop="12dp"
             android:clipToPadding="false" android:paddingBottom="20dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">

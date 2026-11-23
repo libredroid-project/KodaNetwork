@@ -122,6 +122,8 @@ public class SupportTicketListActivity extends AppCompatActivity {
                 return getString(R.string.chat_type_question);
             case "IDEA":
                 return getString(R.string.chat_type_idea);
+            case "UNBAN":
+                return getString(R.string.chat_type_unban);
             default:
                 return rawType == null ? "" : rawType;
         }
@@ -152,6 +154,8 @@ public class SupportTicketListActivity extends AppCompatActivity {
 
                 if ("RESOLVED".equals(status)) {
                     holder.tvStatus.setTextColor(0xFF00E676); // koda green
+                } else if ("REJECTED".equals(status)) {
+                    holder.tvStatus.setTextColor(0xFFFF5252); // rejected, not waiting
                 } else {
                     holder.tvStatus.setTextColor(0xFFFF8C38); // koda orange
                 }

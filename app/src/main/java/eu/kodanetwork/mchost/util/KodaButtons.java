@@ -28,6 +28,8 @@ public class KodaButtons {
         com.google.android.material.button.MaterialButton b = new com.google.android.material.button.MaterialButton(c);
         b.setText(text);
         b.setTextColor(textColor);
+        // MaterialButtons default to ALL CAPS, which the app's design language never uses
+        b.setAllCaps(false);
         b.setStateListAnimator(null);
         b.setLetterSpacing(0.04f);
         b.setTextSize(13);

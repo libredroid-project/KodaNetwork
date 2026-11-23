@@ -161,9 +161,11 @@ public class SupportChatActivity extends AppCompatActivity {
 
         android.view.View closeRequest = findViewById(R.id.btn_close_request);
         if (closeRequest != null) {
-            // schon erledigte Tickets brauchen keinen Schliessen-Wunsch mehr
+            // schon erledigte Tickets brauchen keinen Schliessen-Wunsch mehr. a ban
+            // appeal also has no close request: the decision belongs to the team.
             boolean resolved = "RESOLVED".equalsIgnoreCase(ticketStatus == null ? "" : ticketStatus);
-            closeRequest.setVisibility(resolved ? View.GONE : View.VISIBLE);
+            boolean appeal = "UNBAN".equalsIgnoreCase(ticketType == null ? "" : ticketType);
+            closeRequest.setVisibility(resolved || appeal ? View.GONE : View.VISIBLE);
             closeRequest.setOnClickListener(v -> requestClose());
         }
 
@@ -256,6 +258,8 @@ public class SupportChatActivity extends AppCompatActivity {
                 return getString(R.string.chat_type_server);
             case "PERSONAL":
                 return getString(R.string.chat_type_personal);
+            case "UNBAN":
+                return getString(R.string.chat_type_unban);
             default:
                 return getString(R.string.chat_type_support);
         }
@@ -790,6 +794,7 @@ public class SupportChatActivity extends AppCompatActivity {
 
     /** asks the team to close this ticket: the status flips and the marker message goes out. */
     private void requestClose() {
+        if ("UNBAN".equalsIgnoreCase(ticketType == null ? "" : ticketType)) return;
         ticketStatus = "CLOSE_REQUESTED";
         refreshSubtitle();
         android.view.View button = findViewById(R.id.btn_close_request);

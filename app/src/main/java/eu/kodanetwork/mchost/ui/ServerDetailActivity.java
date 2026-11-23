@@ -126,6 +126,16 @@ public class ServerDetailActivity extends AppCompatActivity {
     private MaterialButton btnTermuxSetup, btnLinkDomain;
     private MaterialButton btnCreateInvite;
     private android.widget.LinearLayout layoutInvites;
+
+    // addon browser (plugins and mods)
+    private java.util.Set<String> addonSources = new java.util.LinkedHashSet<>();
+    private Runnable addonSearchAction;
+    private android.widget.ImageView ivAddonSource;
+    private android.widget.ImageView ivAddonSource2;
+    private long addonSourceChangedAt = 0L;
+    private int addonMode = 0;
+    private String installedFilter = "";
+    private int addonSearchGeneration = 0;
     private java.util.List<TiltEffectHelper> tiltHelpers = new java.util.ArrayList<>();
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private android.view.View layoutFullLoading;
@@ -483,9 +493,6 @@ public class ServerDetailActivity extends AppCompatActivity {
         if (etCmd == null) etCmd = findViewById(R.id.et_console_input);
         layoutChips = null;
         setupConsoleScroll();
-        // the tab bar hides ONLY while scrolling inside the plugins/mods tab
-        attachHeaderCollapse(findViewById(R.id.ll_plugin_installed));
-        attachHeaderCollapse(findViewById(R.id.rv_plugins));
 
         layoutFileList = findViewById(R.id.layout_files);
         tvFilesRoot    = findViewById(R.id.tv_files_root);
@@ -4880,30 +4887,49 @@ public class ServerDetailActivity extends AppCompatActivity {
         androidx.recyclerview.widget.RecyclerView rvPlugins = findViewById(R.id.rv_plugins);
         if (etSearch == null || rvPlugins == null) return;
 
-        // "Install" browses Modrinth, "Installed" manages what already sits on the server
+        // one compact button: download icon = install, check icon = already installed
         final android.view.View installPane = findViewById(R.id.ll_plugin_install);
         final android.view.View installedPane = findViewById(R.id.ll_plugin_installed);
         final android.widget.FrameLayout modeHost = findViewById(R.id.fl_plugins_mode);
         if (modeHost != null && installPane != null && installedPane != null) {
             modeHost.removeAllViews();
-            android.view.View tabs = makeTextTabs(
-                    new String[]{getString(R.string.plugins_mode_install), getString(R.string.plugins_mode_installed)},
-                    0, sel -> {
-                        installPane.setVisibility(sel == 0 ? View.VISIBLE : View.GONE);
-                        installedPane.setVisibility(sel == 1 ? View.VISIBLE : View.GONE);
-                        if (sel == 1) renderJarList();
-                    });
-            modeHost.addView(tabs, new android.widget.FrameLayout.LayoutParams(
+            android.view.View modeToggle = makeAddonModeToggle(0, sel -> {
+                if (sel != addonMode) {
+                    installedFilter = "";
+                    if (etSearch != null) etSearch.setText("");
+                }
+                addonMode = sel;
+                installPane.setVisibility(sel == 0 ? View.VISIBLE : View.GONE);
+                installedPane.setVisibility(sel == 1 ? View.VISIBLE : View.GONE);
+                if (sel == 1) renderJarList();
+            });
+            modeHost.addView(modeToggle, new android.widget.FrameLayout.LayoutParams(
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
-        // tapping the search shrinks the header so the results get the room
-        if (etSearch != null) {
-            etSearch.setOnFocusChangeListener((v, hasFocus) -> {
-                if (hasFocus) setHeadersCollapsed(true, getResources().getDisplayMetrics().density);
-            });
+        // CurseForge is only offered where mods make sense, plugin servers stay on Modrinth.
+        ivAddonSource = findViewById(R.id.iv_addon_source);
+        ivAddonSource2 = findViewById(R.id.iv_addon_source_2);
+        android.view.View sourceButton = findViewById(R.id.btn_addon_source);
+        boolean modded = server.getType() == ServerInstance.Type.FABRIC
+                || server.getType() == ServerInstance.Type.FORGE
+                || server.getType() == ServerInstance.Type.NEOFORGE;
+        if (sourceButton != null) {
+            if (modded) {
+                addonSources = readAddonSources();
+                sourceButton.setVisibility(View.VISIBLE);
+                updateAddonSourceButton();
+                sourceButton.setOnClickListener(v -> showAddonSourceSheet());
+            } else {
+                addonSources = new java.util.LinkedHashSet<>();
+                addonSources.add("modrinth");
+                sourceButton.setVisibility(View.GONE);
+            }
         }
+
+        etSearch.setHint(addonSearchHint());
+
 
         java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> pluginList = new java.util.ArrayList<>();
         androidx.recyclerview.widget.RecyclerView.Adapter<?> pluginAdapter = new androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
@@ -4928,13 +4954,16 @@ public class ServerDetailActivity extends AppCompatActivity {
                 android.widget.ImageButton btnDl = holder.itemView.findViewById(R.id.btn_project_download);
                 android.widget.ProgressBar pbDl = holder.itemView.findViewById(R.id.pb_project_download);
                 tvTitle.setText(p.title);
-                tvAuthor.setText("by " + p.author);
+                tvAuthor.setText(("curseforge".equals(p.source) ? "CurseForge" : "Modrinth")
+                        + " · by " + p.author);
                 tvDesc.setText(p.description);
                 eu.kodanetwork.mchost.util.ModrinthHelper.loadIcon(p.iconUrl, ivIcon);
                 btnDl.setOnClickListener(v -> {
+                    // a source change dismisses a sheet; ignore the trailing tap for a moment
+                    if (System.currentTimeMillis() - addonSourceChangedAt < 500) return;
                     btnDl.setVisibility(View.GONE);
                     pbDl.setVisibility(View.VISIBLE);
-                    eu.kodanetwork.mchost.util.ModrinthHelper.autoDownload(p.id, server, new eu.kodanetwork.mchost.util.ModrinthHelper.DownloadCallback() {
+                    downloadAddon(p, server, new eu.kodanetwork.mchost.util.ModrinthHelper.DownloadCallback() {
                         @Override public void onProgress(int percent) {}
                         @Override public void onDependencies(java.util.List<String> names) {
                             android.widget.Toast.makeText(ServerDetailActivity.this,
@@ -4945,24 +4974,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                         @Override public void onSuccess(java.io.File file) {
                             pbDl.setVisibility(View.GONE);
                             btnDl.setVisibility(View.VISIBLE);
-                            
-                            View headerRestart = findViewById(R.id.layout_header_restart);
-                            android.view.View btnRestart = findViewById(R.id.btn_header_restart);
-                            
-                            if (headerRestart != null && btnRestart != null) {
-                                headerRestart.setVisibility(View.VISIBLE);
-                                btnRestart.setOnClickListener(v2 -> {
-                                    triggerAddonRestart();
-                                    headerRestart.setVisibility(View.GONE);
-                                });
-                                
-                                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                    if (headerRestart.getVisibility() == View.VISIBLE) {
-                                        headerRestart.setVisibility(View.GONE);
-                                    }
-                                }, 5000);
-                            }
-                            android.widget.Toast.makeText(ServerDetailActivity.this, "✓ " + file.getName() + getString(R.string.sd_toast_installed_suffix), android.widget.Toast.LENGTH_SHORT).show();
+                            showAddonRestartHint(file);
                         }
                         @Override public void onError(String err) {
                             pbDl.setVisibility(View.GONE);
@@ -4973,6 +4985,11 @@ public class ServerDetailActivity extends AppCompatActivity {
                 });
                 
                 holder.itemView.setOnClickListener(v -> {
+                    if (System.currentTimeMillis() - addonSourceChangedAt < 500) return;
+                    if ("curseforge".equals(p.source)) {
+                        showCurseForgeVersions(p);
+                        return;
+                    }
                     // a loading dialog instead of pbDl, that spinner belongs to the download button
                     android.app.ProgressDialog pd = new android.app.ProgressDialog(ServerDetailActivity.this);
                     pd.setMessage(getString(R.string.sd_dialog_loading_versions));
@@ -5017,171 +5034,31 @@ public class ServerDetailActivity extends AppCompatActivity {
                                 return;
                             }
                             
-                            java.util.List<String> names = new java.util.ArrayList<>();
                             java.util.List<org.json.JSONObject> verObjs = new java.util.ArrayList<>();
                             for (int i = 0; i < versions.length(); i++) {
-                                org.json.JSONObject ver = versions.getJSONObject(i);
-                                names.add(ver.getString("name") + " (" + ver.getString("version_number") + ")");
-                                verObjs.add(ver);
+                                verObjs.add(versions.getJSONObject(i));
                             }
                             
                             runOnUiThread(() -> {
                                 pd.dismiss();
-                                
-                                com.google.android.material.bottomsheet.BottomSheetDialog sheet = new com.google.android.material.bottomsheet.BottomSheetDialog(ServerDetailActivity.this, R.style.KodaBottomSheetDialog);
-                                setupWindowDecor(sheet.getWindow());
-                                android.widget.LinearLayout container = new android.widget.LinearLayout(ServerDetailActivity.this);
-                                container.setOrientation(android.widget.LinearLayout.VERTICAL);
-                                container.setBackgroundColor(0xFF0E0E14);
-                                container.setPadding(0, 0, 0, 48);
-
-                                TextView sheetTitle = new TextView(ServerDetailActivity.this);
-                                sheetTitle.setText(getString(R.string.select_version));
-                                sheetTitle.setTextColor(0xFFFF6B00);
-                                sheetTitle.setTextSize(13);
-                                sheetTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-                                sheetTitle.setLetterSpacing(0.12f);
-                                sheetTitle.setPadding(48, 40, 48, 24);
-                                container.addView(sheetTitle);
-
-                                View div = new View(ServerDetailActivity.this);
-                                div.setBackgroundColor(0xFF222230);
-                                div.setLayoutParams(new android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 1));
-                                container.addView(div);
-                                
-                                android.widget.ScrollView sv = new android.widget.ScrollView(ServerDetailActivity.this);
-                                android.widget.LinearLayout listContainer = new android.widget.LinearLayout(ServerDetailActivity.this);
-                                listContainer.setOrientation(android.widget.LinearLayout.VERTICAL);
-                                sv.addView(listContainer);
-                                container.addView(sv);
-                                
-                                for (int i = 0; i < names.size(); i++) {
-                                    final int which = i;
-                                    String name = names.get(i);
-                                    
-                                    android.widget.LinearLayout row = new android.widget.LinearLayout(ServerDetailActivity.this);
-                                    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-                                    row.setPadding(48, 32, 48, 32);
-                                    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-                                    row.setBackgroundResource(android.R.drawable.list_selector_background);
-                                    row.setClickable(true);
-                                    
-                                    TextView tvName = new TextView(ServerDetailActivity.this);
-                                    tvName.setText(name);
-                                    tvName.setTextColor(0xFFEEEEEE);
-                                    tvName.setTextSize(14);
-                                    android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-                                    row.addView(tvName, lp);
-                                    
-                                    TextView btn = new TextView(ServerDetailActivity.this);
-                                    btn.setText(R.string.select_version);
-                                    btn.setTextColor(0xFFFF6B00);
-                                    btn.setTextSize(14);
-                                    btn.setPadding(48, 8, 0, 8);
-                                    android.util.TypedValue outValue = new android.util.TypedValue();
-                                    getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true);
-                                    btn.setBackgroundResource(outValue.resourceId);
-                                    row.addView(btn);
-                                    
-                                    row.setOnClickListener(vRow -> {
-                                        sheet.dismiss();
-                                        org.json.JSONObject selectedVer = verObjs.get(which);
-                                        btnDl.setVisibility(View.GONE);
-                                        pbDl.setVisibility(View.VISIBLE);
-                                        
-                                        new Thread(() -> {
-                                            try {
-                                                org.json.JSONArray files = selectedVer.getJSONArray("files");
-                                                org.json.JSONObject fileObj = files.getJSONObject(0);
-                                                for (int j = 0; j < files.length(); j++) {
-                                                    if (files.getJSONObject(j).optBoolean("primary", false)) {
-                                                        fileObj = files.getJSONObject(j); break;
-                                                    }
-                                                }
-                                                
-                                                String dlUrl = fileObj.getString("url");
-                                                String fName = fileObj.getString("filename");
-                                                
-                                                java.io.File targetDir = new java.io.File(server.getServerDir(), (server.getType() == ServerInstance.Type.PAPER || server.getType() == ServerInstance.Type.PURPUR) ? "plugins" : "mods");
-                                                targetDir.mkdirs();
-                                                java.io.File targetFile = new java.io.File(targetDir, fName);
-                                                
-                                                String oldVersionId = server.pluginVersions.get(p.id);
-                                                eu.kodanetwork.mchost.util.ModrinthHelper.deleteOldVersion(oldVersionId, targetDir, fName);
-                                                
-                                                java.net.HttpURLConnection dlConn = (java.net.HttpURLConnection) new java.net.URL(dlUrl).openConnection();
-                                                dlConn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
-                                                dlConn.setInstanceFollowRedirects(true);
-                                                
-                                                if (dlConn.getResponseCode() < 300) {
-                                                    java.io.InputStream dlIs = dlConn.getInputStream();
-                                                    java.io.FileOutputStream fos = new java.io.FileOutputStream(targetFile);
-                                                    byte[] buf = new byte[8192]; int r;
-                                                    while ((r = dlIs.read(buf)) != -1) fos.write(buf, 0, r);
-                                                    fos.close(); dlIs.close();
-
-                                                    // modrinth publishes sha512 for every file
-                                                    String expectedSha = fileObj.optJSONObject("hashes") != null
-                                                            ? fileObj.getJSONObject("hashes").optString("sha512", "") : "";
-                                                    if (expectedSha.matches("[0-9a-fA-F]{128}")) {
-                                                        String actual = eu.kodanetwork.mchost.util.DownloadVerifier.hashHex(targetFile, "SHA-512");
-                                                        if (!eu.kodanetwork.mchost.util.DownloadVerifier.matches(expectedSha, actual)) {
-                                                            //noinspection ResultOfMethodCallIgnored
-                                                            targetFile.delete();
-                                                            throw new IllegalStateException("Checksum mismatch (SHA-512), the file was discarded");
-                                                        }
-                                                    }
-                                                    
-                                                    server.pluginVersions.put(p.id, selectedVer.getString("id"));
-                                                    server.pluginSources.put(fName, "Modrinth \u00b7 " + p.id);
-                                                    ServerRepo.get(ServerDetailActivity.this).update(server);
-                                                    
-                                                    runOnUiThread(() -> {
-                                                        pbDl.setVisibility(View.GONE);
-                                                        btnDl.setVisibility(View.VISIBLE);
-                                                        if (server.state != ServerInstance.State.OFFLINE) {
-                                                            View headerRestart = findViewById(R.id.layout_header_restart);
-                                                            android.view.View btnRestartObj = findViewById(R.id.btn_header_restart);
-                                                            if (headerRestart != null && btnRestartObj != null) {
-                                                                headerRestart.setVisibility(View.VISIBLE);
-                                                                btnRestartObj.setOnClickListener(v2 -> {
-                                                                    triggerAddonRestart();
-                                                                    headerRestart.setVisibility(View.GONE);
-                                                                });
-                                                                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                                                    if (headerRestart.getVisibility() == View.VISIBLE) headerRestart.setVisibility(View.GONE);
-                                                                }, 5000);
-                                                            }
-                                                        }
-                                                    });
-                                                } else {
-                                                    runOnUiThread(() -> {
-                                                        pbDl.setVisibility(View.GONE); btnDl.setVisibility(View.VISIBLE);
-                                                        android.widget.Toast.makeText(ServerDetailActivity.this, getString(R.string.sd_toast_download_error), android.widget.Toast.LENGTH_SHORT).show();
-                                                    });
-                                                }
-                                            } catch (Exception e) {
-                                                runOnUiThread(() -> {
-                                                    pbDl.setVisibility(View.GONE); btnDl.setVisibility(View.VISIBLE);
-                                                    android.widget.Toast.makeText(ServerDetailActivity.this, getString(R.string.sd_toast_error_prefix) + getFriendlyErrorMsg(e.getMessage()), android.widget.Toast.LENGTH_SHORT).show();
-                                                    View headerRestart = findViewById(R.id.layout_header_restart);
-                                                    if (headerRestart != null) {
-                                                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                                            if (headerRestart.getVisibility() == View.VISIBLE) {
-                                                                headerRestart.setVisibility(View.GONE);
-                                                            }
-                                                        }, 5000);
-                                                    }
-                                                });
-                                            }
-                                        }).start();
+                                final eu.kodanetwork.mchost.util.KodaSheet sheet =
+                                        eu.kodanetwork.mchost.util.KodaSheet.create(
+                                                ServerDetailActivity.this,
+                                                getString(R.string.select_version));
+                                sheet.tall();
+                                for (org.json.JSONObject ver : verObjs) {
+                                    String name = ver.optString("name",
+                                            ver.optString("version_number", "Version"));
+                                    String number = ver.optString("version_number", "");
+                                    String type = ver.optString("version_type", "");
+                                    String desc = type.isEmpty() ? number : type + " · " + number;
+                                    sheet.row(name, desc, false, pick -> {
+                                        sheet.sheet.dismiss();
+                                        downloadModrinthVersion(p, ver, btnDl, pbDl);
                                     });
-                                    
-                                    listContainer.addView(row);
                                 }
-                                
-                                sheet.setContentView(container);
-                                eu.kodanetwork.mchost.util.SheetFix.apply(sheet);
+                                sheet.secondary(getString(R.string.praetor_action_cancel),
+                                        vv -> sheet.sheet.dismiss());
                                 sheet.show();
                             });
                         } catch (Exception e) {
@@ -5199,22 +5076,65 @@ public class ServerDetailActivity extends AppCompatActivity {
         rvPlugins.setAdapter(pluginAdapter);
 
         Runnable doSearch = () -> {
-            String q = etSearch.getText().toString().trim();
+            final String q = etSearch.getText().toString().trim();
+            if (addonMode == 1) {
+                installedFilter = q;
+                renderJarList();
+                if (pbPlugins != null) pbPlugins.setVisibility(View.GONE);
+                return;
+            }
+            installedFilter = "";
             if (pbPlugins != null) pbPlugins.setVisibility(View.VISIBLE);
-            eu.kodanetwork.mchost.util.ModrinthHelper.search(q, server.getType(), new eu.kodanetwork.mchost.util.ModrinthHelper.SearchCallback() {
-                @Override public void onResult(java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> results) {
-                    if (pbPlugins != null) pbPlugins.setVisibility(View.GONE);
-                    pluginList.clear();
-                    pluginList.addAll(results);
-                    pluginAdapter.notifyDataSetChanged();
+            final int gen = ++addonSearchGeneration;
+            final java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> combined =
+                    new java.util.ArrayList<>();
+            final int[] pending = {addonSources.size()};
+            if (pending[0] == 0) {
+                if (pbPlugins != null) pbPlugins.setVisibility(View.GONE);
+                return;
+            }
+
+            final Runnable[] finish = new Runnable[1];
+            finish[0] = () -> {
+                if (gen != addonSearchGeneration) return;
+                pluginList.clear();
+                pluginList.addAll(combined);
+                pluginAdapter.notifyDataSetChanged();
+                if (pbPlugins != null) pbPlugins.setVisibility(View.GONE);
+            };
+
+            for (final String source : addonSources) {
+                eu.kodanetwork.mchost.util.ModrinthHelper.SearchCallback callback =
+                        new eu.kodanetwork.mchost.util.ModrinthHelper.SearchCallback() {
+                    @Override public void onResult(java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> results) {
+                        if (gen != addonSearchGeneration) return;
+                        combined.addAll(results);
+                        if (--pending[0] == 0) finish[0].run();
+                    }
+                    @Override public void onError(String err) {
+                        if (gen != addonSearchGeneration) return;
+                        String provider = "curseforge".equals(source)
+                                ? getString(R.string.addon_source_curseforge)
+                                : getString(R.string.addon_source_modrinth);
+                        String message = err;
+                        if ("cf_403".equals(err)) message = getString(R.string.addon_source_key_error);
+                        else if ("missing_key".equals(err)) message = getString(R.string.addon_source_missing_key);
+                        Toast.makeText(ServerDetailActivity.this,
+                                provider + ": " + message, Toast.LENGTH_LONG).show();
+                        if (--pending[0] == 0) finish[0].run();
+                    }
+                };
+                if ("curseforge".equals(source)) {
+                    eu.kodanetwork.mchost.util.CurseForgeHelper.search(q, server, callback);
+                } else {
+                    eu.kodanetwork.mchost.util.ModrinthHelper.search(q, server.getType(), callback);
                 }
-                @Override public void onError(String err) {
-                    if (pbPlugins != null) pbPlugins.setVisibility(View.GONE);
-                    Toast.makeText(ServerDetailActivity.this, getString(R.string.sd_toast_search_error) + err, Toast.LENGTH_LONG).show();
-                }
-            });
+            }
         };
-        if (btnSearch != null) btnSearch.setOnClickListener(v -> doSearch.run());
+        addonSearchAction = doSearch;
+        if (btnSearch != null) {
+            btnSearch.setOnClickListener(v -> doSearch.run());
+        }
         etSearch.setOnEditorActionListener((v, actionId, event) -> {
             doSearch.run();
             return true;
@@ -5978,6 +5898,508 @@ public class ServerDetailActivity extends AppCompatActivity {
         }, "KodaVersions").start();
     }
 
+    private void downloadAddon(eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject project,
+                               ServerInstance server,
+                               eu.kodanetwork.mchost.util.ModrinthHelper.DownloadCallback cb) {
+        if ("curseforge".equals(project.source)) {
+            eu.kodanetwork.mchost.util.CurseForgeHelper.autoDownload(project.id, server, cb);
+        } else {
+            eu.kodanetwork.mchost.util.ModrinthHelper.autoDownload(project.id, server, cb);
+        }
+    }
+
+    private void showAddonRestartHint(java.io.File file) {
+        View headerRestart = findViewById(R.id.layout_header_restart);
+        android.view.View btnRestart = findViewById(R.id.btn_header_restart);
+        if (headerRestart != null && btnRestart != null) {
+            headerRestart.setVisibility(View.VISIBLE);
+            btnRestart.setOnClickListener(v2 -> {
+                triggerAddonRestart();
+                headerRestart.setVisibility(View.GONE);
+            });
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                if (headerRestart.getVisibility() == View.VISIBLE) {
+                    headerRestart.setVisibility(View.GONE);
+                }
+            }, 5000);
+        }
+        Toast.makeText(this, "✓ " + file.getName()
+                + getString(R.string.sd_toast_installed_suffix), Toast.LENGTH_SHORT).show();
+    }
+
+    /** installs the version the user picked from the Modrinth version sheet. */
+    private void downloadModrinthVersion(
+            final eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject p,
+            final org.json.JSONObject version,
+            final android.widget.ImageView btnDl,
+            final android.widget.ProgressBar pbDl) {
+        btnDl.setVisibility(View.GONE);
+        pbDl.setVisibility(View.VISIBLE);
+        new Thread(() -> {
+            try {
+                org.json.JSONArray files = version.getJSONArray("files");
+                org.json.JSONObject fileObj = files.getJSONObject(0);
+                for (int j = 0; j < files.length(); j++) {
+                    if (files.getJSONObject(j).optBoolean("primary", false)) {
+                        fileObj = files.getJSONObject(j);
+                        break;
+                    }
+                }
+
+                String dlUrl = fileObj.getString("url");
+                String fName = fileObj.getString("filename");
+                java.io.File targetDir = new java.io.File(server.getServerDir(),
+                        (server.getType() == ServerInstance.Type.PAPER
+                                || server.getType() == ServerInstance.Type.PURPUR)
+                                ? "plugins" : "mods");
+                targetDir.mkdirs();
+                final java.io.File targetFile = new java.io.File(targetDir, fName);
+
+                eu.kodanetwork.mchost.util.ModrinthHelper.deleteOldVersion(
+                        server.pluginVersions.get(p.id), targetDir, fName);
+
+                java.net.HttpURLConnection dlConn =
+                        (java.net.HttpURLConnection) new java.net.URL(dlUrl).openConnection();
+                dlConn.setRequestProperty("User-Agent", "KodaNetwork/3.0");
+                dlConn.setInstanceFollowRedirects(true);
+
+                if (dlConn.getResponseCode() < 300) {
+                    try (java.io.InputStream in = dlConn.getInputStream();
+                         java.io.FileOutputStream out = new java.io.FileOutputStream(targetFile)) {
+                        byte[] buf = new byte[8192];
+                        int r;
+                        while ((r = in.read(buf)) != -1) out.write(buf, 0, r);
+                    }
+
+                    // modrinth publishes sha512 for every file
+                    String expectedSha = fileObj.optJSONObject("hashes") != null
+                            ? fileObj.getJSONObject("hashes").optString("sha512", "") : "";
+                    if (expectedSha.matches("[0-9a-fA-F]{128}")) {
+                        String actual = eu.kodanetwork.mchost.util.DownloadVerifier
+                                .hashHex(targetFile, "SHA-512");
+                        if (!eu.kodanetwork.mchost.util.DownloadVerifier
+                                .matches(expectedSha, actual)) {
+                            //noinspection ResultOfMethodCallIgnored
+                            targetFile.delete();
+                            throw new IllegalStateException(
+                                    "Checksum mismatch (SHA-512), the file was discarded");
+                        }
+                    }
+
+                    server.pluginVersions.put(p.id, version.getString("id"));
+                    server.pluginSources.put(fName, "Modrinth \u00b7 " + p.id);
+                    ServerRepo.get(this).update(server);
+
+                    runOnUiThread(() -> {
+                        pbDl.setVisibility(View.GONE);
+                        btnDl.setVisibility(View.VISIBLE);
+                        showAddonRestartHint(targetFile);
+                    });
+                } else {
+                    runOnUiThread(() -> {
+                        pbDl.setVisibility(View.GONE);
+                        btnDl.setVisibility(View.VISIBLE);
+                        Toast.makeText(this, R.string.sd_toast_download_error,
+                                Toast.LENGTH_SHORT).show();
+                    });
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    pbDl.setVisibility(View.GONE);
+                    btnDl.setVisibility(View.VISIBLE);
+                    Toast.makeText(this,
+                            getString(R.string.sd_toast_error_prefix)
+                                    + getFriendlyErrorMsg(e.getMessage()),
+                            Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    /** CurseForge versions, opened by tapping a CurseForge result. */
+    private void showCurseForgeVersions(final eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject p) {
+        final android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
+        pd.setMessage(getString(R.string.sd_dialog_loading_versions));
+        pd.setCancelable(false);
+        pd.show();
+
+        eu.kodanetwork.mchost.util.CurseForgeHelper.listFiles(p.id, server,
+                new eu.kodanetwork.mchost.util.CurseForgeHelper.FileListCallback() {
+            @Override public void onResult(java.util.List<org.json.JSONObject> files) {
+                runOnUiThread(() -> {
+                    pd.dismiss();
+                    if (files.isEmpty()) {
+                        Toast.makeText(ServerDetailActivity.this,
+                                getString(R.string.sd_toast_no_compatible_version),
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    showCurseForgeVersionSheet(p, files);
+                });
+            }
+            @Override public void onError(String err) {
+                runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(ServerDetailActivity.this,
+                            curseForgeError(err), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void showCurseForgeVersionSheet(
+            final eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject p,
+            java.util.List<org.json.JSONObject> files) {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet =
+                eu.kodanetwork.mchost.util.KodaSheet.create(
+                        this, getString(R.string.select_version));
+        sheet.tall();
+        for (final org.json.JSONObject file : files) {
+            String name = file.optString("displayName",
+                    file.optString("fileName", "Version"));
+            String fileName = file.optString("fileName", "");
+            int releaseType = file.optInt("releaseType", 3);
+            String kind = releaseType == 1 ? "Release" : releaseType == 2 ? "Beta" : "Alpha";
+            sheet.row(name, kind + " · " + fileName, false, v -> {
+                sheet.sheet.dismiss();
+                installCurseForgeFile(p, file);
+            });
+        }
+        sheet.secondary(getString(R.string.praetor_action_cancel),
+                v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    private void installCurseForgeFile(
+            final eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject p,
+            org.json.JSONObject file) {
+        final android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
+        pd.setMessage(getString(R.string.installing));
+        pd.setIndeterminate(true);
+        pd.setCancelable(false);
+        pd.show();
+
+        eu.kodanetwork.mchost.util.CurseForgeHelper.installFile(p.id, file, server,
+                new eu.kodanetwork.mchost.util.ModrinthHelper.DownloadCallback() {
+            @Override public void onProgress(int percent) {}
+            @Override public void onDependencies(java.util.List<String> names) {
+                Toast.makeText(ServerDetailActivity.this,
+                        getString(R.string.sd_toast_dependencies_installed,
+                                android.text.TextUtils.join(", ", names)),
+                        Toast.LENGTH_LONG).show();
+            }
+            @Override public void onSuccess(java.io.File downloaded) {
+                runOnUiThread(() -> {
+                    pd.dismiss();
+                    showAddonRestartHint(downloaded);
+                });
+            }
+            @Override public void onError(String err) {
+                runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(ServerDetailActivity.this,
+                            curseForgeError(err), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private String curseForgeError(String err) {
+        if ("cf_403".equals(err)) return getString(R.string.addon_source_key_error);
+        if ("missing_key".equals(err)) return getString(R.string.addon_source_missing_key);
+        return getString(R.string.sd_toast_search_error) + err;
+    }
+
+    /**
+     * one square button with two cards: the active mode is white and in front, the
+     * other one sits behind it, slightly tilted, smaller and grey. Tapping shuffles
+     * the cards and swaps the colours.
+     */
+    private android.view.View makeAddonModeToggle(int selected, final java.util.function.IntConsumer onPick) {
+        float d = getResources().getDisplayMetrics().density;
+
+        final android.widget.FrameLayout root = new android.widget.FrameLayout(this);
+        root.setBackground(null);
+
+        final android.widget.ImageView install = new android.widget.ImageView(this);
+        install.setImageResource(R.drawable.ic_addon_install);
+        final android.widget.ImageView installed = new android.widget.ImageView(this);
+        installed.setImageResource(R.drawable.ic_addon_installed);
+        int iconSize = Math.round(24 * d);
+        int backSize = Math.round(20 * d);
+        android.widget.FrameLayout.LayoutParams frontLp =
+                new android.widget.FrameLayout.LayoutParams(iconSize, iconSize);
+        frontLp.gravity = android.view.Gravity.CENTER;
+        root.addView(install, frontLp);
+        android.widget.FrameLayout.LayoutParams backLp =
+                new android.widget.FrameLayout.LayoutParams(backSize, backSize);
+        backLp.gravity = android.view.Gravity.CENTER;
+        root.addView(installed, backLp);
+
+        final android.widget.ImageView[] icons = {install, installed};
+        final int[] current = {Math.max(0, Math.min(1, selected))};
+        applyAddonToggleState(icons, current[0], current[0], false, d);
+        root.setOnClickListener(v -> {
+            int previous = current[0];
+            current[0] = current[0] == 0 ? 1 : 0;
+            eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 25);
+            applyAddonToggleState(icons, current[0], previous, true, d);
+            onPick.accept(current[0]);
+        });
+        return root;
+    }
+
+    private void applyAddonToggleState(android.widget.ImageView[] icons, int selected,
+                                       int previous, boolean animate, float d) {
+        int active = 0xFFFFFFFF;
+        int idle = 0xFF8A8A8A;
+        for (int i = 0; i < icons.length; i++) {
+            android.widget.ImageView icon = icons[i];
+            boolean isActive = i == selected;
+            boolean wasActive = i == previous;
+            float targetScale = isActive ? 1f : 0.85f;
+            float targetX = isActive ? 0f : 4 * d;
+            float targetY = isActive ? 0f : -4 * d;
+            float targetRotation = isActive ? 0f : 13f;
+            float targetAlpha = isActive ? 1f : 0.7f;
+            int targetColor = isActive ? active : idle;
+            int fromColor = wasActive ? active : idle;
+
+            icon.setTranslationZ(isActive ? 3 * d : 1 * d);
+            if (animate) {
+                icon.animate().scaleX(targetScale).scaleY(targetScale)
+                        .translationX(targetX).translationY(targetY)
+                        .rotation(targetRotation).alpha(targetAlpha)
+                        .setDuration(220)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
+                android.animation.ValueAnimator colorAnim =
+                        android.animation.ValueAnimator.ofArgb(fromColor, targetColor);
+                colorAnim.setDuration(180);
+                colorAnim.addUpdateListener(a -> icon.setColorFilter((int) a.getAnimatedValue()));
+                colorAnim.start();
+            } else {
+                icon.setScaleX(targetScale);
+                icon.setScaleY(targetScale);
+                icon.setTranslationX(targetX);
+                icon.setTranslationY(targetY);
+                icon.setRotation(targetRotation);
+                icon.setAlpha(targetAlpha);
+                icon.setColorFilter(targetColor);
+            }
+        }
+        rootContentDescription(icons, selected);
+    }
+
+    private void rootContentDescription(android.widget.ImageView[] icons, int selected) {
+        // the array does not expose its parent, so keep the description on the front icon's parent
+        if (icons.length == 0 || icons[0].getParent() == null) return;
+        ((android.view.View) icons[0].getParent()).setContentDescription(getString(
+                selected == 0 ? R.string.plugins_mode_install : R.string.plugins_mode_installed));
+    }
+
+    private void updateAddonSourceButton() {
+        boolean both = addonSources.size() > 1;
+        boolean cfOnly = addonSources.size() == 1 && addonSources.contains("curseforge");
+        if (ivAddonSource != null) {
+            ivAddonSource.setImageResource(cfOnly
+                    ? R.drawable.ic_provider_curseforge : R.drawable.ic_provider_modrinth);
+        }
+        if (ivAddonSource2 != null) {
+            ivAddonSource2.setVisibility(both ? View.VISIBLE : View.GONE);
+            if (both) ivAddonSource2.setImageResource(R.drawable.ic_provider_curseforge);
+        }
+        float d = getResources().getDisplayMetrics().density;
+        if (both) {
+            // the front logo covers the left 28% of the one behind it
+            ivAddonSource.setTranslationX(-6.5f * d);
+            ivAddonSource.setTranslationZ(2 * d);
+            ivAddonSource.clearColorFilter();
+            if (ivAddonSource2 != null) {
+                ivAddonSource2.setTranslationX(6.5f * d);
+                ivAddonSource2.setTranslationZ(1 * d);
+                ivAddonSource2.clearColorFilter();
+            }
+        } else {
+            ivAddonSource.setTranslationX(0f);
+            ivAddonSource.setTranslationZ(0f);
+            ivAddonSource.clearColorFilter();
+            if (ivAddonSource2 != null) {
+                ivAddonSource2.setTranslationX(0f);
+                ivAddonSource2.setTranslationZ(0f);
+                ivAddonSource2.clearColorFilter();
+            }
+        }
+        android.view.View sourceButton = findViewById(R.id.btn_addon_source);
+        if (sourceButton != null) {
+            sourceButton.setContentDescription(getString(both ? R.string.addon_source_both
+                    : (cfOnly ? R.string.addon_source_curseforge : R.string.addon_source_modrinth)));
+        }
+    }
+
+    private java.util.Set<String> readAddonSources() {
+        java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        String raw = eu.kodanetwork.mchost.App.getPrefs(this)
+                .getString("addon_sources_" + server.getId(), "");
+        if (raw == null || raw.trim().isEmpty()) {
+            out.add("modrinth");
+            if (eu.kodanetwork.mchost.util.CurseForgeHelper.isConfigured()) {
+                out.add("curseforge");
+            }
+        } else {
+            for (String part : raw.split(",")) {
+                String value = part.trim();
+                if ("modrinth".equals(value) || "curseforge".equals(value)) out.add(value);
+            }
+        }
+        if (!eu.kodanetwork.mchost.util.CurseForgeHelper.isConfigured()) {
+            out.remove("curseforge");
+        }
+        if (out.isEmpty()) out.add("modrinth");
+        return out;
+    }
+
+    private int addonSearchHint() {
+        if (addonSources.size() > 1) return R.string.addon_search_both;
+        return addonSources.contains("curseforge")
+                ? R.string.addon_search_curseforge : R.string.addon_search_modrinth;
+    }
+
+    private void setAddonSources(java.util.Set<String> selected) {
+        java.util.LinkedHashSet<String> next = new java.util.LinkedHashSet<>();
+        if (selected.contains("modrinth")) next.add("modrinth");
+        if (eu.kodanetwork.mchost.util.CurseForgeHelper.isConfigured()
+                && selected.contains("curseforge")) {
+            next.add("curseforge");
+        }
+        if (next.isEmpty()) next.add("modrinth");
+
+        addonSources = next;
+        addonSourceChangedAt = System.currentTimeMillis();
+        StringBuilder raw = new StringBuilder();
+        for (String source : next) {
+            if (raw.length() > 0) raw.append(',');
+            raw.append(source);
+        }
+        eu.kodanetwork.mchost.App.getPrefs(this).edit()
+                .putString("addon_sources_" + server.getId(), raw.toString()).apply();
+        updateAddonSourceButton();
+        android.widget.EditText etSearch = findViewById(R.id.et_plugin_search);
+        if (etSearch != null) etSearch.setHint(addonSearchHint());
+        if (addonSearchAction != null) addonSearchAction.run();
+    }
+
+    private void showAddonSourceSheet() {
+        final eu.kodanetwork.mchost.util.KodaSheet sheet = eu.kodanetwork.mchost.util.KodaSheet.create(
+                this, getString(R.string.addon_source_title), getString(R.string.addon_source_desc));
+        final java.util.LinkedHashSet<String> selected =
+                new java.util.LinkedHashSet<>(addonSources);
+
+        final ProviderRow[] modrinthRow = new ProviderRow[1];
+        modrinthRow[0] = makeProviderRow(R.drawable.ic_provider_modrinth,
+                getString(R.string.addon_source_modrinth),
+                getString(R.string.addon_source_modrinth_desc),
+                selected.contains("modrinth"), () -> {
+                    if (selected.contains("modrinth")) selected.remove("modrinth");
+                    else selected.add("modrinth");
+                    setProviderRowChecked(modrinthRow[0], selected.contains("modrinth"));
+                });
+        sheet.add(modrinthRow[0].view);
+
+        if (eu.kodanetwork.mchost.util.CurseForgeHelper.isConfigured()) {
+            final ProviderRow[] cfRow = new ProviderRow[1];
+            cfRow[0] = makeProviderRow(R.drawable.ic_provider_curseforge,
+                    getString(R.string.addon_source_curseforge),
+                    getString(R.string.addon_source_curseforge_desc),
+                    selected.contains("curseforge"), () -> {
+                        if (selected.contains("curseforge")) selected.remove("curseforge");
+                        else selected.add("curseforge");
+                        setProviderRowChecked(cfRow[0], selected.contains("curseforge"));
+                    });
+            sheet.add(cfRow[0].view);
+        }
+
+        sheet.primary(getString(R.string.addon_source_done), v -> {
+            if (selected.isEmpty()) {
+                Toast.makeText(this, R.string.addon_source_choose_one,
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            setAddonSources(selected);
+            sheet.sheet.dismiss();
+        });
+        sheet.secondary(getString(R.string.praetor_action_cancel), v -> sheet.sheet.dismiss());
+        sheet.show();
+    }
+
+    private static final class ProviderRow {
+        final android.view.View view;
+        final android.widget.ImageView check;
+
+        ProviderRow(android.view.View view, android.widget.ImageView check) {
+            this.view = view;
+            this.check = check;
+        }
+    }
+
+    private void setProviderRowChecked(ProviderRow row, boolean checked) {
+        boolean light = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this);
+        row.check.setColorFilter(checked ? 0xFFFF6B00
+                : (light ? 0x337A6A5A : 0x33FFFFFF));
+    }
+
+    private ProviderRow makeProviderRow(int iconRes, String title, String description,
+                                        boolean selected, final Runnable onClick) {
+        float d = getResources().getDisplayMetrics().density;
+        boolean light = eu.kodanetwork.mchost.util.ThemeHelper.isLightMode(this);
+        android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(Math.round(14 * d), Math.round(12 * d),
+                Math.round(14 * d), Math.round(12 * d));
+        android.util.TypedValue tv = new android.util.TypedValue();
+        getTheme().resolveAttribute(android.R.attr.selectableItemBackground, tv, true);
+        row.setBackgroundResource(tv.resourceId);
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        android.widget.ImageView icon = new android.widget.ImageView(this);
+        icon.setImageResource(iconRes);
+        row.addView(icon, new android.widget.LinearLayout.LayoutParams(
+                Math.round(24 * d), Math.round(24 * d)));
+
+        android.widget.LinearLayout texts = new android.widget.LinearLayout(this);
+        texts.setOrientation(android.widget.LinearLayout.VERTICAL);
+        android.widget.LinearLayout.LayoutParams textLp = new android.widget.LinearLayout.LayoutParams(
+                0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        textLp.leftMargin = Math.round(12 * d);
+        row.addView(texts, textLp);
+
+        android.widget.TextView name = new android.widget.TextView(this);
+        name.setText(title);
+        name.setTextColor(light ? 0xFF241C18 : 0xFFF2EFE9);
+        name.setTextSize(15);
+        name.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda),
+                android.graphics.Typeface.BOLD);
+        texts.addView(name);
+
+        android.widget.TextView sub = new android.widget.TextView(this);
+        sub.setText(description);
+        sub.setTextColor(light ? 0xFF6F6258 : 0xFF9A8B80);
+        sub.setTextSize(12);
+        sub.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda));
+        texts.addView(sub);
+
+        android.widget.ImageView check = new android.widget.ImageView(this);
+        check.setImageResource(R.drawable.ic_addon_installed);
+        check.setColorFilter(selected ? 0xFFFF6B00 : (light ? 0x337A6A5A : 0x33FFFFFF));
+        row.addView(check, new android.widget.LinearLayout.LayoutParams(
+                Math.round(20 * d), Math.round(20 * d)));
+
+        row.setOnClickListener(v -> onClick.run());
+        return new ProviderRow(row, check);
+    }
+
     /**
      * mods and plugins that are installed on the server: enable/disable without deleting and a
      * trash folder to recover a file that broke the server.
@@ -5985,81 +6407,6 @@ public class ServerDetailActivity extends AppCompatActivity {
      * disabling renames "x.jar" to "x.jar.disabled" (every server software ignores that), the
      * trash lives outside the plugins/mods folder so no loader picks it up.
      */
-    /**
-     * two plain text tabs with an orange line that slides under the active one (like the
-     * navigation in the app, not a pill switch).
-     */
-    private android.view.View makeTextTabs(final String[] labels, int selected, final java.util.function.IntConsumer onPick) {
-        float d = getResources().getDisplayMetrics().density;
-        android.widget.FrameLayout wrap = new android.widget.FrameLayout(this);
-
-        final android.widget.LinearLayout row = new android.widget.LinearLayout(this);
-        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-
-        final android.view.View indicator = new android.view.View(this);
-        android.graphics.drawable.GradientDrawable indicatorBg = new android.graphics.drawable.GradientDrawable();
-        indicatorBg.setColor(0xFFFF6B00);
-        indicatorBg.setCornerRadius(1.5f * d);
-        indicator.setBackground(indicatorBg);
-
-        final android.widget.TextView[] items = new android.widget.TextView[labels.length];
-        for (int i = 0; i < labels.length; i++) {
-            final int index = i;
-            android.widget.TextView tv = new android.widget.TextView(this);
-            tv.setText(labels[i]);
-            tv.setTextSize(13);
-            tv.setLetterSpacing(0.08f);
-            tv.setGravity(android.view.Gravity.CENTER);
-            tv.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(this, R.font.font_koda),
-                    android.graphics.Typeface.BOLD);
-            tv.setPadding(0, (int) (10 * d), 0, (int) (10 * d));
-            tv.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0,
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, 1f));
-            tv.setOnClickListener(v -> {
-                eu.kodanetwork.mchost.util.HapticUtil.forceVibrate(this, 30);
-                onPick.accept(index);
-                moveTabIndicator(items, indicator, index, d);
-            });
-            items[i] = tv;
-            row.addView(tv);
-        }
-
-        android.widget.FrameLayout.LayoutParams rowLp = new android.widget.FrameLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT);
-        wrap.addView(row, rowLp);
-
-        android.widget.FrameLayout.LayoutParams indicatorLp = new android.widget.FrameLayout.LayoutParams(0, (int) (2 * d));
-        indicatorLp.gravity = android.view.Gravity.BOTTOM;
-        wrap.addView(indicator, indicatorLp);
-
-        // place the line under the active label once the layout is measured
-        final int[] tries = {0};
-        Runnable[] place = new Runnable[1];
-        place[0] = () -> {
-            android.widget.TextView active = items[Math.max(0, Math.min(selected, items.length - 1))];
-            if (active.getWidth() == 0 && tries[0]++ < 10) {
-                wrap.post(place[0]);
-                return;
-            }
-            moveTabIndicator(items, indicator, Math.max(0, Math.min(selected, items.length - 1)), d);
-        };
-        wrap.post(place[0]);
-        return wrap;
-    }
-
-    /** slides the orange line under the given tab and colours the labels. */
-    private void moveTabIndicator(android.widget.TextView[] items, android.view.View indicator, int index, float d) {
-        android.view.View target = items[index];
-        android.view.ViewGroup.LayoutParams lp = indicator.getLayoutParams();
-        lp.width = target.getWidth();
-        indicator.setLayoutParams(lp);
-        indicator.animate().translationX(target.getLeft()).setDuration(180)
-                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
-        for (int i = 0; i < items.length; i++) {
-            items[i].setTextColor(i == index ? 0xFFFF6B00 : 0xFF9A8B80);
-        }
-    }
 
     /** icon urls we already looked up, so switching tabs does not search again. */
     private static final java.util.Map<String, String> jarIconCache = new java.util.concurrent.ConcurrentHashMap<>();
@@ -6068,11 +6415,17 @@ public class ServerDetailActivity extends AppCompatActivity {
      * most Bukkit plugins ship no image inside the jar, so the icon is looked up on Modrinth
      * with the file name (cached per name; "none" marks a file with no project).
      */
-    private void loadModrinthIconFor(final String fileName, final android.widget.ImageView target) {
+    private void loadModrinthIconFor(final String fileName, final android.widget.ImageView target,
+                                     final android.graphics.Bitmap fallback) {
         final String key = fileName.toLowerCase().replace(".disabled", "").replace(".jar", "");
         String cached = jarIconCache.get(key);
         if (cached != null) {
-            if (!"none".equals(cached)) eu.kodanetwork.mchost.util.ModrinthHelper.loadIcon(cached, target);
+            if ("none".equals(cached)) {
+                if (fallback != null) target.setImageBitmap(fallback);
+                else eu.kodanetwork.mchost.util.ModrinthHelper.showErrorIcon(target, "NO ICON");
+            } else {
+                eu.kodanetwork.mchost.util.ModrinthHelper.loadIcon(cached, target);
+            }
             return;
         }
         String query = key.replaceAll("[-_].*$", "").replaceAll("[0-9.]+$", "").trim();
@@ -6083,11 +6436,15 @@ public class ServerDetailActivity extends AppCompatActivity {
                     public void onResult(java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModrinthProject> results) {
                         if (results == null || results.isEmpty()) {
                             jarIconCache.put(key, "none");
+                            if (fallback != null) target.setImageBitmap(fallback);
+                            else eu.kodanetwork.mchost.util.ModrinthHelper.showErrorIcon(target, "NO ICON");
                             return;
                         }
                         String url = results.get(0).iconUrl;
                         if (url == null || url.isEmpty()) {
                             jarIconCache.put(key, "none");
+                            if (fallback != null) target.setImageBitmap(fallback);
+                            else eu.kodanetwork.mchost.util.ModrinthHelper.showErrorIcon(target, "NO ICON");
                             return;
                         }
                         jarIconCache.put(key, url);
@@ -6097,6 +6454,8 @@ public class ServerDetailActivity extends AppCompatActivity {
                     @Override
                     public void onError(String err) {
                         jarIconCache.put(key, "none");
+                        if (fallback != null) target.setImageBitmap(fallback);
+                        else eu.kodanetwork.mchost.util.ModrinthHelper.showErrorIcon(target, "ERR");
                     }
                 });
     }
@@ -6115,6 +6474,10 @@ public class ServerDetailActivity extends AppCompatActivity {
     }
 
     private void renderJarList() {
+        renderJarList(installedFilter);
+    }
+
+    private void renderJarList(String filter) {
         android.widget.LinearLayout list = findViewById(R.id.ll_jars);
         android.widget.LinearLayout trashList = findViewById(R.id.ll_jars_trash);
         android.widget.TextView empty = findViewById(R.id.tv_jars_empty);
@@ -6131,6 +6494,13 @@ public class ServerDetailActivity extends AppCompatActivity {
             }
         }
         java.util.Collections.sort(entries, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        String needle = filter == null ? "" : filter.trim().toLowerCase();
+        if (!needle.isEmpty()) {
+            java.util.Iterator<java.io.File> it = entries.iterator();
+            while (it.hasNext()) {
+                if (!it.next().getName().toLowerCase().contains(needle)) it.remove();
+            }
+        }
 
         list.removeAllViews();
         if (empty != null) empty.setVisibility(entries.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
@@ -6159,11 +6529,7 @@ public class ServerDetailActivity extends AppCompatActivity {
                     meta.append(eu.kodanetwork.mchost.util.BackupManager.humanSize(file.length()));
                     if (!enabled) meta.append("  \u00b7  ").append(getString(R.string.jars_disabled));
                     version.setText(meta.toString());
-                    if (info.icon != null) {
-                        icon.setImageBitmap(info.icon);
-                    } else {
-                        loadModrinthIconFor(info.fileName, icon);
-                    }
+                    loadModrinthIconFor(info.fileName, icon, info.icon);
                 });
             }, "KodaJarInfo").start();
 

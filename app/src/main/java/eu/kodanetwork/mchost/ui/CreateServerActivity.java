@@ -1257,8 +1257,13 @@ public class CreateServerActivity extends AppCompatActivity {
         final String[] filterVersion = {selectedVersion != null ? selectedVersion : ""};
         final boolean[] filterToSelected = {false};
         final java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModpackHit> hits = new ArrayList<>();
-        final int[] totalHits = {0};
-        final int[] fetched = {0};
+        final int[] modrinthOffset = {0};
+        final int[] curseOffset = {0};
+        final int[] modrinthTotal = {0};
+        final int[] curseTotal = {0};
+        final int[] pendingRequests = {0};
+        final int[] generation = {0};
+        final boolean[] loading = {false};
         final boolean[] selecting = {false};
         final Runnable[] loadPageRef = new Runnable[1];
         final Runnable[] resetAndLoadRef = new Runnable[1];
@@ -1296,14 +1301,14 @@ public class CreateServerActivity extends AppCompatActivity {
                 if (btnDownload != null) btnDownload.setVisibility(View.GONE);
                 if (pbDl != null) pbDl.setVisibility(View.GONE);
                 title.setText(hit.title);
-                author.setText(hit.author + "  ·  ⬇ " + android.text.format.Formatter.formatShortFileSize(
+                String sourceLabel = "curseforge".equals(hit.source) ? "CurseForge" : "Modrinth";
+                author.setText(sourceLabel + "  ·  " + hit.author + "  ·  ⬇ "
+                        + android.text.format.Formatter.formatShortFileSize(
                         CreateServerActivity.this, Math.max(0, hit.downloads)));
                 desc.setText(hit.description);
                 if (icon != null) {
                     icon.setImageResource(android.R.drawable.ic_menu_gallery);
-                    if (hit.iconUrl != null && !hit.iconUrl.isEmpty()) {
-                        eu.kodanetwork.mchost.util.ModrinthHelper.loadIcon(hit.iconUrl, icon);
-                    }
+                    eu.kodanetwork.mchost.util.ModrinthHelper.loadIcon(hit.iconUrl, icon);
                 }
                 android.view.View.OnClickListener select = v -> {
                     if (selecting[0]) return;
@@ -1311,8 +1316,29 @@ public class CreateServerActivity extends AppCompatActivity {
                     HapticUtil.forceVibrate(CreateServerActivity.this, 60);
                     if (pb != null) pb.setVisibility(View.VISIBLE);
                     executor.submit(() -> {
-                        final eu.kodanetwork.mchost.util.ModrinthHelper.MrpackInfo info =
-                                eu.kodanetwork.mchost.util.ModrinthHelper.getLatestMrpackSync(hit.id);
+                        eu.kodanetwork.mchost.util.ModrinthHelper.MrpackInfo found = null;
+                        if ("curseforge".equals(hit.source)) {
+                            eu.kodanetwork.mchost.util.CurseForgeHelper.ModpackFile cf =
+                                    eu.kodanetwork.mchost.util.CurseForgeHelper.getLatestModpackSync(
+                                            hit.id,
+                                            filterToSelected[0] ? filterVersion[0] : null,
+                                            loaderName);
+                            if (cf != null) {
+                                found = new eu.kodanetwork.mchost.util.ModrinthHelper.MrpackInfo();
+                                found.source = "curseforge";
+                                found.downloadUrl = cf.downloadUrl;
+                                found.filename = cf.filename;
+                                found.sha1 = cf.sha1;
+                                found.gameVersion = cf.gameVersion;
+                                found.loader = cf.loader;
+                                found.curseForgeProjectId = cf.projectId;
+                                found.curseForgeFileId = cf.fileId;
+                            }
+                        } else {
+                            found = eu.kodanetwork.mchost.util.ModrinthHelper
+                                    .getLatestMrpackSync(hit.id);
+                        }
+                        final eu.kodanetwork.mchost.util.ModrinthHelper.MrpackInfo info = found;
                         mainHandler.post(() -> {
                             selecting[0] = false;
                             if (pb != null) pb.setVisibility(View.GONE);
@@ -1345,7 +1371,8 @@ public class CreateServerActivity extends AppCompatActivity {
 
             @Override
             public int getItemCount() {
-                boolean more = fetched[0] < totalHits[0];
+                boolean more = modrinthOffset[0] < modrinthTotal[0]
+                        || curseOffset[0] < curseTotal[0];
                 return hits.size() + (more ? 1 : 0);
             }
 
@@ -1356,45 +1383,98 @@ public class CreateServerActivity extends AppCompatActivity {
         };
         rv.setAdapter(adapter);
 
+        final Runnable[] finishPage = new Runnable[1];
+        finishPage[0] = () -> {
+            if (--pendingRequests[0] > 0) return;
+            loading[0] = false;
+            adapter.notifyDataSetChanged();
+            if (pb != null) pb.setVisibility(View.GONE);
+            if (hits.isEmpty()) {
+                Toast.makeText(CreateServerActivity.this,
+                        getString(R.string.modpack_none_found), Toast.LENGTH_SHORT).show();
+            }
+        };
+
         loadPageRef[0] = () -> {
-            if (selecting[0]) return;
+            if (selecting[0] || loading[0]) return;
+            loading[0] = true;
+            final int gen = generation[0];
             if (pb != null) pb.setVisibility(View.VISIBLE);
-            String versionFilter = filterToSelected[0] ? filterVersion[0] : null;
+            final String query = etQuery.getText().toString().trim();
+            final String versionFilter = filterToSelected[0] ? filterVersion[0] : null;
+            pendingRequests[0] = 2;
+
             eu.kodanetwork.mchost.util.ModrinthHelper.searchModpacks(
-                    etQuery.getText().toString().trim(), versionFilter, loaderName, fetched[0],
+                    query, versionFilter, loaderName, modrinthOffset[0],
                     new eu.kodanetwork.mchost.util.ModrinthHelper.ModpackSearchCallback() {
                         @Override
                         public void onResult(java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModpackHit> results, int total) {
                             mainHandler.post(() -> {
-                                fetched[0] += results.size();
+                                if (gen != generation[0]) return;
+                                modrinthOffset[0] += results.size();
+                                modrinthTotal[0] = total;
+                                if (results.isEmpty()) modrinthOffset[0] = total;
                                 // server-compatible packs only, client-only ones are useless here
                                 for (eu.kodanetwork.mchost.util.ModrinthHelper.ModpackHit h : results) {
+                                    h.source = "modrinth";
                                     if (!"unsupported".equals(h.serverSide)) hits.add(h);
                                 }
-                                totalHits[0] = total;
-                                adapter.notifyDataSetChanged();
-                                if (pb != null) pb.setVisibility(View.GONE);
-                                if (hits.isEmpty()) {
-                                    Toast.makeText(CreateServerActivity.this,
-                                            getString(R.string.modpack_none_found), Toast.LENGTH_SHORT).show();
-                                }
+                                finishPage[0].run();
                             });
                         }
 
                         @Override
                         public void onError(String err) {
                             mainHandler.post(() -> {
-                                if (pb != null) pb.setVisibility(View.GONE);
-                                Toast.makeText(CreateServerActivity.this,
-                                        getString(R.string.modpack_failed, err), Toast.LENGTH_LONG).show();
+                                if (gen != generation[0]) return;
+                                modrinthTotal[0] = modrinthOffset[0];
+                                finishPage[0].run();
+                            });
+                        }
+                    });
+
+            eu.kodanetwork.mchost.util.CurseForgeHelper.searchModpacks(
+                    query, versionFilter, loaderName, curseOffset[0],
+                    new eu.kodanetwork.mchost.util.ModrinthHelper.ModpackSearchCallback() {
+                        @Override
+                        public void onResult(java.util.List<eu.kodanetwork.mchost.util.ModrinthHelper.ModpackHit> results, int total) {
+                            mainHandler.post(() -> {
+                                if (gen != generation[0]) return;
+                                curseOffset[0] += results.size();
+                                curseTotal[0] = total;
+                                if (results.isEmpty()) curseOffset[0] = total;
+                                for (eu.kodanetwork.mchost.util.ModrinthHelper.ModpackHit h : results) {
+                                    h.source = "curseforge";
+                                    hits.add(h);
+                                }
+                                finishPage[0].run();
+                            });
+                        }
+
+                        @Override
+                        public void onError(String err) {
+                            mainHandler.post(() -> {
+                                if (gen != generation[0]) return;
+                                curseTotal[0] = curseOffset[0];
+                                if ("cf_403".equals(err)) {
+                                    Toast.makeText(CreateServerActivity.this,
+                                            getString(R.string.addon_source_key_error),
+                                            Toast.LENGTH_LONG).show();
+                                }
+                                finishPage[0].run();
                             });
                         }
                     });
         };
         resetAndLoadRef[0] = () -> {
+            generation[0]++;
+            loading[0] = false;
+            pendingRequests[0] = 0;
             hits.clear();
-            totalHits[0] = 0;
-            fetched[0] = 0;
+            modrinthOffset[0] = 0;
+            curseOffset[0] = 0;
+            modrinthTotal[0] = 0;
+            curseTotal[0] = 0;
             adapter.notifyDataSetChanged();
             loadPageRef[0].run();
         };
@@ -2558,14 +2638,13 @@ public class CreateServerActivity extends AppCompatActivity {
                 }
 
                 // modpack install: mods + overrides first, before the server row even exists
-                if (selectedModpack != null && type == ServerInstance.Type.FABRIC) {
+                if (selectedModpack != null) {
                     final String packTitle = selectedModpackTitle != null ? selectedModpackTitle : "Modpack";
                     mainHandler.post(() -> {
                         if (loadingText != null) loadingText.setText(getString(R.string.modpack_downloading, packTitle));
                     });
                     try {
-                        eu.kodanetwork.mchost.util.ModpackInstaller.installSync(
-                                selectedModpack.downloadUrl, selectedModpack.sha1, new File(dir),
+                        eu.kodanetwork.mchost.util.ModpackInstaller.InstallListener listener =
                                 new eu.kodanetwork.mchost.util.ModpackInstaller.InstallListener() {
                                     @Override public void onPhaseDownload() {}
                                     @Override public void onDone() {}
@@ -2577,7 +2656,16 @@ public class CreateServerActivity extends AppCompatActivity {
                                             }
                                         });
                                     }
-                                });
+                                };
+                        if ("curseforge".equals(selectedModpack.source)) {
+                            eu.kodanetwork.mchost.util.ModpackInstaller.installCurseForgeSync(
+                                    selectedModpack.downloadUrl, selectedModpack.sha1,
+                                    new File(dir), listener);
+                        } else {
+                            eu.kodanetwork.mchost.util.ModpackInstaller.installSync(
+                                    selectedModpack.downloadUrl, selectedModpack.sha1,
+                                    new File(dir), listener);
+                        }
                     } catch (Exception mex) {
                         throw new RuntimeException(getString(R.string.modpack_failed,
                                 mex.getMessage() == null ? "unknown" : mex.getMessage()));

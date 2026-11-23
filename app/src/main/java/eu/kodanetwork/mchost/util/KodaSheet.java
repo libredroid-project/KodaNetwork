@@ -318,6 +318,19 @@ public final class KodaSheet {
         return et;
     }
 
+    /** a taller field for a real message, e.g. a ban appeal. */
+    public android.widget.EditText multiLineField(String text, String hint, int lines) {
+        android.widget.EditText et = field(text, hint, false);
+        et.setSingleLine(false);
+        et.setMinLines(lines);
+        et.setGravity(Gravity.TOP | Gravity.START);
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        et.setPadding((int) (14 * d), (int) (12 * d), (int) (14 * d), (int) (12 * d));
+        return et;
+    }
+
     /** a label with a switch on the right, the switch is handed back for reading later. */
     public com.google.android.material.switchmaterial.SwitchMaterial toggle(String label,
                                                                             boolean checked) {

@@ -698,10 +698,12 @@ If you want your data deleted as well, use "Request full data deletion" in the a
     <string name="tutorial_tab_dashboard">Dashboard shows status, RAM, players and quick actions for your server.</string>
     <string name="tutorial_tab_console">The console streams live server output and lets you run commands.</string>
     <string name="tutorial_tab_files">Manage the server files: configs, worlds and folders. edit them right here.</string>
-    <string name="tutorial_tab_plugins">Install and manage plugins and mods from Modrinth in one tap.</string>
+    <string name="tutorial_tab_plugins">Install and manage plugins and mods from Modrinth or CurseForge in one tap.</string>
     <string name="tutorial_tab_settings">All server settings: gameplay, addons, Java runtime and server info.</string>
     <string name="tutorial_done_title">You\'re all set!</string>
     <string name="tutorial_done_body">Your first server is ready. Have fun hosting. you can restart this tutorial anytime in Settings.</string>
+    <string name="legal_providers_title">Mods, plugins and modpacks</string>
+    <string name="legal_providers_body">Mods, plugins and modpacks are downloaded from Modrinth or CurseForge. All content belongs to its authors. Modrinth and CurseForge are trademarks of their respective owners. The logos come from Simple Icons (CC0) and are used for attribution only.</string>
     <string name="tutorial_next">Next</string>
     
     <string name="tutorial_replay_hint">Tutorial will start on next app launch</string>
@@ -985,6 +987,20 @@ If you want your data deleted as well, use "Request full data deletion" in the a
     <string name="version_switch_only_paper">Version switch is available for Paper servers</string>
     <string name="plugins_mode_install">Install</string>
     <string name="plugins_mode_installed">Installed</string>
+    <string name="addon_source_title">Source</string>
+    <string name="addon_source_desc">Choose one or both providers. Results are merged.</string>
+    <string name="addon_source_modrinth">Modrinth</string>
+    <string name="addon_source_curseforge">CurseForge</string>
+    <string name="addon_source_both">Modrinth + CurseForge</string>
+    <string name="addon_source_modrinth_desc">Mods, plugins and modpacks</string>
+    <string name="addon_source_curseforge_desc">Mods, plugins and modpacks</string>
+    <string name="addon_source_key_error">CurseForge rejected the API key. Generate a new key at console.curseforge.com.</string>
+    <string name="addon_source_missing_key">No CurseForge API key is configured in this build.</string>
+    <string name="addon_source_done">Done</string>
+    <string name="addon_source_choose_one">Choose at least one source.</string>
+    <string name="addon_search_modrinth">Search Modrinth…</string>
+    <string name="addon_search_curseforge">Search CurseForge…</string>
+    <string name="addon_search_both">Search both…</string>
 
     <!-- praetor screen for version changes (up/downgrade reason, backup rules) -->
     <string name="praetor_version_subtitle">MINECRAFT VERSION</string>
@@ -1776,6 +1792,10 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="notif_data_rejected_body">Your request was rejected. Open the request to see the reason.</string>
     <string name="notif_export_ready_title">Your data export is ready</string>
     <string name="notif_export_ready_body">Open the request in the app to download it, the link works for seven days.</string>
+    <string name="notif_legal_title">Privacy Policy updated</string>
+    <string name="notif_legal_body">We updated our Privacy Policy and Terms of Service for the new Modrinth and CurseForge features. Tap to review.</string>
+    <string name="notif_java4shell_title">Java4Shell security notice</string>
+    <string name="notif_java4shell_body">A critical OpenJDK Base64 flaw affects Java on x86-64 PCs with AVX-512. Android servers are not affected. If you run Java on a PC or VPS, update it. Tap for the CISA advisory.</string>
     <string name="notif_new_channel">Notifications</string>
     <string name="notif_deleted">Notification deleted</string>
     <string name="notif_settings_saved">Saved</string>
@@ -1827,4 +1847,40 @@ Just write what is on your mind. There is no right or wrong here, and nobody see
     <string name="login_subtitle">One account for app, dashboard and support</string>
     <string name="register_title">Create account</string>
     <string name="register_subtitle">Same account for app, dashboard and support</string>
+
+    <string name="ban_title">Your account is suspended</string>
+    <string name="ban_body">This device can no longer use KodaHosting. If you think this is a mistake, you can send an appeal to the team.</string>
+    <string name="ban_reason_label">Reason</string>
+    <string name="ban_reason_default">No reason was given.</string>
+    <string name="ban_hwid_label">Hardware ID</string>
+    <string name="ban_appeal_default">One appeal is possible. Write a short message, the team reads every one.</string>
+    <string name="ban_appeal_button">Appeal this ban</string>
+    <string name="ban_appeal_title">Appeal this ban</string>
+    <string name="ban_appeal_subtitle">Tell the team why the ban should be lifted.</string>
+    <string name="ban_appeal_hint">What happened, and why should we lift the ban?</string>
+    <string name="ban_appeal_send">Send appeal</string>
+    <string name="ban_appeal_sent">Appeal sent. The team will review it.</string>
+    <string name="ban_appeal_open">Your appeal is with the team. You will see the answer on this screen.</string>
+    <string name="ban_appeal_rejected">Your last appeal was rejected. You can send another one on %1$s.</string>
+    <string name="ban_appeal_locked">Appeals are closed for this account.</string>
+    <string name="ban_appeal_failed">The appeal could not be sent. Try again later.</string>
+    <string name="ban_appeal_already">You already have an open appeal.</string>
+    <string name="ban_appeal_cooldown">You can send another appeal on %1$s.</string>
+    <string name="ban_appeal_too_short">Please write at least a few words.</string>
+    <string name="ban_appeal_offline">The appeal status could not be loaded.</string>
+    <string name="ban_appeal_cooldown_short">You cannot send another appeal yet.</string>
+    <string name="ban_appeal_not_banned">This account is not banned anymore. Restart the app.</string>
+    <string name="ban_lifted">Your ban was lifted. Welcome back.</string>
+    <string name="ban_appeal_chat">Open appeal chat</string>
+    <string name="ban_servers_button">My servers</string>
+    <string name="ban_servers_title">My servers</string>
+    <string name="ban_servers_subtitle">Servers cannot be started while you are banned. You can export a copy here.</string>
+    <string name="ban_servers_empty">No servers on this device.</string>
+    <string name="ban_servers_exported">Saved to Downloads: %1$s</string>
+    <string name="ban_servers_export_failed">Export failed: %1$s</string>
+    <string name="ban_servers_hibernated">Hibernated</string>
+    <string name="ban_servers_hibernate_note">Your servers are hibernated because the ban lasted more than 14 days. They can be started again after the ban is lifted.</string>
+    <string name="ban_servers_zipping">Zipping %1$s…</string>
+    <string name="ban_server_start_blocked">This account is suspended. Servers cannot be started.</string>
+    <string name="chat_type_unban">Ban appeal</string>
 </resources>

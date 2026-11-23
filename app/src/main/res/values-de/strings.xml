@@ -717,10 +717,12 @@ Wenn auch deine Daten gelöscht werden sollen, nutze "Komplette Löschung beantr
     <string name="tutorial_tab_dashboard">Das Dashboard zeigt Status, RAM, Spieler und Schnellaktionen für deinen Server.</string>
     <string name="tutorial_tab_console">Die Konsole zeigt den Live-Output des Servers und lässt dich Befehle ausführen.</string>
     <string name="tutorial_tab_files">Verwalte die Server-Dateien: Configs, Welten und Ordner. direkt hier bearbeitbar.</string>
-    <string name="tutorial_tab_plugins">Installiere und verwalte Plugins und Mods von Modrinth mit einem Tipp.</string>
+    <string name="tutorial_tab_plugins">Installiere und verwalte Plugins und Mods von Modrinth oder CurseForge mit einem Tipp.</string>
     <string name="tutorial_tab_settings">Alle Servereinstellungen: Gameplay, Addons, Java-Runtime und Server-Info.</string>
     <string name="tutorial_done_title">Du bist startklar!</string>
     <string name="tutorial_done_body">Dein erster Server ist bereit. Viel Spaß beim Hosten. du kannst das Tutorial jederzeit in den Einstellungen neu starten.</string>
+    <string name="legal_providers_title">Mods, Plugins und Modpacks</string>
+    <string name="legal_providers_body">Mods, Plugins und Modpacks werden von Modrinth oder CurseForge heruntergeladen. Alle Inhalte gehören ihren Autoren. Modrinth und CurseForge sind Marken ihrer jeweiligen Inhaber. Die Logos stammen aus Simple Icons (CC0) und dienen nur der Zuordnung.</string>
     <string name="tutorial_next">Weiter</string>
     <string name="tutorial_replay_hint">Tutorial startet beim nächsten App-Start</string>\n
     <string name="net_quality_warning">Langsame Internetverbindung erkannt. Lag kann an deiner Verbindung liegen, nicht am Server.</string>
@@ -996,6 +998,20 @@ Wenn auch deine Daten gelöscht werden sollen, nutze "Komplette Löschung beantr
     <string name="version_switch_only_paper">Der Versionswechsel ist für Paper-Server verfügbar</string>
     <string name="plugins_mode_install">Installieren</string>
     <string name="plugins_mode_installed">Installiert</string>
+    <string name="addon_source_title">Quelle</string>
+    <string name="addon_source_desc">Wähle einen oder beide Anbieter. Die Ergebnisse werden zusammengeführt.</string>
+    <string name="addon_source_modrinth">Modrinth</string>
+    <string name="addon_source_curseforge">CurseForge</string>
+    <string name="addon_source_both">Modrinth + CurseForge</string>
+    <string name="addon_source_modrinth_desc">Mods, Plugins und Modpacks</string>
+    <string name="addon_source_curseforge_desc">Mods, Plugins und Modpacks</string>
+    <string name="addon_source_key_error">CurseForge hat den API-Schlüssel abgelehnt. Erzeuge einen neuen Schlüssel auf console.curseforge.com.</string>
+    <string name="addon_source_missing_key">In diesem Build ist kein CurseForge-API-Schlüssel hinterlegt.</string>
+    <string name="addon_source_done">Fertig</string>
+    <string name="addon_source_choose_one">Wähle mindestens eine Quelle.</string>
+    <string name="addon_search_modrinth">Modrinth durchsuchen…</string>
+    <string name="addon_search_curseforge">CurseForge durchsuchen…</string>
+    <string name="addon_search_both">Beide durchsuchen…</string>
 
     <!-- praetor screen for version changes (up/downgrade reason, backup rules) -->
     <string name="praetor_version_subtitle">MINECRAFT-VERSION</string>
@@ -1787,6 +1803,10 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="notif_data_rejected_body">Dein Antrag wurde abgelehnt. Öffne den Antrag, um den Grund zu sehen.</string>
     <string name="notif_export_ready_title">Dein Datenexport ist bereit</string>
     <string name="notif_export_ready_body">Öffne den Antrag in der App zum Herunterladen, der Link gilt sieben Tage.</string>
+    <string name="notif_legal_title">Datenschutzerklärung aktualisiert</string>
+    <string name="notif_legal_body">Wir haben Datenschutzerklärung und Nutzungsbedingungen für die neuen Modrinth- und CurseForge-Funktionen aktualisiert. Tippe zum Prüfen.</string>
+    <string name="notif_java4shell_title">Java4Shell-Sicherheitshinweis</string>
+    <string name="notif_java4shell_body">Eine kritische OpenJDK-Base64-Lücke betrifft Java auf x86-64-PCs mit AVX-512. Android-Server sind nicht betroffen. Wenn du Java auf PC oder VPS nutzt, aktualisiere es. Tippe für die CISA-Warnung.</string>
     <string name="notif_new_channel">Benachrichtigungen</string>
     <string name="notif_deleted">Benachrichtigung gelöscht</string>
     <string name="notif_settings_saved">Gespeichert</string>
@@ -1838,4 +1858,40 @@ Schreib einfach, was dich bewegt. Es gibt hier kein Richtig oder Falsch, und nie
     <string name="login_subtitle">Ein Konto für App, Dashboard und Support</string>
     <string name="register_title">Konto erstellen</string>
     <string name="register_subtitle">Dasselbe Konto für App, Dashboard und Support</string>
+
+    <string name="ban_title">Dein Konto ist gesperrt</string>
+    <string name="ban_body">Dieses Gerät kann KodaHosting nicht mehr nutzen. Wenn du glaubst, dass das ein Fehler ist, kannst du dem Team einen Einspruch schicken.</string>
+    <string name="ban_reason_label">Grund</string>
+    <string name="ban_reason_default">Es wurde kein Grund angegeben.</string>
+    <string name="ban_hwid_label">Hardware-ID</string>
+    <string name="ban_appeal_default">Du kannst einmal Einspruch einlegen. Schreib eine kurze Nachricht, das Team liest jede.</string>
+    <string name="ban_appeal_button">Einspruch einlegen</string>
+    <string name="ban_appeal_title">Einspruch gegen die Sperre</string>
+    <string name="ban_appeal_subtitle">Sag dem Team, warum die Sperre aufgehoben werden sollte.</string>
+    <string name="ban_appeal_hint">Was ist passiert, und warum sollten wir die Sperre aufheben?</string>
+    <string name="ban_appeal_send">Einspruch senden</string>
+    <string name="ban_appeal_sent">Einspruch gesendet. Das Team prüft ihn.</string>
+    <string name="ban_appeal_open">Dein Einspruch liegt beim Team. Die Antwort erscheint auf diesem Bildschirm.</string>
+    <string name="ban_appeal_rejected">Dein letzter Einspruch wurde abgelehnt. Einen neuen kannst du am %1$s senden.</string>
+    <string name="ban_appeal_locked">Für dieses Konto sind Einsprüche geschlossen.</string>
+    <string name="ban_appeal_failed">Der Einspruch konnte nicht gesendet werden. Versuch es später noch einmal.</string>
+    <string name="ban_appeal_already">Du hast bereits einen offenen Einspruch.</string>
+    <string name="ban_appeal_cooldown">Einen neuen Einspruch kannst du am %1$s senden.</string>
+    <string name="ban_appeal_too_short">Bitte schreib mindestens ein paar Worte.</string>
+    <string name="ban_appeal_offline">Der Einspruchsstatus konnte nicht geladen werden.</string>
+    <string name="ban_appeal_cooldown_short">Du kannst noch keinen neuen Einspruch senden.</string>
+    <string name="ban_appeal_not_banned">Dieses Konto ist nicht mehr gesperrt. Starte die App neu.</string>
+    <string name="ban_lifted">Deine Sperre wurde aufgehoben. Willkommen zurück.</string>
+    <string name="ban_appeal_chat">Einspruch-Chat öffnen</string>
+    <string name="ban_servers_button">Meine Server</string>
+    <string name="ban_servers_title">Meine Server</string>
+    <string name="ban_servers_subtitle">Während der Sperre können Server nicht gestartet werden. Du kannst hier eine Kopie exportieren.</string>
+    <string name="ban_servers_empty">Keine Server auf diesem Gerät.</string>
+    <string name="ban_servers_exported">In Downloads gespeichert: %1$s</string>
+    <string name="ban_servers_export_failed">Export fehlgeschlagen: %1$s</string>
+    <string name="ban_servers_hibernated">Hibernated</string>
+    <string name="ban_servers_hibernate_note">Deine Server sind hibernated, weil die Sperre länger als 14 Tage dauert. Nach Aufhebung der Sperre können sie wieder gestartet werden.</string>
+    <string name="ban_servers_zipping">%1$s wird gepackt…</string>
+    <string name="ban_server_start_blocked">Dieses Konto ist gesperrt. Server können nicht gestartet werden.</string>
+    <string name="chat_type_unban">Einspruch</string>
 </resources>

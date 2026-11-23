@@ -35,6 +35,8 @@ KodaHosting processes certain data to function correctly:
 
 - Support Tickets: If you contact us through the in-app support ticket system, the developer console, or request a password reset or verification code, we process your email address and your message, including diagnostic information attached to the ticket (device model, app version, memory, network type, and the names and status of your hosted servers). Emails are delivered via Resend, a third-party email delivery service.
 
+- Moderation, Bans and Appeals: If we restrict or ban a device or account, we process the app/device identifier (app UUID and hardware ID), the reason, the time, the appeal messages you send and the decision. This data is used to enforce our terms, prevent abuse and handle appeals. The legal basis is Art. 6(1)(f) GDPR (security and abuse prevention). A rejected appeal starts a 7-day waiting period before another appeal can be opened. For severe abuse we can close ticket creation for an account completely; crisis support remains reachable in that case.
+
 - Developer Console: If you publish extensions, you sign in to the web developer console with your KodaHosting account. We process your email address, verification status, extension metadata and packages, release versions, store listings, review notes, and developer support tickets. The console is hosted on the same infrastructure and uses the same account.
 
 - Extension Download Statistics (first-party): When an extension is downloaded from the in-app store, we store the extension id, version, time, the device model, Android version and app build sent by the app, and whether the download came from the app or the website. This record contains no account id, device id, advertising id or IP address and is not linked to your account. Developers see only aggregated counts for their own extensions (for example which device models or app builds download them).
@@ -59,7 +61,8 @@ The App utilizes certain third-party services that may collect information used 
 - Supabase: For authentication and real-time database functionality (server management state). Supabase stores your email address and authentication token in encrypted form.
 - OpenRouter: For the optional, consent-based AI crash analysis described in Section 2. OpenRouter is the processor that forwards requests to third-party AI model providers (see Section 2 for the list of possible providers).
 - Resend: For delivering transactional emails (verification codes, password resets, support correspondence) to your email address.
-- Modrinth API / Spigot: To search and download server plugins directly within the app.
+- Modrinth and CurseForge APIs: To search for and download plugins, mods and modpacks. The search term, the selected Minecraft version and server type, and your IP address are sent to the selected provider. CurseForge requests use an app-level API key; no account data or device identifier is sent. Modrinth privacy: https://modrinth.com/legal/privacy. CurseForge/Overwolf privacy: https://legal.overwolf.com/docs/overwolf/platform/platform-privacy-policy/.
+- PaperMC and SpigotMC: To download server software and version metadata.
 - GitHub Releases: Used to download essential server binaries like Java and secure tunnel clients.
 - Bore / FRP (Fast Reverse Proxy): Used exclusively to create the secure network tunnels between your device and our VPS infrastructure.
 - Ko-fi: Used for voluntary financial support of the developer. Ko-fi is an external service; visiting their site or making a donation is subject to their terms and privacy policy. Donations are voluntary gifts and do not unlock any features.
@@ -74,16 +77,16 @@ However, no method of transmission over the Internet or method of electronic sto
 
 6. Data Retention
 
-We retain your account information (email address and authentication data) for as long as your account is active. Server management metadata (server names, configurations, status) is stored in the Supabase database and is deleted when you delete the corresponding server or your account.
+We retain your account information (email address and authentication data) for as long as your account is active. Server management metadata (server names, configurations, status) is stored in the Supabase database. When you delete a server or your account, the active entry is marked as deleted and removed from public listings; the server record itself is kept as a contract record for the statutory retention period described below. Your server files, worlds and plugins always stay on your device and are never uploaded to us.
 
-Upon account deletion, all associated data is permanently removed from our systems within 30 days, with the exception of data that we are legally required to retain or that is stored in backup systems (which will be deleted according to the backup retention cycle).
+Upon account deletion, your profile data (email address, Minecraft link, nickname, two-factor data and device tokens) is removed from our systems within 30 days, except where we are legally required to retain it or where it is stored in backups that are deleted on the normal backup cycle. Server records are retained for the contract retention period, and support tickets (including ban appeals) are retained as security and abuse records in anonymized form.
 
 The following retention rules apply in addition:
 
 - Extension download statistics are stored for 12 months and then deleted automatically by a daily cleanup job. They are not linked to an account.
 - If you request a full data deletion and it is approved, your account and all personal data that is not legally required are deleted immediately. Records we must retain are moved into a separate, access-restricted retention table and deleted when the legal deadline ends: billing and payment records after 10 years (§ 147 AO, § 257 HGB), contract and server records after 6 years, and security or abuse evidence after 180 days.
 - Data export requests create a ZIP in our storage. The download link is valid for seven days; after that you can request a new export. The export contains the data stored for your account and linked devices, including extension publishing data if you used the developer console.
-- Support tickets, including developer support tickets, are kept while the ticket is open and for as long as needed to handle follow-up questions, then deleted with the account or earlier on request.
+- Support tickets, including developer support tickets and ban appeals, are kept while the ticket is open and afterwards as security and abuse records so decisions stay reviewable. When an account is deleted, the reference to the account is removed (the ticket is anonymized); the ticket itself is not deleted. The retention summary for security and abuse evidence is deleted after 180 days.
 - Published extension packages are retained for 365 days. Only the newest approved package is publicly downloadable; support may hand out an older release inside this window for a documented reason, for example a legal request. After 365 days older package files are deleted, while the newest approved package stays available.
 
 7. Your GDPR Rights (User Rights)

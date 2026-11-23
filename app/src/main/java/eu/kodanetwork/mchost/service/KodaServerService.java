@@ -722,6 +722,12 @@ public class KodaServerService extends Service {
             log(srv.getId(), getString(R.string.con_server_banned_stopped));
             return;
         }
+        // a suspended account cannot start anything. after an unban the flag is cleared
+        // and the normal wake-up path works again.
+        if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("is_banned_user", false)) {
+            log(srv.getId(), getString(R.string.ban_server_start_blocked));
+            return;
+        }
         // safety net: while the tunnel server is overloaded nothing new starts
         if (eu.kodanetwork.mchost.App.getPrefs(this).getBoolean("infra_overload", false)) {
             log(srv.getId(), getString(R.string.con_not_starting_overloaded));

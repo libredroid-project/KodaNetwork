@@ -54,6 +54,7 @@ public class LicensesActivity extends AppCompatActivity {
         addLicense(topContainer, de ? "Datenschutzerklaerung" : "Privacy Policy",
                 de ? "privacy_de.txt" : "privacy.txt");
         addLicense(topContainer, "AI Crash Analysis (Google Gemma via OpenRouter)", "gemma_ai.txt");
+        addProviderCard(topContainer);
 
 
         LinearLayout container = findViewById(R.id.ll_licenses_container);
@@ -168,6 +169,67 @@ public class LicensesActivity extends AppCompatActivity {
         row.addView(tvTitle);
         card.addView(row);
         container.addView(card);
+    }
+
+    /** both provider logos plus the trademark attribution, visible without expanding a licence. */
+    private void addProviderCard(LinearLayout container) {
+        androidx.cardview.widget.CardView card = new androidx.cardview.widget.CardView(this);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        cardParams.setMargins(0, 0, 0, 32);
+        card.setLayoutParams(cardParams);
+        card.setCardBackgroundColor(0xFF241C18);
+        card.setRadius(24f);
+        card.setCardElevation(0f);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(32, 32, 32, 32);
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText(getString(R.string.legal_providers_title));
+        tvTitle.setTextColor(0xFFFF6B00);
+        tvTitle.setTextSize(16);
+        row.addView(tvTitle);
+
+        LinearLayout icons = new LinearLayout(this);
+        icons.setOrientation(LinearLayout.HORIZONTAL);
+        icons.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        icons.setPadding(0, 24, 0, 0);
+        addProviderIcon(icons, R.drawable.ic_provider_modrinth, "Modrinth");
+        addProviderIcon(icons, R.drawable.ic_provider_curseforge, "CurseForge");
+        row.addView(icons);
+
+        TextView tvBody = new TextView(this);
+        tvBody.setText(getString(R.string.legal_providers_body));
+        tvBody.setTextColor(0xFFAAAAAA);
+        tvBody.setTextSize(11);
+        tvBody.setPadding(0, 16, 0, 0);
+        row.addView(tvBody);
+
+        card.addView(row);
+        container.addView(card);
+    }
+
+    private void addProviderIcon(LinearLayout parent, int iconRes, String label) {
+        float d = getResources().getDisplayMetrics().density;
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.HORIZONTAL);
+        item.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        item.setPadding(0, 0, Math.round(24 * d), 0);
+
+        android.widget.ImageView icon = new android.widget.ImageView(this);
+        icon.setImageResource(iconRes);
+        item.addView(icon, new LinearLayout.LayoutParams(
+                Math.round(28 * d), Math.round(28 * d)));
+
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextColor(0xFFF2EFE9);
+        tv.setTextSize(13);
+        tv.setPadding(Math.round(8 * d), 0, 0, 0);
+        item.addView(tv);
+        parent.addView(item);
     }
 
     private void addLicense(LinearLayout container, String title, String filename) {

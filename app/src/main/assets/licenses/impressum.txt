@@ -22,4 +22,7 @@ The content of this app and our services are created with the greatest care. How
 Copyright:
 The content and works created by the site operators on these pages are subject to European copyright law.
 
-Status: September 2026
+Third-party content and trademarks:
+Minecraft is a trademark of Mojang Synergies AB / Microsoft. Modrinth is a trademark of Rinth, Inc. CurseForge is a trademark of Overwolf Ltd. Mods, plugins and modpacks are the property of their respective authors and are provided under their own licenses. The Modrinth and CurseForge logos are used for attribution only and come from Simple Icons (CC0).
+
+Status: November 2026

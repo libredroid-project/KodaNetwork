@@ -21,6 +21,9 @@ package eu.kodanetwork.mchost.util;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.ImageView;
@@ -53,6 +56,10 @@ public class ModrinthHelper {
         public String description;
         public String author;
         public String iconUrl;
+        /** "modrinth" or "curseforge"; the browser uses it to route the install. */
+        public String source = "modrinth";
+        /** CurseForge projects can forbid third-party downloads. */
+        public boolean allowDistribution = true;
     }
 
     public interface SearchCallback {
@@ -78,6 +85,8 @@ public class ModrinthHelper {
         public String iconUrl;
         public long downloads;
         public String serverSide = "";
+        /** "modrinth" or "curseforge". */
+        public String source = "modrinth";
     }
 
     public static class MrpackInfo {
@@ -85,6 +94,12 @@ public class ModrinthHelper {
         public String filename;
         public String sha1;
         public String gameVersion;
+        /** "modrinth" or "curseforge". */
+        public String source = "modrinth";
+        /** "fabric", "forge" or "neoforge". */
+        public String loader = "fabric";
+        public long curseForgeProjectId;
+        public long curseForgeFileId;
     }
 
     public interface ModpackSearchCallback {
@@ -238,23 +253,92 @@ public class ModrinthHelper {
     }
 
     public static void loadIcon(String url, ImageView iv) {
-        if (url == null || url.isEmpty()) return;
-        iv.setTag(url);
+        final String tag = url == null ? "" : url.trim();
+        iv.setTag(tag);
+        if (tag.isEmpty()) {
+            iv.setImageBitmap(errorIcon(iv.getContext(), "NO ICON"));
+            return;
+        }
         executor.submit(() -> {
+            HttpURLConnection conn = null;
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn = (HttpURLConnection) new URL(tag).openConnection();
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(5000);
-                InputStream is = conn.getInputStream();
-                Bitmap bmp = BitmapFactory.decodeStream(is);
-                is.close();
-                if (bmp != null) {
+                int code = conn.getResponseCode();
+                if (code != 200) {
+                    postErrorIcon(iv, tag, "HTTP " + code);
+                    return;
+                }
+                try (InputStream is = conn.getInputStream()) {
+                    Bitmap bmp = BitmapFactory.decodeStream(is);
+                    if (bmp == null) {
+                        postErrorIcon(iv, tag, "NO IMG");
+                        return;
+                    }
                     mainHandler.post(() -> {
-                        if (url.equals(iv.getTag())) iv.setImageBitmap(bmp);
+                        if (tag.equals(iv.getTag())) iv.setImageBitmap(bmp);
                     });
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                String code = "ERR";
+                if (conn != null) {
+                    try {
+                        int status = conn.getResponseCode();
+                        if (status >= 400) code = "HTTP " + status;
+                    } catch (Exception ignored) {}
+                }
+                postErrorIcon(iv, tag, code);
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
         });
+    }
+
+    private static void postErrorIcon(ImageView iv, String tag, String code) {
+        Bitmap bmp = errorIcon(iv.getContext(), code);
+        mainHandler.post(() -> {
+            if (tag.equals(iv.getTag())) iv.setImageBitmap(bmp);
+        });
+    }
+
+    /** used when a local file has no usable icon at all. */
+    public static void showErrorIcon(ImageView iv, String code) {
+        if (iv == null) return;
+        iv.setImageBitmap(errorIcon(iv.getContext(), code));
+    }
+
+    /** a broken image with the failure code, used when a project has no icon or it cannot load. */
+    private static Bitmap errorIcon(Context ctx, String code) {
+        int size = Math.max(96, Math.round(64
+                * ctx.getResources().getDisplayMetrics().density));
+        Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        canvas.drawColor(0xFF26221E);
+
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(0xFF8A7A6A);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(Math.max(2, size * 0.035f));
+        float left = size * 0.18f;
+        float top = size * 0.18f;
+        float right = size * 0.82f;
+        float bottom = size * 0.60f;
+        canvas.drawRect(left, top, right, bottom, p);
+        canvas.drawLine(left, bottom, size * 0.38f, size * 0.40f, p);
+        canvas.drawLine(size * 0.38f, size * 0.40f, size * 0.53f, size * 0.50f, p);
+        canvas.drawLine(size * 0.53f, size * 0.50f, size * 0.68f, size * 0.33f, p);
+        canvas.drawLine(size * 0.68f, size * 0.33f, right, size * 0.52f, p);
+        canvas.drawLine(size * 0.56f, size * 0.18f, size * 0.49f, size * 0.45f, p);
+        canvas.drawLine(size * 0.49f, size * 0.45f, size * 0.58f, size * 0.55f, p);
+
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFFF6B00);
+        p.setTextAlign(Paint.Align.CENTER);
+        p.setTypeface(Typeface.DEFAULT_BOLD);
+        p.setTextSize(size * 0.15f);
+        canvas.drawText(code, size / 2f, size * 0.86f, p);
+        return bmp;
     }
 
     public static void autoDownload(String projectId, ServerInstance server, DownloadCallback cb) {

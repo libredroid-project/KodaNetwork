@@ -130,6 +130,75 @@ public class ModpackInstaller {
         }
     }
 
+    /** installs a CurseForge modpack zip: manifest files plus overrides. */
+    public static void installCurseForgeSync(String zipUrl, String expectedSha1, File serverDir,
+                                             InstallListener listener) throws Exception {
+        File tmpDir = new File(serverDir, ".cfpack_tmp");
+        try {
+            serverDir.mkdirs();
+            listener.onPhaseDownload();
+
+            File pack = new File(tmpDir, "pack.zip");
+            pack.getParentFile().mkdirs();
+            CurseForgeHelper.downloadTo(pack, zipUrl, null, null);
+            if (expectedSha1 != null && !expectedSha1.isEmpty()) {
+                String actual = DownloadVerifier.hashHex(pack, "SHA-1");
+                if (!DownloadVerifier.matches(expectedSha1, actual)) {
+                    throw new IllegalStateException("sha1 mismatch");
+                }
+            }
+            ZipExtract.extract(pack, tmpDir);
+            pack.delete();
+
+            File manifestFile = new File(tmpDir, "manifest.json");
+            if (!manifestFile.exists()) throw new IllegalStateException("manifest.json missing");
+            JSONObject manifest = new JSONObject(readFile(manifestFile));
+            JSONArray files = manifest.optJSONArray("files");
+            int total = files == null ? 0 : files.length();
+            int done = 0;
+            if (files != null) {
+                for (int i = 0; i < files.length(); i++) {
+                    JSONObject f = files.optJSONObject(i);
+                    if (f == null || !f.optBoolean("required", true)) {
+                        done++;
+                        continue;
+                    }
+                    long projectId = f.optLong("projectID", 0);
+                    long fileId = f.optLong("fileID", 0);
+                    if (projectId <= 0 || fileId <= 0) {
+                        done++;
+                        continue;
+                    }
+
+                    JSONObject file = CurseForgeHelper.getFileSync(projectId, fileId);
+                    String url = file.optString("downloadUrl", "");
+                    if (url.isEmpty()) {
+                        throw new IllegalStateException(
+                                "CurseForge distribution disabled for project " + projectId);
+                    }
+                    String name = new File(file.optString("fileName",
+                            "mod-" + projectId + ".jar")).getName();
+                    File target = new File(serverDir, "mods/" + name);
+                    target.getParentFile().mkdirs();
+                    CurseForgeHelper.downloadTo(target, url,
+                            file.optJSONArray("hashes"), null);
+                    done++;
+                    listener.onPhaseFiles(done, total);
+                }
+            }
+
+            applyOverrides(new File(tmpDir,
+                    manifest.optString("overrides", "overrides")), serverDir);
+            listener.onDone();
+        } catch (Exception e) {
+            try { deleteRecursive(tmpDir); } catch (Exception ignored) {}
+            listener.onError(e.getMessage() == null ? "unknown error" : e.getMessage());
+            throw e;
+        } finally {
+            deleteRecursive(tmpDir);
+        }
+    }
+
     private static boolean isSafePath(String path) {
         if (path == null || path.isEmpty()) return false;
         if (path.contains("..")) return false;

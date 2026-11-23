@@ -22,4 +22,7 @@ Die Inhalte dieser App und unserer Dienste werden mit größter Sorgfalt erstell
 Urheberrecht:
 Die durch die Seitenbetreiber auf diesen Seiten erstellten Inhalte und Werke unterliegen dem europäischen Urheberrecht.
 
-Stand: September 2026
+Inhalte und Marken Dritter:
+Minecraft ist eine Marke von Mojang Synergies AB / Microsoft. Modrinth ist eine Marke von Rinth, Inc. CurseForge ist eine Marke von Overwolf Ltd. Mods, Plugins und Modpacks sind Eigentum ihrer jeweiligen Autoren und werden unter ihren eigenen Lizenzen bereitgestellt. Die Logos von Modrinth und CurseForge werden nur zur Zuordnung verwendet und stammen aus Simple Icons (CC0).
+
+Stand: November 2026

@@ -1,5 +1,5 @@
 Terms of Service
-Last Updated: September 2026
+Last Updated: November 2026
 
 By downloading, installing, or using the KodaHosting mobile application, the Web Dashboard, and related services, you agree to comply with and be bound by these Terms of Service. If you do not agree to these Terms, you must uninstall the app and cease using our services immediately.
 
@@ -16,6 +16,10 @@ KodaHosting is provided completely free of charge. There are no purchases, no su
 Server Limit: Each account may host a maximum of six (6) servers simultaneously. This limit applies across all server types (Minecraft and databases combined) and is enforced to ensure fair use of the shared VPS proxy infrastructure.
 
 Voluntary Support via Ko-fi: The app includes an optional link to Ko-fi, a third-party platform where users may choose to make a voluntary financial contribution to support ongoing development. Donations are entirely optional and do not unlock any features, content, or special treatment within the app. Ko-fi is a separate service with its own terms and policies; any donation you make through Ko-fi is governed by Ko-fi's terms and is non-refundable except as provided by Ko-fi's own policies. Donations do not create any contractual obligation on the part of the developer.
+
+1a. Third-Party Mods, Plugins and Modpacks
+
+KodaHosting can search and download content from Modrinth and CurseForge. All mods, plugins and modpacks are third-party content and remain the property of their authors. Your use of that content is governed by the provider's terms and the content's license. We do not host, review, endorse or guarantee third-party content. Some CurseForge authors disable third-party downloads; the app respects that and only offers a link to CurseForge. Do not redistribute downloaded content unless its license allows it.
 
 2. Acceptable Use Policy
 
@@ -51,7 +55,7 @@ Because the servers run on your own hardware, uptime depends directly on your de
 
 5. Account Termination
 
-We reserve the right to suspend or terminate your account and access to the KodaHosting proxy infrastructure at any time, for any reason, particularly if you violate the Acceptable Use Policy. Upon termination, all data stored on your device remains yours; we do not retain server data after account deletion. We may also delete accounts that have been inactive for an extended period.
+We reserve the right to suspend or terminate your account and access to the KodaHosting proxy infrastructure at any time, for any reason, particularly if you violate the Acceptable Use Policy. A suspension applies to the device and account that caused it and can be appealed through the in-app ban appeal. If an appeal is rejected, another one can only be opened after 7 days. For severe abuse we may close ticket creation for an account completely. If a suspension lasts 14 days or more, the local servers of that device are hibernated; while suspended a server can only be downloaded (exported), and it can be started again after the suspension is lifted. Your server files remain on your device and are never uploaded to us; server records are kept as contract records for the statutory retention period described in the Privacy Policy. We may also delete accounts that have been inactive for an extended period.
 
 6. Disclaimer of Warranties
 

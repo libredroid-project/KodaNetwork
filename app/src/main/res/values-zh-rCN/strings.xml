@@ -688,10 +688,12 @@
     <string name="tutorial_tab_dashboard">仪表盘显示服务器状态、内存、玩家和快捷操作。</string>
     <string name="tutorial_tab_console">控制台实时显示服务器输出，并可以执行命令。</string>
     <string name="tutorial_tab_files">管理服务器文件：配置、存档和文件夹, , 直接在这里编辑。</string>
-    <string name="tutorial_tab_plugins">一键从 Modrinth 安装和管理插件与模组。</string>
+    <string name="tutorial_tab_plugins">一键从 Modrinth 或 CurseForge 安装和管理插件与模组。</string>
     <string name="tutorial_tab_settings">所有服务器设置：游戏玩法、附加功能、Java 运行时和服务器信息。</string>
     <string name="tutorial_done_title">一切就绪！</string>
     <string name="tutorial_done_body">你的第一个服务器已准备就绪。祝您托管愉快, , 你可以随时在设置中重新查看教程。</string>
+    <string name="legal_providers_title">模组、插件和整合包</string>
+    <string name="legal_providers_body">模组、插件和整合包来自 Modrinth 或 CurseForge。所有内容归其作者所有。Modrinth 和 CurseForge 是其各自所有者的商标。图标来自 Simple Icons（CC0），仅用于标识来源。</string>
     <string name="tutorial_next">下一步</string>
     <string name="tutorial_replay_hint">教程将在下次启动应用时开始</string>\n
     <string name="net_quality_warning">检测到网络连接较慢。卡顿可能是你的网络造成的，而不是服务器。</string>
@@ -966,6 +968,20 @@
     <string name="version_switch_only_paper">版本切换目前支持 Paper 服务端</string>
     <string name="plugins_mode_install">安装</string>
     <string name="plugins_mode_installed">已安装</string>
+    <string name="addon_source_title">来源</string>
+    <string name="addon_source_desc">选择一个或两个来源，结果将合并显示。</string>
+    <string name="addon_source_modrinth">Modrinth</string>
+    <string name="addon_source_curseforge">CurseForge</string>
+    <string name="addon_source_both">Modrinth + CurseForge</string>
+    <string name="addon_source_modrinth_desc">模组、插件和整合包</string>
+    <string name="addon_source_curseforge_desc">模组、插件和整合包</string>
+    <string name="addon_source_key_error">CurseForge 拒绝了 API 密钥。请在 console.curseforge.com 生成新密钥。</string>
+    <string name="addon_source_missing_key">此版本未配置 CurseForge API 密钥。</string>
+    <string name="addon_source_done">完成</string>
+    <string name="addon_source_choose_one">请至少选择一个来源。</string>
+    <string name="addon_search_modrinth">在 Modrinth 中搜索…</string>
+    <string name="addon_search_curseforge">在 CurseForge 中搜索…</string>
+    <string name="addon_search_both">搜索两个来源…</string>
 
     <!-- praetor screen for version changes (up/downgrade reason, backup rules) -->
     <string name="praetor_version_subtitle">MINECRAFT 版本</string>
@@ -1756,6 +1772,10 @@
     <string name="notif_data_rejected_body">你的申请被拒绝，打开申请查看原因。</string>
     <string name="notif_export_ready_title">你的数据导出已准备好</string>
     <string name="notif_export_ready_body">在应用中打开申请即可下载，链接有效七天。</string>
+    <string name="notif_legal_title">隐私政策已更新</string>
+    <string name="notif_legal_body">我们为新的 Modrinth 和 CurseForge 功能更新了隐私政策和服务条款。点击查看。</string>
+    <string name="notif_java4shell_title">Java4Shell 安全通知</string>
+    <string name="notif_java4shell_body">严重的 OpenJDK Base64 漏洞影响使用 AVX-512 的 x86-64 电脑上的 Java。Android 服务器不受影响。如果你在 PC 或 VPS 上运行 Java，请更新。点击查看 CISA 公告。</string>
     <string name="notif_new_channel">通知</string>
     <string name="notif_deleted">通知已删除</string>
     <string name="notif_settings_saved">已保存</string>
@@ -1807,4 +1827,40 @@
     <string name="login_subtitle">一个账户用于应用、仪表板和支持</string>
     <string name="register_title">创建账户</string>
     <string name="register_subtitle">同一个账户用于应用、仪表板和支持</string>
+
+    <string name="ban_title">你的账号已被暂停</string>
+    <string name="ban_body">此设备无法再使用 KodaHosting。如果你认为这是一个错误，可以向团队发送申诉。</string>
+    <string name="ban_reason_label">原因</string>
+    <string name="ban_reason_default">未提供原因。</string>
+    <string name="ban_hwid_label">硬件 ID</string>
+    <string name="ban_appeal_default">每个账号可以申诉一次。写一条简短消息，团队会阅读每一条。</string>
+    <string name="ban_appeal_button">提出申诉</string>
+    <string name="ban_appeal_title">对封禁提出申诉</string>
+    <string name="ban_appeal_subtitle">告诉团队为什么应该解除封禁。</string>
+    <string name="ban_appeal_hint">发生了什么，为什么我们应该解除封禁？</string>
+    <string name="ban_appeal_send">发送申诉</string>
+    <string name="ban_appeal_sent">申诉已发送。团队会进行审核。</string>
+    <string name="ban_appeal_open">你的申诉已提交给团队。答复会显示在此屏幕上。</string>
+    <string name="ban_appeal_rejected">你上次的申诉被拒绝了。你可以在 %1$s 再次发送。</string>
+    <string name="ban_appeal_locked">此账号的申诉已关闭。</string>
+    <string name="ban_appeal_failed">申诉发送失败。请稍后再试。</string>
+    <string name="ban_appeal_already">你已经有一个待处理的申诉。</string>
+    <string name="ban_appeal_cooldown">你可以在 %1$s 发送新的申诉。</string>
+    <string name="ban_appeal_too_short">请至少写几句话。</string>
+    <string name="ban_appeal_offline">无法加载申诉状态。</string>
+    <string name="ban_appeal_cooldown_short">你暂时还不能发送新的申诉。</string>
+    <string name="ban_appeal_not_banned">此账号已不再被封禁。请重新启动应用。</string>
+    <string name="ban_lifted">你的封禁已解除。欢迎回来。</string>
+    <string name="ban_appeal_chat">打开申诉聊天</string>
+    <string name="ban_servers_button">我的服务器</string>
+    <string name="ban_servers_title">我的服务器</string>
+    <string name="ban_servers_subtitle">封禁期间无法启动服务器。你可以在这里导出副本。</string>
+    <string name="ban_servers_empty">此设备上没有服务器。</string>
+    <string name="ban_servers_exported">已保存到下载：%1$s</string>
+    <string name="ban_servers_export_failed">导出失败：%1$s</string>
+    <string name="ban_servers_hibernated">已休眠</string>
+    <string name="ban_servers_hibernate_note">由于封禁超过 14 天，你的服务器已休眠。封禁解除后可以再次启动。</string>
+    <string name="ban_servers_zipping">正在打包 %1$s…</string>
+    <string name="ban_server_start_blocked">此账号已被暂停。无法启动服务器。</string>
+    <string name="chat_type_unban">封禁申诉</string>
 </resources>

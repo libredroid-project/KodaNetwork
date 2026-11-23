@@ -192,6 +192,14 @@ public final class NotificationCenter {
                 item.title = context.getString(R.string.notif_export_ready_title);
                 item.body = context.getString(R.string.notif_export_ready_body);
                 break;
+            case "legal_update":
+                item.title = context.getString(R.string.notif_legal_title);
+                item.body = context.getString(R.string.notif_legal_body);
+                break;
+            case "java4shell":
+                item.title = context.getString(R.string.notif_java4shell_title);
+                item.body = context.getString(R.string.notif_java4shell_body);
+                break;
             default:
                 break;
         }

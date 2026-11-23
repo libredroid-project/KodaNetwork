@@ -23,6 +23,16 @@ plugins {
 
 apply from: 'database-wx.gradle'
 
+// the CurseForge key is a client credential. It lives in the ignored
+// local.properties and never in the repository or the public mirror.
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+def curseForgeKey = localProperties.getProperty('CURSEFORGE_API_KEY', '')
+def curseForgeKeyEscaped = curseForgeKey.replace('\\', '\\\\').replace('"', '\\"')
+
 android {
     namespace 'eu.kodanetwork.mchost'
     compileSdk 36
@@ -33,6 +43,7 @@ android {
         targetSdk 36
         versionCode 8527
         versionName "v0.147beta"
+        buildConfigField "String", "CURSEFORGE_API_KEY", "\"${curseForgeKeyEscaped}\""
         ndkVersion "27.0.12077973"
         ndk {
             // arm64 only, every termux binary, mariadb and redis in here is arm64 only
