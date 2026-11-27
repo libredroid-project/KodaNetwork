@@ -22,42 +22,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#000000">
     <title>KodaDash</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- ---------- Login ---------- -->
 <div id="login-screen">
-    <div class="login-card">
-        <div class="login-logo">
-            <div class="brand-dot"><img src="logo.png" alt="KodaDash"></div>
-            <h1>KodaDash</h1>
-        </div>
-        <p class="sub">Remote control for your KodaHosting server</p>
+    <img class="login-bg" src="login-bg.webp" alt="" aria-hidden="true">
+    <div class="login-veil" aria-hidden="true"></div>
 
-        <form id="login-form">
-            <div class="field">
-                <label for="token-input">Access token</label>
-                <input type="password" id="token-input" class="input" placeholder="Paste your dashboard token" autocomplete="off">
-            </div>
-            <div class="field hidden" id="password-group">
-                <label for="password-input">Dashboard password</label>
-                <input type="password" id="password-input" class="input" placeholder="Secondary password" autocomplete="off">
-            </div>
-            <button type="submit" class="btn btn-filled btn-block" id="login-btn">Connect</button>
-            <p class="small" id="login-error" style="margin-top:12px;color:var(--md-error)"></p>
-        </form>
-        <p class="small muted" style="margin-top:20px">
-            You can also open this page with <span class="mono">?token=...</span> to sign in automatically.
-        </p>
-        <a class="login-github" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
-            <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>Open source on GitHub
+    <header class="login-top">
+        <a class="brand" href="https://host.kodanetwork.eu" target="_blank" rel="noopener">
+            <img src="logo.png" alt="">
+            <span class="brand-word">Koda<span class="brand-ink">Hosting</span></span>
         </a>
-    </div>
+        <a class="login-back" href="https://host.kodanetwork.eu" target="_blank" rel="noopener">
+            <svg class="icon icon-sm"><use href="icons.svg#i-chevron_left"></use></svg>
+            Back to website
+        </a>
+    </header>
+
+    <main class="login-main">
+        <div class="login-copy">
+            <p class="eyebrow">KodaDash Web Console</p>
+            <h1>Control your pocket server.</h1>
+            <p class="login-lead">Follow the live console, browse and edit world files, manage plugins and configure KodaDash MCP from any desktop browser.</p>
+            <p class="login-note">The dashboard token is in the KodaHosting app under <span class="text-white">Settings &rarr; KodaDash</span>. It is separate from your account password.</p>
+        </div>
+
+        <div class="login-panel">
+            <div class="login-icon"><svg class="icon"><use href="icons.svg#i-terminal"></use></svg></div>
+            <h2>Connect</h2>
+            <p class="login-sub">Paste the access token for this server.</p>
+
+            <form id="login-form" class="login-form">
+                <div class="field">
+                    <label for="token-input">Access token</label>
+                    <input type="password" id="token-input" class="input" placeholder="Paste your dashboard token" autocomplete="off">
+                </div>
+                <div class="field hidden" id="password-group">
+                    <label for="password-input">Dashboard password</label>
+                    <input type="password" id="password-input" class="input" placeholder="Secondary password" autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-filled btn-block login-submit" id="login-btn">Connect</button>
+                <p class="login-error" id="login-error"></p>
+            </form>
+
+            <a class="login-github" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
+                <svg class="github-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>
+                Open source on GitHub
+            </a>
+            <p class="login-hint">Got a control link from the server owner? Just open it — it signs you in automatically, no account needed.</p>
+        </div>
+    </main>
+
+    <footer class="login-footer">
+        <span>&copy; 2026 KodaHosting</span>
+        <span>DE Infrastructure &middot; GDPR</span>
+    </footer>
 </div>
 
 <!-- ---------- App ---------- -->
@@ -66,81 +94,111 @@
 
     <aside id="sidebar">
         <div class="sidebar-header">
-            <div class="brand-dot"><img src="logo.png" alt="KodaDash"></div>
-            <div style="min-width:0">
-                <div class="name" id="server-name">Server</div>
-                <div class="sub">KodaDash</div>
-            </div>
+            <a class="brand" href="https://host.kodanetwork.eu" target="_blank" rel="noopener">
+                <img src="logo.png" alt="">
+                <span class="brand-word">Koda<span class="brand-ink">Hosting</span></span>
+            </a>
             <button class="icon-btn" id="mobile-menu-close" aria-label="Close menu">
                 <svg class="icon"><use href="icons.svg#i-close"></use></svg>
             </button>
         </div>
 
-        <div class="nav-section">Monitor</div>
-        <div class="nav-item active" data-tab="overview">
-            <svg class="icon"><use href="icons.svg#i-dashboard"></use></svg>
-            <span>Overview</span>
-        </div>
-        <div class="nav-item" data-tab="console">
-            <svg class="icon"><use href="icons.svg#i-terminal"></use></svg>
-            <span>Console</span>
-        </div>
-        <div class="nav-item" data-tab="players">
-            <svg class="icon"><use href="icons.svg#i-group"></use></svg>
-            <span>Players</span>
-            <span class="badge hidden" id="player-count-badge">0</span>
-        </div>
+        <div class="sidebar-content" id="sidebar-content">
+            <div class="nav-highlight" id="nav-highlight" aria-hidden="true"></div>
 
-        <div class="nav-section">Manage</div>
-        <div class="nav-item" data-tab="files">
-            <svg class="icon"><use href="icons.svg#i-folder"></use></svg>
-            <span>Files</span>
-        </div>
-        <div class="nav-item" data-tab="plugins">
-            <svg class="icon"><use href="icons.svg#i-extension"></use></svg>
-            <span>Plugins</span>
-        </div>
-        <div class="nav-item" data-tab="settings">
-            <svg class="icon"><use href="icons.svg#i-tune"></use></svg>
-            <span>Settings</span>
-        </div>
+            <div class="nav-section">Monitor</div>
+            <div class="nav-list">
+                <div class="nav-item active" data-tab="overview">
+                    <svg class="icon"><use href="icons.svg#i-dashboard"></use></svg>
+                    <span>Overview</span>
+                </div>
+                <div class="nav-item" data-tab="console">
+                    <svg class="icon"><use href="icons.svg#i-terminal"></use></svg>
+                    <span>Console</span>
+                </div>
+                <div class="nav-item" data-tab="players">
+                    <svg class="icon"><use href="icons.svg#i-group"></use></svg>
+                    <span>Players</span>
+                    <span class="badge hidden" id="player-count-badge">0</span>
+                </div>
+            </div>
 
-        <div class="nav-section">Info</div>
-        <a class="nav-item" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
-            <span class="nav-github"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg></span>
-            <span>Source code</span>
-        </a>
-        <a class="nav-item" href="https://host.kodanetwork.eu/licenses.html" target="_blank" rel="noopener">
-            <svg class="icon"><use href="icons.svg#i-label"></use></svg>
-            <span>Licenses</span>
-        </a>
-        <a class="nav-item" href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">
-            <svg class="icon"><use href="icons.svg#i-content_copy"></use></svg>
-            <span>Legal</span>
-        </a>
+            <div class="nav-section">Manage</div>
+            <div class="nav-list">
+                <div class="nav-item" data-tab="files">
+                    <svg class="icon"><use href="icons.svg#i-folder"></use></svg>
+                    <span>Files</span>
+                </div>
+                <div class="nav-item" data-tab="plugins">
+                    <svg class="icon"><use href="icons.svg#i-extension"></use></svg>
+                    <span>Plugins</span>
+                </div>
+                <div class="nav-item" data-tab="settings">
+                    <svg class="icon"><use href="icons.svg#i-tune"></use></svg>
+                    <span>Settings</span>
+                </div>
+            </div>
+
+            <div class="nav-section">Info</div>
+            <div class="nav-list">
+                <a class="nav-item" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
+                    <svg class="icon"><use href="icons.svg#i-open_in_new"></use></svg>
+                    <span>Source code</span>
+                </a>
+                <a class="nav-item" href="https://host.kodanetwork.eu/licenses.html" target="_blank" rel="noopener">
+                    <svg class="icon"><use href="icons.svg#i-label"></use></svg>
+                    <span>Licenses</span>
+                </a>
+                <a class="nav-item" href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">
+                    <svg class="icon"><use href="icons.svg#i-description"></use></svg>
+                    <span>Legal</span>
+                </a>
+            </div>
+        </div>
 
         <div class="sidebar-footer">
+            <div class="sidebar-status">
+                <div class="sidebar-status-icon">
+                    <img id="server-icon" class="server-icon hidden" alt="">
+                    <span class="status-dot" id="status-dot"></span>
+                </div>
+                <div class="sidebar-status-copy">
+                    <div class="sidebar-status-title" id="status-text">Not connected</div>
+                    <div class="sidebar-status-sub" id="server-name">Server</div>
+                </div>
+            </div>
             <div class="nav-item danger" id="logout-btn">
                 <svg class="icon"><use href="icons.svg#i-logout"></use></svg>
                 <span>Sign out</span>
-            </div>
-            <div id="connection-status">
-                <span class="status-dot" id="status-dot"></span>
-                <span id="status-text">Not connected</span>
             </div>
         </div>
     </aside>
 
     <main id="main-content">
-        <header class="mobile-header">
-            <button class="icon-btn" id="mobile-menu-btn" aria-label="Open menu">
+        <header class="topbar">
+            <button class="icon-btn topbar-menu" id="mobile-menu-btn" aria-label="Open menu">
                 <svg class="icon"><use href="icons.svg#i-menu"></use></svg>
             </button>
-            <span class="title" id="mobile-title">KodaDash</span>
+            <span class="topbar-product">KodaDash</span>
+            <span class="topbar-divider">/</span>
+            <span class="topbar-title" id="mobile-title">Dashboard</span>
+            <span class="spacer"></span>
+            <a class="topbar-website" href="https://host.kodanetwork.eu" target="_blank" rel="noopener">
+                Website
+                <svg class="icon icon-sm"><use href="icons.svg#i-open_in_new"></use></svg>
+            </a>
         </header>
+
+        <div class="page">
 
         <!-- ===== Overview ===== -->
         <section class="tab-content active" id="tab-overview">
+            <div class="page-head">
+                <div>
+                    <h1 class="page-title">Overview</h1>
+                    <p class="page-sub">Live state of your server and the phone it runs on.</p>
+                </div>
+            </div>
             <!-- hero card: the one thing you want to know first -->
             <div class="hero-card">
                 <div class="hero-main">
@@ -168,7 +226,7 @@
                     <button class="btn btn-tonal btn-sm" id="hero-restart">
                         <svg class="icon icon-sm"><use href="icons.svg#i-restart_alt"></use></svg> Restart
                     </button>
-                    <button class="btn btn-outlined btn-sm" id="hero-stop">
+                    <button class="btn btn-ghost-danger btn-sm" id="hero-stop">
                         <svg class="icon icon-sm"><use href="icons.svg#i-stop_circle"></use></svg> Stop
                     </button>
                 </div>
@@ -182,7 +240,6 @@
                     </div>
                     <div class="stat-value" id="stat-tps">--</div>
                     <div class="stat-foot" id="stat-tps-foot">ticks per second</div>
-                    <canvas class="sparkline" id="spark-tps" width="300" height="48"></canvas>
                 </div>
                 <div class="stat-card tone-tertiary">
                     <div class="stat-head">
@@ -192,7 +249,6 @@
                     <div class="stat-value" id="stat-ram">--</div>
                     <div class="stat-foot" id="stat-ram-foot">of allocated</div>
                     <div class="progress"><span id="stat-ram-bar" style="width:0%"></span></div>
-                    <canvas class="sparkline" id="spark-ram" width="300" height="48"></canvas>
                 </div>
                 <div class="stat-card tone-success">
                     <div class="stat-head">
@@ -273,7 +329,7 @@
                         <svg class="icon icon-sm"><use href="icons.svg#i-restart_alt"></use></svg>
                         Restart
                     </button>
-                    <button class="btn btn-outlined" id="btn-stop">
+                    <button class="btn btn-ghost-danger" id="btn-stop">
                         <svg class="icon icon-sm"><use href="icons.svg#i-stop_circle"></use></svg>
                         Stop
                     </button>
@@ -378,7 +434,7 @@
             <p class="page-sub">Browse and edit your server files</p>
 
             <div class="toolbar">
-                <button class="btn btn-tonal btn-sm" id="new-file-btn">
+                <button class="btn btn-filled btn-sm" id="new-file-btn">
                     <svg class="icon icon-sm"><use href="icons.svg#i-add"></use></svg>
                     New file
                 </button>
@@ -446,7 +502,7 @@
                         <h2 class="card-title">AI access (MCP)</h2>
                         <p class="card-sub">Let an AI client inspect and change this server through the Model Context Protocol.</p>
                     </div>
-                    <span class="chip" id="mcp-state-chip">OFF</span>
+                    <span class="chip" id="mcp-state-chip">Off</span>
                 </div>
 
                 <div class="notice notice-warn" style="margin:12px 0">
@@ -493,7 +549,7 @@
 
                 <details style="margin-top:10px">
                     <summary class="muted" style="cursor:pointer">Show system prompt</summary>
-                    <pre id="mcp-instructions" style="white-space:pre-wrap;font-size:.75rem;line-height:1.55;max-height:340px;overflow:auto;background:var(--md-surface-container-low);padding:12px;border-radius:8px;margin-top:8px"></pre>
+                    <pre id="mcp-instructions" class="mcp-pre"></pre>
                 </details>
 
                 <p class="muted" style="margin-top:10px">Audit log: <code>plugins/KodaDash/mcp-audit.log</code> · Connection: <code>Authorization: Bearer &lt;token&gt;</code></p>
@@ -514,13 +570,6 @@
                             <div class="muted small">Remote control panel for your KodaHosting server</div>
                         </div>
                     </div>
-                    <p class="footer-note">
-                        <strong>About this dashboard.</strong> Parts of this interface (layout, wording and the
-                        legal documents linked below) were drafted with the assistance of an AI language model and
-                        reviewed by the developer. The KodaHosting app, its server-hosting logic, the networking
-                        infrastructure and the KodaDash plugin itself are written by the developer. Legal
-                        responsibility for all content rests with the developer and their legal guardians.
-                    </p>
                 </div>
                 <div class="footer-col">
                     <h4>Tabs</h4>
@@ -532,25 +581,34 @@
                     <button type="button" class="footer-link" data-footer-tab="settings">Settings</button>
                 </div>
                 <div class="footer-col">
-                    <h4>Open source</h4>
+                    <h4>KodaHosting</h4>
                     <a class="footer-github" href="https://github.com/libredroid-project/KodaNetwork" target="_blank" rel="noopener">
-                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>Source code on GitHub
+                        <svg class="icon icon-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>Source code on GitHub
                     </a>
-
-                    <h4 style="margin-top:14px">KodaHosting</h4>
                     <a href="https://host.kodanetwork.eu/index.html" target="_blank" rel="noopener">Main page</a>
                     <a href="https://host.kodanetwork.eu/dashboard" target="_blank" rel="noopener">Account dashboard</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
                     <a href="https://host.kodanetwork.eu/licenses.html" target="_blank" rel="noopener">Licenses</a>
                     <a href="https://host.kodanetwork.eu/tos.html" target="_blank" rel="noopener">Terms of Service</a>
                     <a href="https://host.kodanetwork.eu/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
                     <a href="https://host.kodanetwork.eu/impressum.txt" target="_blank" rel="noopener">Impressum</a>
                 </div>
             </div>
+            <div class="footer-notice">
+                <strong>About this dashboard.</strong> Parts of this interface (layout, wording and the
+                legal documents linked below) were drafted with the assistance of an AI language model and
+                reviewed by the developer. The KodaHosting app, its server-hosting logic, the networking
+                infrastructure and the KodaDash plugin itself are written by the developer. Legal
+                responsibility for all content rests with the developer and their legal guardians.
+            </div>
             <div class="footer-bottom">
                 <span>&copy; 2026 KodaHosting</span>
                 <span id="footer-version">KodaDash</span>
             </div>
         </footer>
+        </div><!-- /.page -->
     </main>
 </div>
 
@@ -571,7 +629,13 @@
                 <svg class="icon icon-sm"><use href="icons.svg#i-warning"></use></svg>
                 <span id="editor-warning-text"></span>
             </div>
-            <div id="monaco-container"></div>
+            <div class="editor-stage">
+                <div id="monaco-container"></div>
+                <div id="editor-loading" class="editor-loading hidden">
+                    <span class="editor-spinner"></span>
+                    <span>Loading editor…</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>

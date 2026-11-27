@@ -67,6 +67,12 @@ function escapeHtml(value) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/** "SURVIVAL" / "survival" -> "Survival"; the interface does not shout. */
+function titleCase(value) {
+    var s = String(value == null ? '' : value).toLowerCase();
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 function formatBytes(bytes) {
     if (bytes == null || isNaN(bytes)) return '--';
     var units = ['B', 'KB', 'MB', 'GB'];
@@ -109,6 +115,26 @@ function showToast(message, kind) {
         el.classList.add('out');
         setTimeout(function () { el.remove(); }, 220);
     }, 3200);
+}
+
+/** spins the refresh icon while a tab reload is in flight */
+function withSpinner(button, task) {
+    var icon = button ? button.querySelector('.icon') : null;
+    if (button) button.disabled = true;
+    if (icon) icon.classList.add('spin');
+    function done() {
+        if (icon) icon.classList.remove('spin');
+        if (button) button.disabled = false;
+    }
+    try {
+        var result = task();
+        if (result && typeof result.then === 'function') return result.then(done, done);
+    } catch (e) {
+        done();
+        throw e;
+    }
+    done();
+    return result;
 }
 
 /** turns minecraft legacy color codes into coloured spans */
@@ -241,6 +267,7 @@ function enterDashboard() {
     startStatsPolling();
     connectConsole();
     loadServerActionState();
+    loadServerIdentity();
     loadSuggestions();
 }
 
@@ -260,11 +287,50 @@ function signOut() {
 }
 
 function setConnectionStatus(text, cls) {
-    $('status-text').textContent = text;
+    var label = $('status-text');
+    label.textContent = text;
+    label.className = 'sidebar-status-title' + (cls ? ' ' + cls : '');
     $('status-dot').className = 'status-dot' + (cls ? ' ' + cls : '');
 }
 
+/** the vanilla server-icon.png, delivered as base64 by /api/server */
+function applyServerIcon(icon) {
+    var img = $('server-icon');
+    var dot = $('status-dot');
+    if (!img || !dot) return;
+    if (icon) {
+        img.src = 'data:image/png;base64,' + icon;
+        img.classList.remove('hidden');
+        dot.classList.add('hidden');
+    } else {
+        img.removeAttribute('src');
+        img.classList.add('hidden');
+        dot.classList.remove('hidden');
+    }
+}
+
+function loadServerIdentity() {
+    api('/api/server').then(function (d) {
+        applyServerIcon(d && d.icon);
+        if (d && d.name) $('server-name').textContent = d.name;
+    }).catch(function () {});
+}
+
 /* -------------------------------------------------------------------- tabs */
+
+/** spring the website-style glass highlight to the active sidebar item */
+function positionNavHighlight() {
+    var highlight = $('nav-highlight');
+    if (!highlight) return;
+    var active = document.querySelector('.nav-item.active[data-tab]');
+    if (!active || !$('app').classList.contains('ready')) {
+        highlight.style.opacity = '0';
+        return;
+    }
+    highlight.style.transform = 'translate3d(0,' + active.offsetTop + 'px,0)';
+    highlight.style.height = active.offsetHeight + 'px';
+    highlight.style.opacity = '1';
+}
 
 function switchTab(tab) {
     state.currentTab = tab;
@@ -277,16 +343,25 @@ function switchTab(tab) {
     var section = $('tab-' + tab);
     if (section) section.classList.add('active');
     closeSidebar();
+    window.requestAnimationFrame(positionNavHighlight);
 
     if (tab === 'overview') loadOverview();
     else if (tab === 'players') loadPlayers();
-    else if (tab === 'files') loadFiles(state.currentPath);
+    else if (tab === 'files') { loadFiles(state.currentPath); preloadEditor(); }
     else if (tab === 'plugins') loadPlugins();
     else if (tab === 'settings') { loadSettings(); loadMcp(); }
 }
 
 function openSidebar() { $('sidebar').classList.add('open'); $('scrim').classList.add('open'); }
 function closeSidebar() { $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); }
+function toggleSidebar() {
+    if (window.matchMedia('(max-width: 900px)').matches) {
+        openSidebar();
+        return;
+    }
+    $('app').classList.toggle('sidebar-collapsed');
+    window.setTimeout(positionNavHighlight, 260);
+}
 
 /* ---------------------------------------------------------------- overview */
 
@@ -338,8 +413,8 @@ function loadOverview() {
         $('info-version').textContent = d.version || '--';
         $('info-motd').innerHTML = parseMinecraftColors(d.motd || '--');
         $('info-world').textContent = d.worldName || '--';
-        $('info-gamemode').textContent = d.gamemode || '--';
-        $('info-difficulty').textContent = d.difficulty || '--';
+        $('info-gamemode').textContent = titleCase(d.gamemode || '--');
+        $('info-difficulty').textContent = titleCase(d.difficulty || '--');
         $('info-onlinemode').textContent = d.onlineMode ? 'yes' : 'no';
         $('info-port').textContent = d.port || '--';
         var footerVersion = $('footer-version');
@@ -351,13 +426,14 @@ function loadOverview() {
         var heroState = pending ? 'pending' : (state.connected ? 'online' : 'offline');
         pill.className = 'status-pill ' + heroState;
         $('hero-status-text').textContent = pending ? 'Action pending'
-            : (state.connected ? 'Server online' : 'Not connected');
-        $('hero-motd').innerHTML = parseConsoleText(d.motd || d.name || 'Server');
+            : (state.connected ? 'Online' : 'Offline');
+        $('hero-motd').textContent = String(d.motd || d.name || 'Server').replace(/\u00a7./g, '');
         $('hero-version').textContent = d.version || '';
         $('hero-players').textContent = online + (maxPlayers ? ' / ' + maxPlayers : ' players');
         $('hero-uptime').textContent = 'up ' + formatUptime(d.uptime);
         var address = state.baseUrl ? state.baseUrl.replace(/^https?:\/\//, '') : (window.location.host || '');
         $('hero-address-text').textContent = address || 'local';
+        applyServerIcon(d.icon);
 
         pushHistory('tps', tpsNow);
         pushHistory('ram', maxRam > 0 ? pct : null);
@@ -366,8 +442,6 @@ function loadOverview() {
             loadDeviceInfo();
         }
         refreshPlayersIfStale(6000);
-        drawSparkline('spark-tps', state.stats.tps, 20, 'var(--brand)');
-        drawSparkline('spark-ram', state.stats.ram, 100, 'var(--md-primary)');
     }).catch(function (e) {
         if (e.status === 401) handleUnauthorized();
     });
@@ -460,7 +534,7 @@ function renderOverviewPlayers() {
         var pct = Math.round(health / 20 * 100);
         return '<div class="player-row" data-overview-player="' + index + '" style="cursor:pointer">'
             + '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(p.name) + '/32" alt="">'
-            + '<div><div class="name">' + escapeHtml(p.name) + (p.isOp ? ' <span class="badge badge-warn">OP</span>' : '') + '</div>'
+            + '<div><div class="name">' + escapeHtml(p.name) + (p.isOp ? ' <span class="badge badge-warn">Op</span>' : '') + '</div>'
             + '<div class="meta">' + escapeHtml(p.gamemode || '') + ' - ' + escapeHtml(p.world || '') + '</div></div>'
             + '<span class="spacer"></span>'
             + '<span class="badge ' + (pct > 50 ? 'badge-ok' : pct > 25 ? 'badge-warn' : 'badge-error') + '">'
@@ -519,7 +593,7 @@ function drawSparkline(canvasId, values, max, color) {
     var pad = 4;
     var usable = h - pad * 2;
     var step = w / (values.length - 1);
-    var stroke = color === 'var(--brand)' ? '#FF6B00' : '#FFA45C';
+    var stroke = color === 'var(--brand)' ? '#FF6A00' : '#FF8C38';
     var flat = values.every(function (v) { return v === values[0]; });
 
     ctx.beginPath();
@@ -668,13 +742,13 @@ function connectConsole() {
     var source = new EventSource(url);
     cfg.source = source;
 
-    source.onopen = function () { setConnectionStatus('Live', 'connected'); };
+    source.onopen = function () { setConnectionStatus('Online', 'connected'); };
     source.onerror = function () {
         // EventSource reconnects on its own, the server resumes from Last-Event-ID
         setConnectionStatus('Reconnecting...', 'reconnecting');
     };
     source.onmessage = function (event) {
-        setConnectionStatus('Live', 'connected');
+        setConnectionStatus('Online', 'connected');
         var data;
         try { data = JSON.parse(event.data); } catch (e) { return; }
         appendConsoleLine(data);
@@ -940,8 +1014,8 @@ function playerActions(p) {
         { action: 'advancements', label: 'Reset progress', tone: 'warn', icon: 'i-wipe', player: p.name },
         // one button per stateful action: while it is on, the same button turns it off again
         p.isOp
-            ? { action: 'op', altAction: 'deop', state: 'on', label: 'Remove OP', tone: 'warn', icon: 'i-star', player: p.name }
-            : { action: 'op', state: 'off', label: 'Make OP', tone: 'primary', icon: 'i-star', player: p.name },
+            ? { action: 'op', altAction: 'deop', state: 'on', label: 'Remove Op', tone: 'warn', icon: 'i-star', player: p.name }
+            : { action: 'op', state: 'off', label: 'Make Op', tone: 'primary', icon: 'i-star', player: p.name },
         p.isWhitelisted
             ? { action: 'whitelist', altAction: 'unwhitelist', state: 'on', label: 'Whitelisted', tone: 'ok', icon: 'i-shield', player: p.name }
             : { action: 'whitelist', state: 'off', label: 'Whitelist', tone: 'neutral', icon: 'i-shield', player: p.name },
@@ -957,7 +1031,7 @@ function playerActions(p) {
 function playerCard(p, index) {
     var health = Math.max(0, Math.min(20, Number(p.health != null ? p.health : 20)));
     var pct = Math.round(health / 20 * 100);
-    var gm = (p.gamemode || '').toLowerCase();
+    var gm = titleCase(p.gamemode || '');
     var colour = pct > 50 ? 'var(--md-success)' : pct > 25 ? 'var(--md-warning)' : 'var(--md-error)';
     var playtime = p.stats && p.stats.playTimeHours != null ? p.stats.playTimeHours + 'h played' : '';
     var quick = [
@@ -969,9 +1043,9 @@ function playerCard(p, index) {
         + '<div class="avatar"><img src="https://mc-heads.net/avatar/' + encodeURIComponent(p.name) + '/44" alt=""></div>'
         + '<div class="body">'
         + '<div class="title">' + escapeHtml(p.name)
-        + (p.isOp ? ' <span class="badge badge-warn">OP</span>' : '')
-        + (p.isWhitelisted ? ' <span class="badge badge-ok">WL</span>' : '')
-        + '<span class="badge badge-muted">' + escapeHtml(gm || 'unknown') + '</span></div>'
+        + (p.isOp ? ' <span class="badge badge-warn">Op</span>' : '')
+        + (p.isWhitelisted ? ' <span class="badge badge-ok">Whitelisted</span>' : '')
+        + '<span class="badge badge-muted">' + escapeHtml(gm || 'Unknown') + '</span></div>'
         + '<div class="meta">' + escapeHtml(p.world || '') + (playtime ? ' - ' + escapeHtml(playtime) : '') + '</div>'
         + '<div class="healthbar"><span style="width:' + pct + '%;background:' + colour + '"></span></div>'
         + '<div class="actions">' + quick.map(actionButton).join('') + '</div>'
@@ -1006,6 +1080,28 @@ function bindPlayerActions(scope) {
 
 /** vanilla textures straight from a CDN, block/ is tried when there is no item/ texture */
 var ITEM_TEXTURE_BASE = 'https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/';
+
+/** the same brown broken-image tile the KodaHosting app draws when an icon is missing */
+function pluginErrorIcon(label) {
+    return '<span class="plugin-error" aria-label="' + escapeHtml(label) + '">'
+        + '<svg viewBox="0 0 64 64" aria-hidden="true">'
+        + '<rect x="12" y="12" width="40" height="28" rx="3"></rect>'
+        + '<path d="M12 40 25 27 34 34 43 23 52 36"></path>'
+        + '<path d="M38 12 30 40"></path>'
+        + '</svg>'
+        + '<span>' + escapeHtml(label) + '</span></span>';
+}
+
+window.pluginIconFallback = function (img) {
+    if (img.parentElement) {
+        img.parentElement.innerHTML = pluginErrorIcon('No icon');
+    }
+};
+
+/** same broken-image tile for the Modrinth search results */
+window.modrinthFallback = function () {
+    return pluginErrorIcon('No icon');
+};
 
 window.itemIconFallback = function (img) {
     var blockSrc = img.getAttribute('data-block-src');
@@ -1079,13 +1175,13 @@ function openPlayerModal(index) {
     var html = '<div class="row" style="gap:16px;align-items:center;margin-bottom:16px">'
         + '<div class="avatar" style="width:64px;height:64px"><img src="https://mc-heads.net/avatar/' + encodeURIComponent(p.name) + '/64" alt=""></div>'
         + '<div><div style="font-size:1.125rem;font-weight:500">' + escapeHtml(p.name)
-        + (p.isOp ? ' <span class="badge badge-warn">OP</span>' : '')
+        + (p.isOp ? ' <span class="badge badge-warn">Op</span>' : '')
         + (p.isWhitelisted ? ' <span class="badge badge-ok">Whitelisted</span>' : '')
         + '</div>'
         + '<div class="muted small mono">' + escapeHtml(p.uuid || '') + '</div></div></div>';
 
     html += '<div class="info-grid" style="margin-bottom:16px">'
-        + infoRow('Gamemode', p.gamemode) + infoRow('World', p.world)
+        + infoRow('Gamemode', titleCase(p.gamemode)) + infoRow('World', p.world)
         + infoRow('Health', p.health != null ? Number(p.health).toFixed(1) + ' / 20' : '--')
         + infoRow('Whitelisted', p.isWhitelisted ? 'yes' : 'no')
         + infoRow('Deaths', stats.deaths) + infoRow('Mobs killed', stats.mobsKilled)
@@ -1259,7 +1355,12 @@ function loadFiles(path) {
     state.currentPath = path || '';
     var list = $('files-list');
     var breadcrumb = $('files-breadcrumb');
-    api('/api/files/' + encodePath(state.currentPath)).then(function (d) {
+    // the tunnel makes even a small listing take a second or two; show a spinner
+    // right away so the empty panel never reads as broken
+    list.innerHTML = '<div class="empty-state">'
+        + '<svg class="icon spin"><use href="icons.svg#i-refresh"></use></svg>'
+        + '<div>Loading files…</div></div>';
+    return api('/api/files/' + encodePath(state.currentPath)).then(function (d) {
         if (!d || d.type !== 'directory') { list.innerHTML = '<div class="empty-state">Not a directory</div>'; return; }
         var entries = d.entries || [];
         breadcrumb.innerHTML = renderBreadcrumb(state.currentPath);
@@ -1395,6 +1496,30 @@ function uploadFile(file) {
 
 /* ------------------------------------------------------------- file editor */
 
+function showEditorLoading() {
+    var loading = $('editor-loading');
+    if (loading) loading.classList.remove('hidden');
+    var save = $('editor-save-btn');
+    var download = $('editor-download');
+    if (save) save.disabled = true;
+    if (download) download.disabled = true;
+}
+
+function hideEditorLoading() {
+    var loading = $('editor-loading');
+    if (loading) loading.classList.add('hidden');
+    var save = $('editor-save-btn');
+    var download = $('editor-download');
+    if (save) save.disabled = false;
+    if (download) download.disabled = false;
+}
+
+/** warm Monaco when the Files tab opens, not on the first file click */
+function preloadEditor() {
+    if (state.editor.ready || state.editor.loading) return;
+    ensureMonaco(function () {});
+}
+
 function ensureMonaco(callback) {
     if (state.editor.ready) { callback(); return; }
     state.editor.pending = callback;
@@ -1411,6 +1536,7 @@ function ensureMonaco(callback) {
         if (state.editor.pending) { var cb = state.editor.pending; state.editor.pending = null; cb(); }
     }, function (err) {
         state.editor.loading = false;
+        hideEditorLoading();
         showToast('Editor failed to load: ' + err, 'err');
     });
 }
@@ -1426,16 +1552,24 @@ function monacoLanguage(name) {
 }
 
 function openFile(path) {
+    state.editor.file = path;
+    $('editor-filename').textContent = path;
+    showEditorLoading();
+    openModal('editor-overlay');
+
     api('/api/files/' + encodePath(path)).then(function (data) {
-        if (!data || data.type !== 'file') { showToast('Not a file', 'err'); return; }
+        if (!data || data.type !== 'file') {
+            hideEditorLoading();
+            closeModal('editor-overlay');
+            showToast('Not a file', 'err');
+            return;
+        }
         if (data.tooLarge) {
+            hideEditorLoading();
+            closeModal('editor-overlay');
             showToast('File is too large or binary — use the download button instead.', 'err');
             return;
         }
-        state.editor.file = path;
-        $('editor-filename').textContent = path;
-        openModal('editor-overlay');
-
         ensureMonaco(function () {
             var container = $('monaco-container');
             if (state.editor.instance) state.editor.instance.dispose();
@@ -1450,8 +1584,13 @@ function openFile(path) {
                 renderWhitespace: 'selection'
             });
             state.editor.instance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveFile);
+            hideEditorLoading();
         });
-    }).catch(function (e) { showToast(e.message, 'err'); });
+    }).catch(function (e) {
+        hideEditorLoading();
+        closeModal('editor-overlay');
+        showToast(e.message, 'err');
+    });
 }
 
 function saveFile() {
@@ -1469,20 +1608,20 @@ function saveFile() {
 
 function loadPlugins() {
     var list = $('plugins-list');
-    api('/api/plugins').then(function (d) {
+    return api('/api/plugins').then(function (d) {
         var plugins = d.plugins || [];
         if (!plugins.length) { list.innerHTML = '<div class="empty-state">No plugins installed</div>'; return; }
         list.innerHTML = plugins.map(function (p) {
             var enabled = p.enabled !== false;
-            var colour = enabled ? 'var(--md-success)' : 'var(--md-outline)';
-            var icon = p.hasIcon
-                ? '<img class="plugin-icon" loading="lazy" alt="" src="api/plugins/icon?plugin='
-                    + encodeURIComponent(p.name) + '&' + authQuery() + '">'
-                : '<svg class="icon" style="color:' + colour + '"><use href="icons.svg#i-extension"></use></svg>';
+            // always ask the icon route: it first reads the jar and then looks the
+            // plugin up live on Modrinth, which is where most plugin icons live.
+            var icon = '<img class="plugin-icon" alt="" data-plugin-name="' + escapeHtml(p.name)
+                + '" src="api/plugins/icon?plugin=' + encodeURIComponent(p.name) + '&' + authQuery()
+                + '" onerror="pluginIconFallback(this)">';
             return '<div class="list-item">'
                 + '<div class="avatar plugin-avatar">' + icon + '</div>'
                 + '<div class="body"><div class="title">' + escapeHtml(p.name)
-                + '<span class="badge ' + (enabled ? 'badge-ok' : 'badge-muted') + '">' + (enabled ? 'enabled' : 'disabled') + '</span></div>'
+                + '<span class="badge ' + (enabled ? 'badge-ok' : 'badge-muted') + '">' + (enabled ? 'Enabled' : 'Disabled') + '</span></div>'
                 + '<div class="meta">' + escapeHtml(p.version || '') + (p.authors ? ' - ' + escapeHtml(p.authors) : '') + '</div>'
                 + (p.description ? '<div class="meta">' + escapeHtml(p.description) + '</div>' : '')
                 + '<div class="actions"><button class="btn btn-tonal btn-sm" data-plugin-toggle="' + (enabled ? 'disable' : 'enable') + '" data-plugin-name="' + escapeHtml(p.name) + '">'
@@ -1519,9 +1658,9 @@ function searchModrinth() {
         if (!hits.length) { results.innerHTML = '<div class="empty-state">No plugins found</div>'; return; }
         results.innerHTML = hits.map(function (hit) {
             var icon = hit.iconUrl
-                ? '<img src="' + escapeHtml(hit.iconUrl) + '" alt="">'
-                : '<svg class="icon"><use href="icons.svg#i-extension"></use></svg>';
-            return '<div class="list-item"><div class="avatar">' + icon + '</div>'
+                ? '<img src="' + escapeHtml(hit.iconUrl) + '" alt="' + escapeHtml(hit.title) + '" onerror="this.outerHTML=window.modrinthFallback(this)">'
+                : window.modrinthFallback(null);
+            return '<div class="list-item"><div class="avatar plugin-avatar">' + icon + '</div>'
                 + '<div class="body"><div class="title">' + escapeHtml(hit.title) + '</div>'
                 + '<div class="meta">' + escapeHtml(hit.author || '') + ' - ' + Number(hit.downloads || 0).toLocaleString() + ' downloads</div>'
                 + '<div class="meta">' + escapeHtml((hit.description || '').slice(0, 160)) + '</div>'
@@ -1616,11 +1755,11 @@ function settingRow(key, value) {
     var isNumber = /^-?\d+$/.test(str) && str.length < 10;
     var control;
     if (isBool) {
-        control = '<input type="checkbox" data-setting="' + escapeHtml(key) + '"' + (str === 'true' ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)">';
+        control = '<input type="checkbox" data-setting="' + escapeHtml(key) + '"' + (str === 'true' ? ' checked' : '') + '>';
     } else if (isNumber) {
-        control = '<input type="number" class="input" style="max-width:160px;padding:8px 12px" data-setting="' + escapeHtml(key) + '" value="' + escapeHtml(str) + '">';
+        control = '<input type="number" class="input setting-input" data-setting="' + escapeHtml(key) + '" value="' + escapeHtml(str) + '">';
     } else {
-        control = '<input type="text" class="input" style="max-width:280px;padding:8px 12px" data-setting="' + escapeHtml(key) + '" value="' + escapeHtml(str) + '">';
+        control = '<input type="text" class="input setting-input" data-setting="' + escapeHtml(key) + '" value="' + escapeHtml(str) + '">';
     }
     return '<div class="info-row"><span class="k mono">' + escapeHtml(key) + '</span><span class="v">' + control + '</span></div>';
 }
@@ -1657,6 +1796,21 @@ function confirmDialog(title, message, needsInput, inputLabel, defaultValue) {
         $('dialog-input-label').textContent = inputLabel || 'Value';
         input.value = defaultValue || '';
 
+        var dialogIcon = $('dialog-icon');
+        if (dialogIcon) {
+            var iconName = 'i-warning';
+            var iconColor = '';
+            if (/^new /i.test(title)) iconName = 'i-add';
+            else if (/^rename/i.test(title)) iconName = 'i-edit';
+            else if (/delete|trash|wipe|remove/i.test(title)) {
+                iconName = 'i-delete';
+                iconColor = '#f87171';
+            }
+            var use = dialogIcon.querySelector('use');
+            if (use) use.setAttribute('href', 'icons.svg#' + iconName);
+            dialogIcon.style.color = iconColor;
+        }
+
         function cleanup() {
             $('dialog-confirm').onclick = null;
             $('dialog-cancel').onclick = null;
@@ -1688,6 +1842,8 @@ function init() {
     if (params.get('server')) {
         state.baseUrl = params.get('server').replace(/\/$/, '');
     }
+    var startTab = params.get('tab');
+    if (startTab && document.getElementById('tab-' + startTab)) state.currentTab = startTab;
 
     try {
         var saved = localStorage.getItem('kodaDashHistory');
@@ -1700,8 +1856,12 @@ function init() {
     for (var n = 0; n < navItems.length; n++) {
         navItems[n].addEventListener('click', function () { switchTab(this.getAttribute('data-tab')); });
     }
+    window.addEventListener('resize', positionNavHighlight);
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(positionNavHighlight);
+    }
     $('logout-btn').addEventListener('click', signOut);
-    $('mobile-menu-btn').addEventListener('click', openSidebar);
+    $('mobile-menu-btn').addEventListener('click', toggleSidebar);
     $('mobile-menu-close').addEventListener('click', closeSidebar);
     $('scrim').addEventListener('click', closeSidebar);
 
@@ -1813,13 +1973,17 @@ function init() {
     bindConsoleFollowPause();
 
     /* players */
-    $('players-refresh').addEventListener('click', loadPlayers);
+    $('players-refresh').addEventListener('click', function () {
+        withSpinner(this, loadPlayers);
+    });
     $('player-modal-close').addEventListener('click', function () { closeModal('player-overlay'); });
 
     /* files */
     $('new-file-btn').addEventListener('click', function () { createEntry(false); });
     $('new-folder-btn').addEventListener('click', function () { createEntry(true); });
-    $('refresh-files-btn').addEventListener('click', function () { loadFiles(state.currentPath); });
+    $('refresh-files-btn').addEventListener('click', function () {
+        withSpinner(this, function () { return loadFiles(state.currentPath); });
+    });
     $('upload-btn').addEventListener('click', function () { $('upload-input').click(); });
     $('upload-input').addEventListener('change', function () {
         var file = this.files && this.files[0];
@@ -1833,7 +1997,9 @@ function init() {
     $('editor-download').addEventListener('click', function () { if (state.editor.file) downloadFile(state.editor.file); });
 
     /* plugins */
-    $('plugins-refresh').addEventListener('click', loadPlugins);
+    $('plugins-refresh').addEventListener('click', function () {
+        withSpinner(this, loadPlugins);
+    });
     $('open-modrinth').addEventListener('click', function () {
         openModal('modrinth-overlay');
         setTimeout(function () { $('modrinth-query').focus(); }, 120);
@@ -1952,7 +2118,7 @@ function renderMcp(d) {
     $('mcp-instructions').textContent = d.instructions || '';
 
     var chip = $('mcp-state-chip');
-    chip.textContent = d.enabled ? 'ON' : 'OFF';
+    chip.textContent = d.enabled ? 'On' : 'Off';
     chip.classList.toggle('selected', !!d.enabled);
 }
 
@@ -2462,7 +2628,7 @@ function saveResourcePack() {
 
 /* ------------------------------------------------------- metrics history */
 
-var metricsColours = { tps: '#FF6B00', ram: '#FFA45C', players: '#6FBE7E' };
+var metricsColours = { tps: '#FF6A00', ram: '#FF8C38', players: '#4ADE80' };
 
 /**
  * draws one series into an SVG element (viewBox 0 0 300 70). continuous line with a subtle
@@ -2487,8 +2653,8 @@ function drawChart(svgId, values, options) {
     });
     var line = points.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
     var area = line + ' L' + width + ' ' + height + ' L0 ' + height + ' Z';
-    svg.innerHTML = '<path d="' + area + '" fill="' + options.colour + '" opacity="0.14"></path>'
-        + '<path d="' + line + '" fill="none" stroke="' + options.colour + '" stroke-width="2" '
+    svg.innerHTML = '<path d="' + area + '" fill="' + options.colour + '" opacity="0.08"></path>'
+        + '<path d="' + line + '" fill="none" stroke="' + options.colour + '" stroke-width="1.8" '
         + 'vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></path>';
 }
 

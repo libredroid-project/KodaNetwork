@@ -143,6 +143,7 @@ public class StaticHandler implements HttpHandler {
         if (path.endsWith(".json")) return "application/json";
         if (path.endsWith(".png")) return "image/png";
         if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+        if (path.endsWith(".webp")) return "image/webp";
         if (path.endsWith(".svg")) return "image/svg+xml";
         if (path.endsWith(".ico")) return "image/x-icon";
         if (path.endsWith(".woff2")) return "font/woff2";

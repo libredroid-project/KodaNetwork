@@ -64,6 +64,11 @@ import java.util.concurrent.TimeUnit;
 public final class McpTools {
     private static final int MAX_READ_BYTES = 5 * 1024 * 1024;
     private static final int MAX_TEXT_BYTES = 200 * 1024;
+    /** one files_push / files_chunk_append request: base64 inflates by 4/3 and the
+     * tunnel vhost accepts 25 MB bodies, so 16 MB decoded leaves enough headroom */
+    private static final int MAX_PUSH_BYTES = 16 * 1024 * 1024;
+    /** hard ceiling for a file assembled with files_chunk_append */
+    private static final long MAX_APPEND_TOTAL = 256L * 1024 * 1024;
     private static final Set<String> LIFECYCLE = new HashSet<String>(Arrays.asList(
             "start", "stop", "restart", "hibernate", "end", "shutdown", "halt"
     ));
@@ -162,6 +167,20 @@ public final class McpTools {
                     "Write text or base64 to a file inside the server root. Overwriting needs confirm:true.", false, true, false,
                     schemaWith(propString("path", "Relative path"), propString("content", "UTF-8 text, unless base64 is used"),
                             propString("base64", "Base64 bytes, instead of content"), propBool("confirm", "Required to overwrite an existing file"), "path")));
+            tools.add(tool("files_push", "Push file (up to 16 MB)",
+                    "Upload a whole file as base64 in one request, up to 16 MB decoded. Bigger files: assemble them with files_chunk_append onto a .part name and swap with files_replace_atomic. Overwriting needs confirm:true.",
+                    false, true, false,
+                    schemaWith(propString("path", "Relative path"), propString("base64", "Base64 bytes of the whole file"),
+                            propBool("confirm", "Required to overwrite an existing file"), "path", "confirm")));
+            tools.add(tool("files_chunk_append", "Append base64 chunk",
+                    "Append a base64 chunk (max 16 MB decoded) to a file, creating it when missing. Assemble large jars in chunks onto a .part name, then swap with files_replace_atomic.",
+                    false, true, false,
+                    schemaWith(propString("path", "Relative path, a .part name while assembling"), propString("base64", "Base64 bytes of this chunk"), "path")));
+            tools.add(tool("files_replace_atomic", "Atomic replace",
+                    "Atomically move the finished .part file onto its final path, replacing the target in one step. confirm:true is required.",
+                    false, true, false,
+                    schemaWith(propString("from", "Relative path of the assembled .part file"), propString("path", "Final relative path"),
+                            propBool("confirm", "Must be true"), "from", "path", "confirm")));
             tools.add(tool("files_delete", "Delete file",
                     "Delete a file or directory. confirm:true is required.", false, true, false,
                     schemaWith(propString("path", "Relative path"), propBool("recursive", "Delete a non-empty directory"),
@@ -215,6 +234,8 @@ public final class McpTools {
 
     public boolean isWriteTool(String name) {
         return "console_command".equals(name) || "files_write".equals(name)
+                || "files_push".equals(name) || "files_chunk_append".equals(name)
+                || "files_replace_atomic".equals(name)
                 || "files_delete".equals(name) || "files_rename".equals(name)
                 || "files_mkdir".equals(name) || "settings_update".equals(name)
                 || "server_setting".equals(name)
@@ -225,6 +246,8 @@ public final class McpTools {
     private boolean available(String name) {
         if ("console_command".equals(name)) return settings.allowConsole();
         if ("files_write".equals(name) || "files_delete".equals(name)
+                || "files_push".equals(name) || "files_chunk_append".equals(name)
+                || "files_replace_atomic".equals(name)
                 || "files_rename".equals(name) || "files_mkdir".equals(name)) {
             return settings.allowFileWrite();
         }
@@ -278,6 +301,9 @@ public final class McpTools {
         if ("backups_list".equals(name)) return backupsList();
         if ("console_command".equals(name)) return consoleCommand(args);
         if ("files_write".equals(name)) return filesWrite(args);
+        if ("files_push".equals(name)) return filesPush(args);
+        if ("files_chunk_append".equals(name)) return filesChunkAppend(args);
+        if ("files_replace_atomic".equals(name)) return filesReplaceAtomic(args);
         if ("files_delete".equals(name)) return filesDelete(args);
         if ("files_rename".equals(name)) return filesRename(args);
         if ("files_mkdir".equals(name)) return filesMkdir(args);
@@ -590,6 +616,117 @@ public final class McpTools {
         result.addProperty("path", path);
         result.addProperty("bytes", bytes);
         result.addProperty("overwritten", overwritten);
+        return result;
+    }
+
+    /**
+     * one-shot upload without the 5 MB text cap. 16 MB decoded per request keeps the
+     * base64 body inside the 25 MB the tunnel vhost accepts; bigger files go through
+     * files_chunk_append + files_replace_atomic.
+     */
+    private JsonObject filesPush(JsonObject args) throws Exception {
+        String path = requireString(args, "path").trim();
+        if (path.isEmpty()) throw new ToolException("missing path");
+        ensureMcpSafe(path);
+        String base64 = requireString(args, "base64");
+
+        byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(base64);
+        } catch (Exception e) {
+            throw new ToolException("invalid base64");
+        }
+        if (decoded.length > MAX_PUSH_BYTES) {
+            throw new ToolException("payload is larger than 16 MB; use files_chunk_append + files_replace_atomic instead");
+        }
+
+        File file = plugin.getFileManager().resolve(path);
+        boolean overwritten = file.exists();
+        if (overwritten && !optBool(args, "confirm", false)) {
+            throw new ToolException("file exists; pass confirm:true to overwrite it");
+        }
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists()) parent.mkdirs();
+        Files.write(file.toPath(), decoded);
+
+        JsonObject result = new JsonObject();
+        result.addProperty("path", path);
+        result.addProperty("bytes", decoded.length);
+        result.addProperty("overwritten", overwritten);
+        return result;
+    }
+
+    /**
+     * create-or-append for big files: repeated calls assemble a jar in chunks. the
+     * caller keeps the chunks on a .part name and swaps with files_replace_atomic,
+     * so a broken transfer never leaves a half-written live jar behind.
+     */
+    private JsonObject filesChunkAppend(JsonObject args) throws Exception {
+        String path = requireString(args, "path").trim();
+        if (path.isEmpty()) throw new ToolException("missing path");
+        ensureMcpSafe(path);
+        String base64 = requireString(args, "base64");
+
+        byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(base64);
+        } catch (Exception e) {
+            throw new ToolException("invalid base64");
+        }
+        if (decoded.length > MAX_PUSH_BYTES) {
+            throw new ToolException("chunk is larger than 16 MB; split it further");
+        }
+
+        File file = plugin.getFileManager().resolve(path);
+        long total = file.length() + decoded.length;
+        if (total > MAX_APPEND_TOTAL) {
+            throw new ToolException("assembled file would exceed 256 MB");
+        }
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists()) parent.mkdirs();
+        Files.write(file.toPath(), decoded,
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+
+        JsonObject result = new JsonObject();
+        result.addProperty("path", path);
+        result.addProperty("bytes_appended", decoded.length);
+        result.addProperty("total_bytes", total);
+        return result;
+    }
+
+    /**
+     * the swap: moves the assembled .part file over its final name with
+     * ATOMIC_MOVE, so readers never see a half jar even if the swap happens
+     * while the server is running.
+     */
+    private JsonObject filesReplaceAtomic(JsonObject args) throws Exception {
+        String from = requireString(args, "from").trim();
+        String path = requireString(args, "path").trim();
+        if (from.isEmpty() || path.isEmpty()) throw new ToolException("missing from or path");
+        if (from.equals(path)) throw new ToolException("from and path are the same file");
+        if (!optBool(args, "confirm", false)) throw new ToolException("pass confirm:true to replace");
+        ensureMcpSafe(from);
+        ensureMcpSafe(path);
+
+        File source = plugin.getFileManager().resolve(from);
+        if (!source.isFile()) throw new ToolException("from file does not exist");
+        File target = plugin.getFileManager().resolve(path);
+        if (target.isDirectory()) throw new ToolException("target path is a directory");
+
+        try {
+            Files.move(source.toPath(), target.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+            // same server root in practice; the fallback keeps the tool usable anyway
+            Files.move(source.toPath(), target.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        JsonObject result = new JsonObject();
+        result.addProperty("path", path);
+        result.addProperty("bytes", target.length());
+        result.addProperty("replaced", true);
         return result;
     }
 

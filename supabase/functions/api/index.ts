@@ -146,13 +146,18 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function requireUser(req: Request, admin: Admin): Promise<{ id: string; email: string | null; created_at: string | null } | null> {
+async function requireUser(req: Request, admin: Admin): Promise<{ id: string; email: string | null; created_at: string | null; user_metadata: any } | null> {
   const header = req.headers.get("authorization") ?? "";
   const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
   if (!token) return null;
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data?.user) return null;
-  return { id: data.user.id, email: data.user.email ?? null, created_at: data.user.created_at ?? null };
+  return {
+    id: data.user.id,
+    email: data.user.email ?? null,
+    created_at: data.user.created_at ?? null,
+    user_metadata: (data.user as any).user_metadata ?? {},
+  };
 }
 
 /** all device rows that belong to this account (the app links them via auth_id). */
@@ -296,83 +301,147 @@ async function buildStatus(admin: Admin) {
 
 function statusPageHtml(status: any): string {
   const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
-  // same design language as the website (tokens, Roboto Flex, top app bar,
-  // cards, status badges) so the api domain does not look like a different product.
+  // same design language as the KodaHosting website: black canvas, glass panels,
+  // Geist / Plus Jakarta Sans, one orange accent and sentence case everywhere.
   const maintenance = status.maintenance?.active
-    ? `<div class="banner">Maintenance active${status.maintenance.reason ? ": " + esc(status.maintenance.reason) : ""}</div>`
+    ? `<div class="notice">Maintenance active${status.maintenance.reason ? ": " + esc(status.maintenance.reason) : ""}</div>`
     : "";
   const vps = status.vps
-    ? `<tr><td>tunnel server</td><td>${status.vps.stale ? "stale" : "ok"} · load ${esc(status.vps.load1)} · RAM ${esc(status.vps.ram_used_pct)}% · ${esc(status.vps.open_tunnels)} tunnels</td></tr>`
+    ? `<tr><td>Tunnel server</td><td>${status.vps.stale ? "stale" : "online"} · load ${esc(status.vps.load1)} · RAM ${esc(status.vps.ram_used_pct)}% · ${esc(status.vps.open_tunnels)} tunnels</td></tr>`
     : "";
   const release = status.release
-    ? `<tr><td>latest release</td><td>${esc(status.release.version_name)} (${esc(status.release.version_code)})</td></tr>`
+    ? `<tr><td>Latest release</td><td>${esc(status.release.version_name)} (${esc(status.release.version_code)})</td></tr>`
     : "";
+  const checkedAt = (() => {
+    const date = new Date(status.time);
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(11, 19) + " UTC";
+  })();
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#000000">
 <title>${esc(API_NAME)}</title>
 <link rel="icon" type="image/png" href="https://host.kodanetwork.eu/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--md-surface:#1B1613;--md-surface-container:#231D18;--md-surface-container-high:#2D2620;--md-on-surface:#EFE0D9;--md-on-surface-variant:#D8C2B5;--md-outline-variant:#534339;--brand:#FF6B00;--brand-container:rgba(255,107,0,.15);--md-success:#6FBE7E;--md-success-container:rgba(111,190,126,.15);--md-error:#FFB4AB;--md-error-container:rgba(255,180,171,.12);--shape-md:12px;--shape-lg:16px;--shape-full:999px;--elev-1:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15)}
+:root{--background:#000;--foreground:#f4f4f5;--muted:#9696a0;--border:rgba(255,255,255,.09);--brand:#ff6a00;--brand-ink:#ff8c38;--success:#4ade80;--warning:#fbbf24;--font-sans:'Plus Jakarta Sans','Geist',system-ui,-apple-system,sans-serif;--font-heading:'Geist',system-ui,-apple-system,sans-serif;--font-mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;--ease-out:cubic-bezier(.16,1,.3,1)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Roboto Flex','Roboto',sans-serif;background:var(--md-surface);color:var(--md-on-surface);-webkit-font-smoothing:antialiased;min-height:100vh}
+html{-webkit-text-size-adjust:100%}
+body{min-height:100svh;display:flex;flex-direction:column;background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:15px;line-height:1.5;font-feature-settings:'cv02','cv03','cv04','cv11';-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 a{color:inherit;text-decoration:none}
-.top-app-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--md-surface-container);box-shadow:var(--elev-1)}
-.logo{display:flex;align-items:center;gap:10px;font-weight:500;font-size:1.0625rem}
-.logo img{width:32px;height:32px;border-radius:8px}
-.logo .b{color:var(--brand)}
-.top-app-bar nav{display:flex;gap:18px;font-size:.875rem;color:var(--md-on-surface-variant)}
-.top-app-bar nav a:hover{color:var(--brand)}
-main{max-width:760px;margin:0 auto;padding:36px 20px 64px}
-.head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-h1{font-size:1.75rem;font-weight:600;letter-spacing:-.01em}
-h2{font-size:1rem;font-weight:600;margin-bottom:12px}
-.sub{color:var(--md-on-surface-variant);margin-top:10px;line-height:1.55;max-width:64ch}
-.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--shape-sm,8px);font-size:.6875rem;font-weight:500;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
-.status-badge::before{content:'';width:6px;height:6px;border-radius:var(--shape-full);background:currentColor}
-.status-online{background:var(--md-success-container);color:var(--md-success)}
-.status-error{background:var(--md-error-container);color:var(--md-error)}
-.banner{margin-top:16px;padding:12px 16px;border-radius:var(--shape-md);background:var(--brand-container);color:var(--brand);font-size:.875rem}
-.card{background:var(--md-surface-container);border-radius:var(--shape-lg);box-shadow:var(--elev-1);padding:22px;margin-top:20px}
+.wrap{width:100%;max-width:72rem;margin-inline:auto;padding-inline:24px}
+header{border-bottom:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.8);backdrop-filter:blur(12px)}
+.bar{display:flex;align-items:center;justify-content:space-between;height:64px;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand img{width:24px;height:24px;border-radius:6px;object-fit:cover;flex:0 0 auto}
+.brand-word{font-family:var(--font-heading);font-size:15px;font-weight:600;letter-spacing:-.025em;color:#fff;white-space:nowrap}
+.brand-ink{color:var(--brand-ink)}
+nav{display:flex;gap:18px;font-size:12.5px;color:#a1a1aa}
+nav a:hover{color:#fff}
+main{flex:1;padding:48px 0 64px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.eyebrow{color:var(--brand-ink);font-size:12.5px;font-weight:500}
+h1{margin-top:6px;color:#fff;font-family:var(--font-heading);font-size:32px;font-weight:500;letter-spacing:-.03em;line-height:1.15}
+h2{margin-bottom:12px;color:#fff;font-family:var(--font-heading);font-size:15px;font-weight:500;letter-spacing:-.02em}
+.lead{max-width:64ch;margin-top:10px;color:#a1a1aa;font-size:13.5px;line-height:1.7}
+.status-badge{display:inline-flex;height:28px;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(255,255,255,.03);padding:0 10px;color:#a1a1aa;font-family:var(--font-mono);font-size:10.5px;white-space:nowrap}
+.status-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.status-online{color:var(--success)}
+.status-error{color:var(--warning)}
+.notice{margin-top:18px;border:1px solid rgba(251,191,36,.22);border-radius:12px;background:rgba(251,191,36,.07);padding:11px 14px;color:var(--warning);font-size:12.5px;line-height:1.55}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;margin-top:20px}
+.card{border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.045) 0%,rgba(9,9,11,.94) 100%);padding:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.09)}
 table{border-collapse:collapse;width:100%}
-td{padding:9px 0;border-bottom:1px solid var(--md-outline-variant);vertical-align:top;font-size:.9375rem}
+td{padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;font-size:13px;line-height:1.55}
 tr:last-child td{border-bottom:0}
-td:first-child{color:var(--md-on-surface-variant);width:38%}
-code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.8125rem;background:var(--md-surface-container-high);padding:3px 8px;border-radius:8px;color:var(--brand)}
-.ep{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
-.foot{color:var(--md-on-surface-variant);font-size:.75rem;margin-top:28px;text-align:center;line-height:1.6}
-.foot a{color:var(--brand)}
+td:first-child{width:38%;color:#71717a;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.02em}
+td:last-child{color:#e4e4e7}
+.ep{display:flex;flex-wrap:wrap;gap:6px}
+.ep + .ep{margin-top:8px}
+code{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.06);border-radius:6px;background:#050506;padding:4px 7px;color:#a1a1aa;font-family:var(--font-mono);font-size:10.5px;white-space:nowrap}
+.method{color:var(--brand-ink);font-weight:500}
+.note{margin-top:14px;color:#71717a;font-size:11.5px;line-height:1.6}
+footer{border-top:1px solid rgba(255,255,255,.06);padding:28px 0 24px;color:#71717a}
+.foot-grid{display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr));gap:32px;align-items:start}
+.foot-brand p{max-width:34ch;margin-top:10px;color:#71717a;font-size:11.5px;line-height:1.65}
+.foot-col h4{margin:0 0 10px;color:#e4e4e7;font-family:var(--font-sans);font-size:12px;font-weight:500}
+.foot-col a{display:block;padding:4px 0;color:#71717a;font-size:12.5px;transition:color .15s var(--ease-out)}
+.foot-col a:hover{color:#fff}
+.foot-bottom{display:flex;justify-content:space-between;gap:12px 40px;flex-wrap:wrap;margin-top:24px;border-top:1px solid rgba(255,255,255,.06);padding-top:14px;color:#52525b;font-family:var(--font-mono);font-size:10.5px;line-height:1.6}
+@media (max-width:900px){.grid{grid-template-columns:1fr}.foot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.foot-grid{grid-template-columns:1fr}main{padding:32px 0 48px}}
 </style></head><body>
-<header class="top-app-bar">
-<a href="https://host.kodanetwork.eu" class="logo"><img src="https://host.kodanetwork.eu/assets/logo.png" alt="KodaHosting logo">Koda<span class="b">Hosting</span></a>
+<header>
+<div class="wrap bar">
+<a class="brand" href="https://host.kodanetwork.eu"><img src="https://host.kodanetwork.eu/assets/logo.png" alt="KodaHosting"><span class="brand-word">Koda<span class="brand-ink">Hosting</span></span></a>
 <nav><a href="https://host.kodanetwork.eu/dashboard">Dashboard</a><a href="https://host.kodanetwork.eu/docs">Docs</a><a href="https://host.kodanetwork.eu/store">Store</a></nav>
+</div>
 </header>
 <main>
+<div class="wrap">
 <div class="head">
+<div>
+<p class="eyebrow">API status</p>
 <h1>${esc(API_NAME)}</h1>
-<span class="status-badge ${status.maintenance?.active ? "status-error" : "status-online"}">${status.maintenance?.active ? "maintenance" : "operational"} · ${esc(status.time)}</span>
 </div>
-<p class="sub">Live values for the network: servers and players, published extensions, the tunnel server and the latest app release. Everything on this domain is read-only unless a bearer token is sent.</p>
+<span class="status-badge ${status.maintenance?.active ? "status-error" : "status-online"}"><span class="dot"></span>${status.maintenance?.active ? "Maintenance" : "Operational"}${checkedAt ? " · " + esc(checkedAt) : ""}</span>
+</div>
+<p class="lead">Live values for the network: servers and players, published extensions, the tunnel server and the latest app release. Everything on this domain is read-only unless a bearer token is sent.</p>
 ${maintenance}
-<div class="card">
+<div class="grid">
+<section class="card">
+<h2>Network</h2>
 <table>
-<tr><td>servers</td><td>${esc(status.servers.total)} · ${esc(status.servers.players_online)} players online</td></tr>
-<tr><td>extensions</td><td>${esc(status.extensions.published)} published</td></tr>
+<tr><td>Servers</td><td>${esc(status.servers.total)} · ${esc(status.servers.players_online)} players online</td></tr>
+<tr><td>Extensions</td><td>${esc(status.extensions.published)} published</td></tr>
 ${vps}
 ${release}
 </table>
-</div>
-<div class="card">
+</section>
+<section class="card">
 <h2>Endpoints</h2>
-<div class="ep"><code>GET /v1/status</code><code>GET /v1/releases</code><code>GET /v1/extensions</code><code>GET /v1/servers</code><code>GET /v1/invite/{token}</code></div>
-<div class="ep"><code>GET /v1/extensions/{id}</code><code>GET /v1/extensions/{id}/download</code></div>
-<div class="ep"><code>GET /v1/me</code><code>GET /v1/me/extensions</code><code>GET /v1/me/tickets</code></div>
-<div class="ep"><code>POST /v1/extensions</code><code>POST /v1/extensions/{id}/finalize</code></div>
+<div class="ep"><code><span class="method">GET</span> /v1/status</code><code><span class="method">GET</span> /v1/releases</code><code><span class="method">GET</span> /v1/extensions</code></div>
+<div class="ep"><code><span class="method">GET</span> /v1/servers</code><code><span class="method">GET</span> /v1/servers/{host}</code><code><span class="method">GET</span> /v1/invite/{token}</code></div>
+<div class="ep"><code><span class="method">GET</span> /v1/me</code><code><span class="method">GET</span> /v1/me/extensions</code><code><span class="method">GET</span> /v1/me/tickets</code></div>
+<div class="ep"><code><span class="method">POST</span> /v1/extensions</code><code><span class="method">POST</span> /v1/extensions/{id}/finalize</code></div>
+<p class="note">Public routes need no key. Routes under /v1/me expect a bearer token.</p>
+</section>
 </div>
-<p class="foot">Powered by <a href="https://host.kodanetwork.eu">KodaHosting</a>. Not an official Minecraft product, not approved by or associated with Mojang or Microsoft.</p>
+</div>
 </main>
+<footer>
+<div class="wrap">
+<div class="foot-grid">
+<div class="foot-brand">
+<a class="brand" href="https://host.kodanetwork.eu"><img src="https://host.kodanetwork.eu/assets/logo.png" alt="KodaHosting"><span class="brand-word">Koda<span class="brand-ink">Hosting</span></span></a>
+<p>The public API behind the KodaHosting app, the website and the extension store.</p>
+</div>
+<div class="foot-col">
+<h4>Product</h4>
+<a href="https://host.kodanetwork.eu/dashboard">Dashboard</a>
+<a href="https://host.kodanetwork.eu/store">Extension store</a>
+<a href="https://host.kodanetwork.eu/docs">Documentation</a>
+</div>
+<div class="foot-col">
+<h4>Developers</h4>
+<a href="https://github.com/libredroid-project/KodaNetwork">Source on GitHub</a>
+<a href="https://github.com/libredroid-project/KodaNetwork/tree/main/extensions">Extension docs</a>
+</div>
+<div class="foot-col">
+<h4>Legal</h4>
+<a href="https://host.kodanetwork.eu/privacy">Privacy Policy</a>
+<a href="https://host.kodanetwork.eu/tos">Terms of Service</a>
+<a href="https://host.kodanetwork.eu/licenses">Licenses</a>
+<a href="https://host.kodanetwork.eu/impressum">Impressum</a>
+</div>
+</div>
+<div class="foot-bottom">
+<span>&copy; 2026 KodaHosting. All rights reserved.</span>
+<span>KodaHosting is not an official Minecraft product, is not approved by or associated with Mojang or Microsoft.</span>
+</div>
+</div>
+</footer>
 </body></html>`;
 }
 
@@ -942,7 +1011,7 @@ async function withdrawExtension(admin: Admin, user: { id: string }, extId: stri
 // account
 // ---------------------------------------------------------------------------
 
-async function getMe(admin: Admin, user: { id: string; email: string | null; created_at: string | null }, cors: Record<string, string>) {
+async function getMe(admin: Admin, user: { id: string; email: string | null; created_at: string | null; user_metadata: any }, cors: Record<string, string>) {
   const [profileRes, avatarRes, uuids] = await Promise.all([
     admin.from("koda_users")
       .select("app_uuid,nickname,mc_username,mc_uuid,is_main,two_fa_enabled,created_at")
@@ -968,6 +1037,16 @@ async function getMe(admin: Admin, user: { id: string; email: string | null; cre
   const { count: extCount } = await admin.from("extensions")
     .select("id", { count: "exact", head: true }).eq("owner_auth_id", user.id);
 
+  // control accounts exist only to run servers shared by other people. the moment
+  // they own a server of their own they migrate to a full account automatically.
+  let accountType = user.user_metadata?.account_type === "control" ? "control" : null;
+  if (accountType === "control" && serverCount > 0) {
+    accountType = null;
+    try {
+      await admin.auth.updateUserById(user.id, { user_metadata: { account_type: null } });
+    } catch { /* the lazily computed type below is already correct */ }
+  }
+
   return json({
     ok: true,
     me: {
@@ -984,6 +1063,7 @@ async function getMe(admin: Admin, user: { id: string; email: string | null; cre
       device_count: uuids.length,
       server_count: serverCount,
       extension_count: extCount ?? 0,
+      account_type: accountType,
     },
   }, 200, cors);
 }

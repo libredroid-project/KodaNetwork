@@ -26,7 +26,10 @@ import de.kodahosting.kodadash.server.RouteHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Base64;
 
 /**
  * the server info block the dashboard shows on its home screen.
@@ -96,12 +99,44 @@ public class ServerRoute extends RouteHandler {
             }
             
             response.addProperty("hasIcon", Bukkit.getServer().getServerIcon() != null);
+            String icon = serverIconBase64(this.plugin);
+            if (icon != null) {
+                response.addProperty("hasIcon", true);
+                response.addProperty("icon", icon);
+            }
 
             sendJson(exchange, 200, response);
             
         } catch (Exception e) {
             e.printStackTrace();
             sendError(exchange, 500, "Internal server error: " + e.getMessage());
+        }
+    }
+
+    /** the vanilla server-icon.png, as a data-URI friendly base64 string. cached by mtime. */
+    private static String iconBase64;
+    private static long iconModified = -1;
+    private static File iconFile;
+
+    private static synchronized String serverIconBase64(KodaDash plugin) {
+        try {
+            File plugins = plugin.getDataFolder().getParentFile();
+            File root = plugins != null ? plugins.getParentFile() : null;
+            File file = new File(root != null ? root : new File("."), "server-icon.png");
+            if (!file.isFile()) return null;
+            long modified = file.lastModified();
+            if (iconBase64 != null && modified == iconModified && file.equals(iconFile)) {
+                return iconBase64;
+            }
+            long size = file.length();
+            if (size <= 0 || size > 1024 * 1024) return null;
+            byte[] bytes = Files.readAllBytes(file.toPath());
+            iconBase64 = Base64.getEncoder().encodeToString(bytes);
+            iconModified = modified;
+            iconFile = file;
+            return iconBase64;
+        } catch (Exception ignored) {
+            return null;
         }
     }
 }
