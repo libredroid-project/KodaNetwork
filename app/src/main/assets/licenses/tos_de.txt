@@ -93,15 +93,25 @@ Sollte eine Bestimmung dieser Bedingungen von einem zuständigen Gericht für un
 
 Die Nichtdurchsetzung eines Rechts oder einer Bestimmung aus diesen Bedingungen durch den Entwickler stellt keinen Verzicht auf dieses Recht oder diese Bestimmung dar, sofern dies nicht schriftlich anerkannt und vereinbart wurde. Der Verzicht auf ein solches Recht gilt nur für den konkreten Fall und verzichtet nicht auf zukünftige Rechte oder Bestimmungen.
 
-12. Anwendbares Recht und Gerichtsstand
+12. Territoriale Verfügbarkeit
+
+Der Dienst wird aus Deutschland betrieben und ist nicht für den Betrieb in jedem Land oder jeder Region lizenziert.
+
+12.1 Der Dienst wird Bewohnerinnen und Bewohnern der folgenden Länder und Regionen nicht angeboten und darf von dort nicht genutzt werden: die Russische Föderation, die Republik Belarus, die Sozialistische Republik Vietnam, die Republik Indonesien, die Republik Kasachstan, die Demokratische Volksrepublik Korea (Nordkorea), die Arabische Republik Syrien sowie die Regionen Krim, Sewastopol und die nicht unter Regierungskontrolle stehenden Gebiete der Oblaste Donezk und Luhansk in der Ukraine. Für die Volksrepublik China ist der Dienst zusätzlich auf dem Gerät aus Lizenzgründen technisch gesperrt.
+
+12.2 Google Play oder andere Stores können die App in weiteren Ländern und Regionen listen. Ein solches Listing ist nur ein Vertriebsmechanismus und erweitert das Angebot des Dienstes nicht auf die oben genannten Länder und Regionen.
+
+12.3 Du bist dafür verantwortlich, dass deine Nutzung des Dienstes den Gesetzen deines Wohnsitzlandes folgt. Wo es Sanktionen oder lokales Recht erfordern, können wir den Zugriff für einzelne Länder, Regionen oder Nutzer einschränken, blockieren oder beenden.
+
+13. Anwendbares Recht und Gerichtsstand
 
 Diese Bedingungen unterliegen dem Recht der Bundesrepublik Deutschland unter Ausschluss der Kollisionsnormen. Gerichtsstand für alle Streitigkeiten aus oder im Zusammenhang mit diesen Bedingungen ist, soweit gesetzlich zulässig, Paderborn, Deutschland. Unbeschadet dessen kannst du Ansprüche in deinem lokalen Gerichtsstand geltend machen, wenn dies nach zwingendem Verbraucherschutzrecht erforderlich ist.
 
-13. Änderungen der Bedingungen
+14. Änderungen der Bedingungen
 
 Wir behalten uns vor, diese Nutzungsbedingungen jederzeit zu ändern. Die fortgesetzte Nutzung der App nach solchen Änderungen gilt als Zustimmung zu diesen. Wesentliche Änderungen werden über die App oder auf dieser Website mitgeteilt. Wir empfehlen, diese Bedingungen regelmäßig zu prüfen.
 
-14. Impressum
+15. Impressum
 
 Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz):
 Verantwortlich für den Inhalt dieser App und Website:

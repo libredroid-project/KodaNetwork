@@ -93,15 +93,25 @@ If any provision of these Terms is held to be invalid, illegal, or unenforceable
 
 The failure of the developer to enforce any right or provision in these Terms shall not constitute a waiver of such right or provision unless acknowledged and agreed to in writing. The waiver of any such right or provision applies only to the specific instance and does not waive any future rights or provisions.
 
-12. Governing Law & Jurisdiction
+12. Territorial Availability
+
+The Service is operated from Germany and is not licensed for operation in every country or region.
+
+12.1 The Service is not offered to, and must not be used from, residents of the following countries and regions: the Russian Federation, the Republic of Belarus, the Socialist Republic of Vietnam, the Republic of Indonesia, the Republic of Kazakhstan, the Democratic People's Republic of Korea (North Korea), the Syrian Arab Republic, and the regions of Crimea, Sevastopol and the non-government-controlled areas of the Donetsk and Luhansk regions of Ukraine. For the People's Republic of China the Service is additionally blocked on the device for licensing reasons.
+
+12.2 Google Play or other stores may list the app in further countries and regions. Such a listing is a distribution mechanism only and does not extend the offer of the Service into the countries and regions named above.
+
+12.3 You are responsible for making sure your use of the Service follows the laws of your country of residence. Where required by sanctions or local law, we can restrict, block or end access for individual countries, regions or users.
+
+13. Governing Law & Jurisdiction
 
 These Terms shall be governed by and construed in accordance with the laws of the Federal Republic of Germany, without regard to its conflict of law provisions. The place of jurisdiction for all disputes arising from or in connection with these Terms shall be Paderborn, Germany, to the extent permitted by law. Notwithstanding the foregoing, you may bring claims in your local jurisdiction if required by mandatory consumer protection law.
 
-13. Changes to Terms
+14. Changes to Terms
 
 We reserve the right to modify these Terms of Service at any time. Continued use of the app after any such changes shall constitute your consent to such changes. Material changes will be communicated via the app or on this website. We recommend reviewing these Terms periodically.
 
-14. Impressum (Legal Notice)
+15. Impressum (Legal Notice)
 
 Information in accordance with § 5 DDG (Digitale-Dienste-Gesetz):
 Responsible for the content of this application and website:
